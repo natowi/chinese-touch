@@ -57,6 +57,15 @@ int main()
 		LOG( "loading config" );
 		config.load();
 
+#if 0
+	ErrorConsole::init_screen();
+	RenderScreen r;
+	ft->init_screen( SCREEN_MAIN, r );
+	ft->render( r, "vvvvvvvaaaaaaaaaaaaavvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiii我的中文老师很好！", ft->latin_face, 10, 0, 0 );
+	//ft->render( r, "Ich schreib hier mal einen längeren Text hin um auszuprobieren wie gut das mit den horizontalen Buchstabenabständen nun eigentlich funktioniert. 我的中文老师很好！", ft->latin_face, 10, 0, 0 );
+	while( true ) swiWaitForVBlank();
+#endif
+		
 		while( true )
 		{
 			try

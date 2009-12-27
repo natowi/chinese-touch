@@ -100,6 +100,7 @@ public:
 		  input_char_it(_input_char_it) {}
 public:
     int x, y, width, height;
+	FT_Vector pen, advance;
 	UCChar uc_char;
     unsigned long glyph_index;
     bool line_begin;

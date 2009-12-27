@@ -253,6 +253,7 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 				{
 					// include line breaks
 					RenderChar* render_char = new RenderChar( input_char_it, glyph_index, current_face );
+					render_char->pen = pen;
 					render_char->x = pen.x/64;
 					render_char->y = -pen.y/64;
 					render_char_list->push_back( render_char );
@@ -301,11 +302,13 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
         LOG( "glyph name: " << buffer );
         
         RenderChar* render_char = new RenderChar( input_char_it, glyph_index, current_face );
+		render_char->pen = pen;
         render_char->x = pen.x/64;
         render_char->y = -pen.y/64;
 		FT_GlyphSlot& glyph = current_face->glyph;
 		FT_Bitmap& bitmap = current_face->glyph->bitmap;
 		LOG( "w/r: " << bitmap.width << "/" << bitmap.rows << " t: " << glyph->bitmap_top );
+		render_char->advance = glyph->advance;
 		render_char->width = glyph->advance.x/64;
 		render_char->height = bitmap.rows;
 		if( !bitmap.buffer )
@@ -471,39 +474,43 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
         {
             std::stringstream msg;
 			msg << "error loading glyph index: " << (*rchar_it)->glyph_index 
-				<< "(" << ft_errors[error];
+				<< "(" << ft_errors[error] << ")";
 			throw ERROR( msg.str() );
         }
         FT_GlyphSlot& glyph = (*rchar_it)->face->glyph;
         FT_Bitmap& bitmap = (*rchar_it)->face->glyph->bitmap;
+		/*for( int i=0; bitmap.buffer && i<bitmap.pitch*bitmap.rows; i+=bitmap.pitch )
+		{
+			bitmap.buffer[i] = 0xff;
+			bitmap.buffer[i+bitmap.width-1] = 0x7f;
+		}*/
 		if( !render_screen.res_x || ! render_screen.res_y || !render_screen.base_address )
 		{
 			throw ERROR( "FreeTypeRenderer::render(): target buffer not initialized or of zero size" );
 		}
+		//std::cout << glyph->bitmap_left << "|" << (*rchar_it)->x << " ";
         for( int row=0; bitmap.buffer && row<bitmap.rows; row++ )
         {
 			int dest_y = row+(line_height-glyph->bitmap_top);
 			if( dest_y < 0 || dest_y >= render_screen.res_y )
 				continue;
-            for( int pixel=0; pixel<bitmap.width; pixel+=2 )
+            for( int pixel=0-(glyph->bitmap_left%2); pixel<bitmap.width; pixel+=2 )
             {
 				int dest_x = pixel + glyph->bitmap_left;
-				if( dest_x < 0 || dest_x > (render_screen.res_x-2) )
+				if( (dest_x < 0) || (dest_x > (render_screen.res_x-2)) )
+				{
+					//std::cout << "# ";
 					continue;
+				}
                 u16 value = 0;
-                if( pixel < bitmap.width-1 )
-                {
-                    value = (bitmap.buffer[row*bitmap.pitch+pixel+1] << 8)
-                                + bitmap.buffer[row*bitmap.pitch+pixel];
-                }
-                else
-                {
-                    value = bitmap.buffer[row*bitmap.pitch+pixel];
-                }
-                u16* bg_gfx_ptr = render_screen.base_address;
-                u16* base_address = bg_gfx_ptr
+				value = ((pixel < bitmap.width-1) ? (bitmap.buffer[row*bitmap.pitch+pixel+1] << 8) 	: 0)
+						+ ((pixel >= 0) ? 			(bitmap.buffer[row*bitmap.pitch+pixel]) 		: 0);
+				//std::cout << dest_x << "|" << pixel << "|" << value << " ";
+                u16* base_address = render_screen.base_address
                         + (row+(line_height-glyph->bitmap_top))*render_screen.res_x/2
-                        + pixel/2 + glyph->bitmap_left/2;
+                        + pixel/2
+						+ glyph->bitmap_left/2
+						+ ((glyph->bitmap_left > 0) ? (glyph->bitmap_left%2) : 0);
                 *base_address |= value;
             }
         }

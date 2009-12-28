@@ -19,7 +19,7 @@ int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 
 TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Dictionary& _dict )
 	: freetype_renderer(_ft), config(_config), text(_text), dict(_dict), y_offset(5), v_y(0), sub_frame_count(0),
-		current_new_word_set_it(this->current_new_word_set.begin()), current_highlight(0),
+		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
 		left_button(&oamSub,"<",32,16,0,0,freetype_renderer.latin_face,10,0,0), 
@@ -129,9 +129,9 @@ void TextView::render( Screen screen )
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
-		if( this->current_new_word_set_it != this->current_new_word_set.end() )
+		if( this->current_new_word_list_it != this->current_new_word_list.end() )
 		{
-			NewWord* new_word = *this->current_new_word_set_it;
+			NewWord* new_word = *this->current_new_word_list_it;
 			new_word->render( this->freetype_renderer, this->word_screen );
 		}
 	}
@@ -140,9 +140,9 @@ void TextView::render( Screen screen )
 		this->sub_frame_count++;
 		oamClear( &oamSub, 0, 0 );
 		int oam_entry = 0;
-		if( this->current_new_word_set.size() )
+		if( this->current_new_word_list.size() )
 		{
-			if( this->current_new_word_set_it != this->current_new_word_set.begin() )
+			if( this->current_new_word_list_it != this->current_new_word_list.begin() )
 			{
 				oamSet( this->left_button.oam, oam_entry++,
 						this->left_button.x, this->left_button.y, 	// position
@@ -155,8 +155,8 @@ void TextView::render( Screen screen )
 						0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->left_button.text_vram,
 						0, 0, 0, 0, 0, 0 );
 			}
-			NewWordSet::iterator test_it = this->current_new_word_set_it;
-			if( ++test_it != this->current_new_word_set.end() )
+			NewWordList::iterator test_it = this->current_new_word_list_it;
+			if( ++test_it != this->current_new_word_list.end() )
 			{
 				oamSet( this->right_button.oam, oam_entry++,
 						this->right_button.x, this->right_button.y, 	// position
@@ -249,8 +249,8 @@ void TextView::run_until_exit()
 				old_y_offset = this->y_offset;
 				old_touch = touch;
 			}
-			NewWordSet::iterator end_it = this->current_new_word_set_it;
-			if( end_it != this->current_new_word_set.end() ) end_it++;
+			NewWordList::iterator end_it = this->current_new_word_list_it;
+			if( end_it != this->current_new_word_list.end() ) end_it++;
             if( this->exit_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
             {
@@ -260,7 +260,7 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
             }
-            else if( this->current_new_word_set_it != this->current_new_word_set.begin()
+            else if( this->current_new_word_list_it != this->current_new_word_list.begin()
 				&& this->left_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
             {
@@ -270,7 +270,7 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
-            else if( end_it != this->current_new_word_set.end() 
+            else if( end_it != this->current_new_word_list.end() 
 				&& this->right_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
             {
@@ -312,9 +312,9 @@ void TextView::run_until_exit()
             else if( this->left_button.active && this->left_button.is_responsible(old_touch.px, old_touch.py) )
             {
 				this->left_button.active = false;
-				if( this->current_new_word_set_it != this->current_new_word_set.begin() )
+				if( this->current_new_word_list_it != this->current_new_word_list.begin() )
 				{
-					this->current_new_word_set_it--;
+					this->current_new_word_list_it--;
 					this->render( SCREEN_MAIN );
 					this->render( SCREEN_SUB );
 				}
@@ -322,11 +322,11 @@ void TextView::run_until_exit()
             else if( this->right_button.active && this->right_button.is_responsible(old_touch.px, old_touch.py) )
             {
 				this->right_button.active = false;
-				if( this->current_new_word_set_it != this->current_new_word_set.end() )
+				if( this->current_new_word_list_it != this->current_new_word_list.end() )
 				{
-					if( ++this->current_new_word_set_it == this->current_new_word_set.end() )
+					if( ++this->current_new_word_list_it == this->current_new_word_list.end() )
 					{
-						this->current_new_word_set_it--;
+						this->current_new_word_list_it--;
 					}
 					else
 					{
@@ -387,7 +387,7 @@ void TextView::run_until_exit()
 									|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 								{
 									// first click (odd count) on a character: find words in current context:
-									this->dict.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_set );
+									this->dict.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list );
 									this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
 									// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
 									this->text_screen.palette[0] = 16<<10|24<<5|31;
@@ -395,13 +395,13 @@ void TextView::run_until_exit()
 								else
 								{
 									// second click (even count) on a character: find words containing selected character:
-									this->dict.find_words_by_char_code( curr_char->uc_char.code_point, this->current_new_word_set );
+									this->dict.find_words_by_char_code( curr_char->uc_char.code_point, this->current_new_word_list );
 									this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 									// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
 									this->text_screen.palette[0] = 31<<10|24<<5|24;
 								}
 								this->context_render_char = curr_char;
-								this->current_new_word_set_it = this->current_new_word_set.begin();
+								this->current_new_word_list_it = this->current_new_word_list.begin();
 								// (re-)define and render highlight for selected character in text view:
 								if( this->current_highlight ) delete this->current_highlight;
 								this->current_highlight = new RenderScreenBuffer( curr_char->width, TextView::LINE_HEIGHT );

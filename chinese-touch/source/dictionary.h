@@ -21,6 +21,7 @@ public:
 };
 
 typedef std::set<NewWord*> NewWordSet;
+typedef std::list<NewWord*> NewWordList;
 typedef std::map<std::string,WordOccurrence> OccurrencesByString;
 typedef std::map<std::string,NewWordSet> NewWordsByString;
 typedef std::map<unsigned long,NewWordSet> NewWordsByULong;
@@ -34,9 +35,9 @@ public:
 public:
 	Dictionary() {}
 	void add_new_word( NewWord* );
-	void find_words_by_char_code( unsigned long char_code, NewWordSet& result );
+	void find_words_by_char_code( unsigned long char_code, NewWordList& result );
 	void find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordSet& result );
+		UCCharList::const_iterator pos, int max_range, NewWordList& result );
 };
 
 #endif // DICTIONARY_H

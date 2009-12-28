@@ -34,8 +34,8 @@ public:
 	int y_offset;
 	int v_y;
 	int sub_frame_count;
-	NewWordSet current_new_word_set;
-	NewWordSet::iterator current_new_word_set_it;
+	NewWordList current_new_word_list;
+	NewWordList::iterator current_new_word_list_it;
 	RenderScreenBuffer* current_highlight;
 	int current_highlight_x, current_highlight_y;
 	static int LINE_HEIGHT;

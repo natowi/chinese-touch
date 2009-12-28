@@ -14,18 +14,32 @@ void Dictionary::add_new_word( NewWord* new_word )
 	}
 }
 
-void Dictionary::find_words_by_char_code( unsigned long char_code, NewWordSet& result )
+bool hanzi_min_length_sort_predicate( NewWord* left, NewWord* right )
+{
+	return left->hanzi.length() < right->hanzi.length();
+}
+
+bool hanzi_max_length_sort_predicate( NewWord* left, NewWord* right )
+{
+	return left->hanzi.length() > right->hanzi.length();
+}
+
+void Dictionary::find_words_by_char_code( unsigned long char_code, NewWordList& result )
 {
 	result.clear();
 	if( this->new_words_by_char_code.count(char_code) )
 	{
-		result = this->new_words_by_char_code[ char_code ];
+		NewWordSet& result_set = this->new_words_by_char_code[ char_code ];
+		for( NewWordSet::iterator word_it=result_set.begin(); word_it!=result_set.end(); word_it++ )
+		{
+			result.push_back( *word_it );
+		}
 	}
-	return;
+	result.sort( hanzi_min_length_sort_predicate );
 }
 
 void Dictionary::find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordSet& result )
+		UCCharList::const_iterator pos, int max_range, NewWordList& result )
 {
 	result.clear();
 	typedef std::list<UCCharList::const_iterator> PosList;
@@ -73,11 +87,15 @@ void Dictionary::find_words_by_context( const std::string& text, const UCCharLis
 				pattern += text.substr( char_it->source_offset, char_it->source_length );
 			}
 			WARN( "pattern: \"" << pattern << "\"" );
-			NewWordsByString::iterator word_it=this->new_words_by_word_string.find(pattern);
-			if( word_it	!= this->new_words_by_word_string.end() )
+			NewWordsByString::iterator hits_it=this->new_words_by_word_string.find(pattern);
+			if( hits_it	!= this->new_words_by_word_string.end() )
 			{
-				result.insert( word_it->second.begin(), word_it->second.end() );
+				for( NewWordSet::iterator word_it = hits_it->second.begin(); word_it!=hits_it->second.end(); word_it++ )
+				{
+					result.push_back( *word_it );
+				}
 			}
 		}
 	}
+	result.sort( hanzi_max_length_sort_predicate );
 }

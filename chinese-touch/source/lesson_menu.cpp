@@ -31,6 +31,7 @@ int MenuEntry::GRAMMAR_BUTTON_X_OFFSET = 1 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP
 int MenuEntry::TEXT_BUTTON_X_OFFSET = 2 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::EXERCISES_BUTTON_X_OFFSET = 3 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int LessonMenu::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
+int LessonMenu::MAX_ACCELERATION_FACTOR = 10;
 
 void MenuEntry::render_text( FreetypeRenderer& ft, const std::string& text )
 {
@@ -475,6 +476,7 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 	int pixels_scrolled = 0;
 	int old_y_offset = this->y_offset;
 	bool button_activated_previously = false;
+	int old_abs_y_diff = 0;
 	while( true )
 	{
         scanKeys();
@@ -499,7 +501,6 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 		}
         touchPosition touch;
         touchRead( &touch );
-        int area = touch.px * touch.z2 / touch.z1 - touch.px;
         if( keysCurrent() & KEY_TOUCH )
         {
 			if( !touched ) 
@@ -544,8 +545,11 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 					}
 				}
 				int y_diff = touch.py - old_touch.py;
-				if( y_diff )
+				int abs_y_diff = abs( y_diff );
+				if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*LessonMenu::MAX_ACCELERATION_FACTOR)) 
+								|| (abs_y_diff <= LessonMenu::MAX_ACCELERATION_FACTOR)) )
 				{
+					old_abs_y_diff = abs_y_diff;
 					pixels_scrolled += abs(y_diff);
 					this->y_offset += y_diff;
 					this->v_y = y_diff;

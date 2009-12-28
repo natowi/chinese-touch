@@ -78,6 +78,9 @@ public:
 	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button;
 	TextButtonList text_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
+	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
+		(used to filter out some erroneous touch readings, occurring under very light pressure) */
+	static int MAX_ACCELERATION_FACTOR;
 public:
 	LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config );
 	~LessonMenu();

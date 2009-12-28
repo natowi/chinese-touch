@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "text_view.h"
 #include "unicode.h"
 #include "error_console.h"
@@ -11,11 +13,10 @@
 #include "bottom_left_button_active.h"
 #include "bg_dragon.h"
 
-#include <fstream>
-
 
 int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
+int TextView::MAX_ACCELERATION_FACTOR = 10;
 
 TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Dictionary& _dict )
 	: freetype_renderer(_ft), config(_config), text(_text), dict(_dict), y_offset(5), v_y(0), sub_frame_count(0),
@@ -215,6 +216,7 @@ void TextView::run_until_exit()
 	bool touched = false;
 	int pixels_scrolled = 0;
 	int old_y_offset = this->y_offset;
+	int old_abs_y_diff = 0;
 	while( true )
 	{
         scanKeys();
@@ -239,7 +241,6 @@ void TextView::run_until_exit()
 		}
         touchPosition touch;
         touchRead( &touch );
-        int area = touch.px * touch.z2 / touch.z1 - touch.px;
         if( keysCurrent() & KEY_TOUCH )
         {
 			if( !touched ) 
@@ -289,8 +290,11 @@ void TextView::run_until_exit()
 					(*i)->active = false;
 				}
 				int y_diff = touch.py - old_touch.py;
-				if( y_diff )
+				int abs_y_diff = abs( y_diff );
+				if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*TextView::MAX_ACCELERATION_FACTOR)) 
+								|| (abs_y_diff <= TextView::MAX_ACCELERATION_FACTOR)) )
 				{
+					old_abs_y_diff = abs_y_diff;
 					pixels_scrolled += abs(y_diff);
 					changed = true;
 					this->y_offset += y_diff;

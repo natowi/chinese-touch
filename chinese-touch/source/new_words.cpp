@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 
 #include <nds.h>
 
@@ -323,6 +324,7 @@ void NewWordsViewer::run_until_exit()
     touchRead( &old_touch );
 	bool touched = false;
 	int pixels_drawn = 0;
+	int old_distance = 0;
     while( this->word_index >= 0 
 			&& this->word_index < this->lesson.new_words.size() )
     {
@@ -350,8 +352,6 @@ void NewWordsViewer::run_until_exit()
 		
 		touchPosition touch;
         touchRead( &touch );
-        int area = touch.px * touch.z2 / touch.z1 - touch.px;
-        // (touch.px!=old_touch.px || touch.py!=old_touch.py)
         if( keysCurrent() & KEY_TOUCH )
         {
 			if( !touched ) 
@@ -435,9 +435,12 @@ void NewWordsViewer::run_until_exit()
 				}
 				int x_diff = touch.px - old_touch.px;
 				int y_diff = touch.py - old_touch.py;
-				if( y_diff || x_diff )
+				int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
+				if( distance && ((old_distance && (distance <= old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
+								|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR)) )
 				{
-					pixels_drawn += abs(y_diff) + abs(x_diff);
+					old_distance = distance;
+					pixels_drawn += distance;
 					changed = true;
 					this->drawing_pad.draw_line( touch.px, touch.py, old_touch.px, old_touch.py );
 				}

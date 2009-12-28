@@ -8,6 +8,9 @@ class DrawingPad
 {
 public:
     RenderScreen& render_screen;
+	/*! a factor f, where: f * prev_line_length = max_next_line_length 
+		(used to filter out some erroneous touch readings, occurring under very light pressure) */
+	static int MAX_ACCELERATION_FACTOR;
 public:
     DrawingPad( RenderScreen& _render_screen );
     void clear( int color=0 );

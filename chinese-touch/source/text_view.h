@@ -44,6 +44,9 @@ public:
 	TextButton left_button, right_button, exit_button;
 	TextButtonList text_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
+	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
+		(used to filter out some erroneous touch readings, occurring under very light pressure) */
+	static int MAX_ACCELERATION_FACTOR;
 public:
 	TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Dictionary& _dict );
 	~TextView();

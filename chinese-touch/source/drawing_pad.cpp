@@ -5,6 +5,9 @@
 
 #include "drawing_pad.h"
 
+
+int DrawingPad::MAX_ACCELERATION_FACTOR = 5;
+
 DrawingPad::DrawingPad( RenderScreen& _render_screen ) : render_screen(_render_screen)
 {
 }

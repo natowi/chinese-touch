@@ -350,6 +350,25 @@ void NewWordsViewer::run_until_exit()
 			ErrorConsole::dump();
 		}
 		
+		if( pressed & KEY_L && this->word_index > 0 )
+		{
+			this->left_button.active = true;
+			this->render( SCREEN_SUB );
+			this->left_button.active = false;
+			this->word_index--;
+			this->render( SCREEN_MAIN );
+			this->render( SCREEN_SUB );
+		}
+		else if( pressed & KEY_R && this->word_index+1 < this->lesson.new_words.size() )
+		{
+			this->right_button.active = true;
+			this->render( SCREEN_SUB );
+			this->right_button.active = false;
+			this->word_index++;
+			this->render( SCREEN_MAIN );
+			this->render( SCREEN_SUB );
+		}
+		
 		touchPosition touch;
         touchRead( &touch );
         if( keysCurrent() & KEY_TOUCH )

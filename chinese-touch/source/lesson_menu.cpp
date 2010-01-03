@@ -268,7 +268,7 @@ void LessonMenu::render( Screen screen )
 		{
 			author = "Chinese Touch";
 			title = "汉语接触";
-			publisher = "an extensible language learning tool (v1.0)";
+			publisher = "an extensible language learning tool (v" + std::string(PROGRAM_VERSION) + ")";
 			description = "Lesson Menu: Please select a book or lesson on the touchscreen!";
 			std::stringstream stats_stream;
 			int lesson_count = 0;

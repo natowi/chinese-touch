@@ -1,0 +1,611 @@
+{| class="prettytable"
+! <center>Kanji</center>
+! <center>Pronunciation</center>
+! <center>Meaning</center>
+! <center>Type</center>
+! <center>Comment</center>
+
+|-
+| じかん
+| jikan
+| time 
+| (n)
+| 
+
+|-
+| 時間
+| jikan
+| time 
+| (n)
+| 
+
+|-
+| とき
+| toki, ji
+| ~hours 
+| (n)
+| 
+
+|-
+| じ
+| toki, ji
+| ~hours 
+| (n)
+| 
+
+|-
+| 時
+| toki, ji
+| ~hours 
+| (n)
+| 
+
+|-
+| こよみ
+| koyomi, karenda-
+| calendar 
+| (n)
+| 
+
+|-
+| カレンダー
+| koyomi, karenda-
+| calendar 
+| (n)
+| 
+
+|-
+| 暦
+| koyomi, karenda-
+| calendar 
+| (n)
+| 
+
+|-
+| ふん
+| fun
+| minute 
+| (n)
+| 
+
+|-
+| 分
+| fun
+| minute 
+| (n)
+| 
+
+|-
+| びょう
+| byou
+| second 
+| (n)
+| 
+
+|-
+| 秒
+| byou
+| second 
+| (n)
+| 
+
+|-
+| ひ
+| hi, nichi
+| day 
+| (n)
+| 
+
+|-
+| にち
+| hi, nichi
+| day 
+| (n)
+| 
+
+|-
+| 日
+| hi, nichi
+| day 
+| (n)
+| 
+
+|-
+| つき
+| tsuki, gatsu
+| month 
+| (n)
+| 
+
+|-
+| げつ
+| tsuki, gatsu
+| month 
+| (n)
+| 
+
+|-
+| 月
+| tsuki, gatsu
+| month 
+| (n)
+| 
+
+|-
+| とし
+| toshi, nen
+| year 
+| (n)
+| 
+
+|-
+| ねん
+| toshi, nen
+| year 
+| (n)
+| 
+
+|-
+| 年
+| toshi, nen
+| year 
+| (n)
+| 
+
+|-
+| きのう
+| kinou, sakujitsu
+| yesterday 
+| (n)
+| 
+
+|-
+| さくじつ
+| kinou, sakujitsu
+| yesterday 
+| (n)
+| 
+
+|-
+| 昨日
+| kinou, sakujitsu
+| yesterday 
+| (n)
+| 
+
+|-
+| きょう
+| kyou
+| today 
+| (n)
+| 
+
+|-
+| 今日
+| kyou
+| today 
+| (n)
+| 
+
+|-
+| あした
+| ashita, asu, myounichi
+| tomorrow 
+| (n)
+| 
+
+|-
+| あす
+| ashita, asu, myounichi
+| tomorrow 
+| (n)
+| 
+
+|-
+| みょうにち
+| ashita, asu, myounichi
+| tomorrow 
+| (n)
+| 
+
+|-
+| 明日
+| ashita, asu, myounichi
+| tomorrow 
+| (n)
+| 
+
+|-
+| あさ
+| asa
+| morning 
+| (n)
+| 
+
+|-
+| 朝
+| asa
+| morning 
+| (n)
+| 
+
+|-
+| ひる
+| hiru
+| afternoon 
+| (n)
+| 
+
+|-
+| 昼
+| hiru
+| afternoon 
+| (n)
+| 
+
+|-
+| ゆうがた
+| yuugata
+| evening 
+| (n)
+| 
+
+|-
+| 夕方
+| yuugata
+| evening 
+| (n)
+| 
+
+|-
+| ばん
+| ban
+| evening 
+| (n)
+| 
+
+|-
+| 晩
+| ban
+| evening 
+| (n)
+| 
+
+|-
+| よる
+| yoru
+| evening, night 
+| (n)
+| 
+
+|-
+| 夜
+| yoru
+| evening, night 
+| (n)
+| 
+
+|-
+| ようび
+| youbi
+| ~day 
+| (n)
+| 
+
+|-
+| 曜日
+| youbi
+| ~day 
+| (n)
+| 
+
+|-
+| げつようび
+| getsu-youbi
+| Monday 
+| (n)
+| 
+
+|-
+| 月曜日
+| getsu-youbi
+| Monday 
+| (n)
+| 
+
+|-
+| かようび
+| ka-youbi
+| Tuesday 
+| (n)
+| 
+
+|-
+| 火曜日
+| ka-youbi
+| Tuesday 
+| (n)
+| 
+
+|-
+| すいようび
+| sui-youbi
+| Wednesday 
+| (n)
+| 
+
+|-
+| 水曜日
+| sui-youbi
+| Wednesday 
+| (n)
+| 
+
+|-
+| もくようび
+| moku-youbi
+| Thursday 
+| (n)
+| 
+
+|-
+| 木曜日
+| moku-youbi
+| Thursday 
+| (n)
+| 
+
+|-
+| きんようび
+| kin-youbi
+| Friday 
+| (n)
+| 
+
+|-
+| 金曜日
+| kin-youbi
+| Friday 
+| (n)
+| 
+
+|-
+| どようび
+| do-youbi
+| Saturday 
+| (n)
+| 
+
+|-
+| 土曜日
+| do-youbi
+| Saturday 
+| (n)
+| 
+
+|-
+| にちようび
+| nichi-youbi
+| Sunday 
+| (n)
+| 
+
+|-
+| 日曜日
+| nichi-youbi
+| Sunday 
+| (n)
+| 
+
+|-
+| しゅう
+| shuu
+| week 
+| (n)
+| 
+
+|-
+| 週
+| shuu
+| week 
+| (n)
+| 
+
+|-
+| いっしゅうかん
+| isshuukan
+| one week 
+| (n)
+| 
+
+|-
+| 一週間
+| isshuukan
+| one week 
+| (n)
+| 
+
+|-
+| たいよう
+| taiyou
+| sun 
+| (n)
+| 
+
+|-
+| 太陽
+| taiyou
+| sun 
+| (n)
+| 
+
+|-
+| つき
+| tsuki
+| moon 
+| (n)
+| 
+
+|-
+| 月
+| tsuki
+| moon 
+| (n)
+| 
+
+|-
+| ほし
+| hoshi
+| star 
+| (n)
+| 
+
+|-
+| 星
+| hoshi
+| star 
+| (n)
+| 
+
+|-
+| てんき
+| tenki
+| weather 
+| (n)
+| 
+
+|-
+| 天気
+| tenki
+| weather 
+| (n)
+| 
+
+|-
+| はれ
+| hare
+| clear weather 
+| (n)
+| 
+
+|-
+| 晴れ
+| hare
+| clear weather 
+| (n)
+| 
+
+|-
+| あめ
+| ame
+| rain 
+| (n)
+| 
+
+|-
+| 雨
+| ame
+| rain 
+| (n)
+| 
+
+|-
+| くもり
+| kumori
+| cloudy 
+| (n)
+| 
+
+|-
+| 曇り
+| kumori
+| cloudy 
+| (n)
+| 
+
+|-
+| ゆき
+| yuki
+| snow 
+| (n)
+| 
+
+|-
+| 雪
+| yuki
+| snow 
+| (n)
+| 
+
+|-
+| かぜ
+| kaze
+| wind 
+| (n)
+| 
+
+|-
+| 風
+| kaze
+| wind 
+| (n)
+| 
+
+|-
+| かみなり
+| kaminari
+| thunder, lightning 
+| (n)
+| 
+
+|-
+| 雷
+| kaminari
+| thunder, lightning 
+| (n)
+| 
+
+|-
+| たいふう
+| taifuu
+| typhoon 
+| (n)
+| 
+
+|-
+| 台風
+| taifuu
+| typhoon 
+| (n)
+| 
+
+|-
+| あらし
+| arashi
+| storm 
+| (n)
+| 
+
+|-
+| 嵐
+| arashi
+| storm 
+| (n)
+| 
+
+|-
+| そら
+| sora
+| sky 
+| (n)
+| 
+
+|-
+| 空
+| sora
+| sky 
+| (n)
+| 
+
+|}
+

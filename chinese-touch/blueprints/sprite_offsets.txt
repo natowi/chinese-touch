@@ -1,0 +1,82 @@
+• new_words.cpp
+[1024] (  0) 32x16-16bpp left-bg
+[1024] (-64) 32x16-16bpp left-active-bg
+[1024] (  0) 32x16-16bpp right-bg
+[1024] (-64) 32x16-16bpp right-active-bg
+[ 512] (  0) 16x16-16bpp exit-bg
+[ 512] (+32) 16x16-16bpp exit-active-bg
+[ 512] (-64) 16x16-16bpp clear-bg
+[ 512] (-32) 16x16-16bpp clear-active-bg
+[1024] (  0) 32x16-16bpp hanzi-bg
+[1024] (+64) 32x16-16bpp hanzi-active-bg
+[1024] (  ?) 32x16-16bpp hanzi-inactive-bg
+[ 512] (  0) 32x16-8bpp left-text
+[ 512] (  0) 32x16-8bpp right-text
+[ 512] (  0) 32x16-8bpp exit-text
+[ 512] (  0) 32x16-8bpp clear-text
+[ 512] (  0) 32x16-8bpp hanzi-text
+[ 512] (  0) 32x16-8bpp pinyin-text
+[ 512] (  0) 32x16-8bpp latin-text
+
+[xxxx][xxxx][xxxx][xxxx][x][x][x][x][xxxx][xxxx][xxxx][x][x][x][x][x][x][x]
+^0    ^-64  ^0    ^-64  ^0 ^  ^  ^  ^0    ^+64  ^0    ^0 ^0 ^0 ^0 ^0 ^0 ^0
+                           +32-64-32      
+
+vram: 0x6600000 (left-bg)
+oam-offset: 0
+vram: 0x6600400 (left-active-bg)
+oam-offset: 8
+vram: 0x6600800 (right-bg)
+oam-offset: 16
+vram: 0x6600c00 (right-active-bg)
+oam-offset: 24
+vram: 0x6601000 (exit-bg)
+oam-offset: 32
+vram: 0x6601200 (exit-active-bg)
+oam-offset: 36
+vram: 0x6601400 (clear-bg)
+oam-offset: 40
+vram: 0x6601600 (clear-active-bg)
+oam-offset: 44
+vram: 0x6601800 (hanzi-bg)
+oam-offset: 48
+vram: 0x6601c00 (hanzi-active-bg)
+oam-offset: 56
+vram: 0x6602000 (hanzi-inactive-bg)
+oam-offset: 64
+vram: 0x6602400 (left-text)
+oam-offset: 72
+vram: 0x6602600 (right-text)
+oam-offset: 76
+vram: 0x6602800 (exit-text)
+oam-offset: 80
+vram: 0x6602a00 (clear-text)
+oam-offset: 84
+vram: 0x6602c00 (hanzi-text)
+oam-offset: 88
+vram: 0x6602e00 (pinyin-text)
+oam-offset: 92
+vram: 0x6603000 (latin-text)
+oam-offset: 96
+
+gfxOffsetStep: 7
+[0] gfxIndex: 16 <- (right-bg)
+[1] gfxIndex: 76 <- (right-text)
+[2] gfxIndex: 32 <- (exit-bg)
+[3] gfxIndex: 80 <- (exit-text)
+[4] gfxIndex: 32 <- (exit-bg) <---------- should be 40 (clear-bg) !!!
+[5] gfxIndex: 84 <- (clear-text)
+[6] gfxIndex: 48 <- (hanzi-bg)
+[7] gfxIndex: 88 <- (hanzi-text)
+[8] gfxIndex: 48 <- (hanzi-bg)
+[9] gfxIndex: 92 <- (pinyin-text)
+[10] gfxIndex: 48 <- (hanzi-text)
+[11] gfxIndex: 96 <- (latin-text)
+[12] gfxIndex: 0
+[13] gfxIndex: 0
+[14] gfxIndex: 0
+[15] gfxIndex: 0
+[16] gfxIndex: 0
+[17] gfxIndex: 0
+[18] gfxIndex: 0
+[19] gfxIndex: 0

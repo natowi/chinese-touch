@@ -48,6 +48,8 @@ int main()
 			WARN( "empty book \"" <<  book.name << "\"" );
 			int lesson_number = 1;
 			book[ lesson_number ] = new Lesson( lesson_number, &book );
+			book[ lesson_number ]->new_words.push_back( new NewWord("foo","bar",book[lesson_number]) );
+			book[ lesson_number ]->new_words.push_back( new NewWord("testi","test",book[lesson_number]) );
 		}
 
 		LOG( "initializing Freetype" );

@@ -1,4 +1,7 @@
 #include <math.h>
+#include <nds/arm9/sprite.h>
+#include <nds/arm9/background.h>
+#include <nds/arm9/input.h>
 
 #include "text_view.h"
 #include "unicode.h"
@@ -148,8 +151,7 @@ void TextView::render( Screen screen )
 				oamSet( this->left_button.oam, oam_entry++,
 						this->left_button.x, this->left_button.y, 	// position
 						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						/* FIXME: don't guess! somehow compute correct vram offsets: */
-						this->left_button.active ? this->left_button.bg_active_vram-64 : this->left_button.bg_vram,
+						this->left_button.active ? this->left_button.bg_active_vram : this->left_button.bg_vram,
 						0, 0, 0, 0, 0, 0 );
 				oamSet( this->left_button.oam, oam_entry++,
 						this->left_button.x, this->left_button.y, 	// position
@@ -162,8 +164,7 @@ void TextView::render( Screen screen )
 				oamSet( this->right_button.oam, oam_entry++,
 						this->right_button.x, this->right_button.y, 	// position
 						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						/* FIXME: don't guess! somehow compute correct vram offsets: */
-						this->right_button.active ? this->right_button.bg_active_vram-64 : this->right_button.bg_vram,
+						this->right_button.active ? this->right_button.bg_active_vram : this->right_button.bg_vram,
 						0, 0, 0, 0, 0, 0 );
 				oamSet( this->right_button.oam, oam_entry++,
 						this->right_button.x+this->right_button.text_x_offset, this->right_button.y+this->right_button.text_y_offset, 	// position
@@ -174,8 +175,7 @@ void TextView::render( Screen screen )
 		oamSet( this->exit_button.oam, oam_entry++,
 				this->exit_button.x, this->exit_button.y, 	// position
 				1, 1, SpriteSize_16x16, SpriteColorFormat_Bmp, 
-				/* FIXME: don't guess! somehow compute correct vram offsets: */
-				this->exit_button.active ? this->exit_button.bg_active_vram+32 : this->exit_button.bg_vram,
+				this->exit_button.active ? this->exit_button.bg_active_vram : this->exit_button.bg_vram,
 				0, 0, 0, 0, 0, 0 );
 		oamSet( this->exit_button.oam, oam_entry++,
 				this->exit_button.x+this->exit_button.text_x_offset, this->exit_button.y+this->exit_button.text_y_offset, 	// position

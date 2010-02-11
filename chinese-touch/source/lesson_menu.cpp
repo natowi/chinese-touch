@@ -1,6 +1,8 @@
 #include <math.h>
 #include <sstream>
 #include <nds/arm9/image.h>
+#include <nds/arm9/sprite.h>
+#include <nds/arm9/input.h>
 
 #include "chinese-touch.h"
 #include "lesson_menu.h"
@@ -406,7 +408,7 @@ void LessonMenu::render( Screen screen )
 										(*i)->x, top+MenuEntry::BUTTON_Y_OFFSET, 	// position
 										/*prio=*/1, /*alpha=*/1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
 										(*i)->inactive ? (*i)->bg_inactive_vram :
-											( (*i)->active ? (*i)->bg_active_vram-64 : (*i)->bg_vram ),
+											( (*i)->active ? (*i)->bg_active_vram : (*i)->bg_vram ),
 										0, 0, 0, 0, 0, 0 );
 								oamSet( (*i)->oam, oam_entry++,
 										(*i)->x+(*i)->text_x_offset, top+MenuEntry::BUTTON_Y_OFFSET+(*i)->text_y_offset, 	// position

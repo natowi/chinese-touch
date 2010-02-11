@@ -1,4 +1,8 @@
 #include <nds.h>
+#include <nds/arm9/sprite.h>
+
+#include "error_console.h"
+
 
 void tile_8bpp_sprite( u8* source_buffer, u8* dest_buffer, int width, int height )
 {
@@ -20,4 +24,13 @@ void set_16bpp_sprite_opague( u16* vram, int width, int height, u16 transparent_
 	for( int i=0; i<width*height; i++ )
 		if( vram[i]!=transparent_value )
 			vram[i] |= 1<<15;
+}
+
+void log_oam_state_sub()
+{
+	LOG( "gfxOffsetStep: " << oamSub.gfxOffsetStep );
+	for( int i=0; i<20; i++ )
+	{
+		LOG( "[" << i << "] gfxIndex: " << oamSub.oamMemory[i].gfxIndex );
+	}
 }

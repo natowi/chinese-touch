@@ -2,6 +2,9 @@
 #include <cmath>
 
 #include <nds.h>
+#include <nds/arm9/sprite.h>
+#include <nds/arm9/background.h>
+#include <nds/arm9/input.h>
 
 #include "new_words.h"
 #include "config.h"
@@ -236,8 +239,7 @@ void NewWordsViewer::render( Screen screen )
 				oamSet( this->left_button.oam, oam_entry++,
 						this->left_button.x, this->left_button.y, 	// position
 						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						/* FIXME: don't guess! somehow compute correct vram offsets: */
-						this->left_button.active ? this->left_button.bg_active_vram-64 : this->left_button.bg_vram,
+						this->left_button.active ? this->left_button.bg_active_vram : this->left_button.bg_vram,
 						0, 0, 0, 0, 0, 0 );
 				oamSet( this->left_button.oam, oam_entry++,
 						this->left_button.x+this->left_button.text_x_offset, this->left_button.y+this->left_button.text_y_offset, 	// position
@@ -249,8 +251,7 @@ void NewWordsViewer::render( Screen screen )
 				oamSet( this->right_button.oam, oam_entry++,
 						this->right_button.x, this->right_button.y, 	// position
 						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						/* FIXME: don't guess! somehow compute correct vram offsets: */
-						this->right_button.active ? this->right_button.bg_active_vram-64 : this->right_button.bg_vram,
+						this->right_button.active ? this->right_button.bg_active_vram : this->right_button.bg_vram,
 						0, 0, 0, 0, 0, 0 );
 				oamSet( this->right_button.oam, oam_entry++,
 						this->right_button.x+this->right_button.text_x_offset, this->right_button.y+this->right_button.text_y_offset, 	// position
@@ -261,8 +262,7 @@ void NewWordsViewer::render( Screen screen )
 		oamSet( this->exit_button.oam, oam_entry++,
 				this->exit_button.x, this->exit_button.y, 	// position
 				1, 1, SpriteSize_16x16, SpriteColorFormat_Bmp, 
-				/* FIXME: don't guess! somehow compute correct vram offsets: */
-				this->exit_button.active ? this->exit_button.bg_active_vram+32 : this->exit_button.bg_vram,
+				this->exit_button.active ? this->exit_button.bg_active_vram : this->exit_button.bg_vram,
 				0, 0, 0, 0, 0, 0 );
 		oamSet( this->exit_button.oam, oam_entry++,
 				this->exit_button.x+this->exit_button.text_x_offset, this->exit_button.y+this->exit_button.text_y_offset, 	// position
@@ -271,19 +271,16 @@ void NewWordsViewer::render( Screen screen )
 		oamSet( this->clear_button.oam, oam_entry++,
 				this->clear_button.x, this->clear_button.y, 	// position
 				1, 1, SpriteSize_16x16, SpriteColorFormat_Bmp, 
-				/* FIXME: don't guess! somehow compute correct vram offsets: */
-				this->clear_button.active ? this->clear_button.bg_active_vram-32 : this->clear_button.bg_vram-64,
+				this->clear_button.active ? this->clear_button.bg_active_vram : this->clear_button.bg_vram,
 				0, 0, 0, 0, 0, 0 );
 		oamSet( this->clear_button.oam, oam_entry++,
 				this->clear_button.x+this->clear_button.text_x_offset, this->clear_button.y+this->clear_button.text_y_offset, 	// position
 				0, 0, SpriteSize_16x16, SpriteColorFormat_256Color, this->clear_button.text_vram,
 				0, 0, 0, 0, 0, 0 );
-		
 		oamSet( this->hanzi_tab.oam, oam_entry++,
 				this->hanzi_tab.x, this->hanzi_tab.y-(this->lesson.render_hanzi ? 0 : 8), 	// position
 				1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-				/* FIXME: don't guess! somehow compute correct vram offsets: */
-				this->hanzi_tab.active ? this->hanzi_tab.bg_active_vram+64 : this->hanzi_tab.bg_vram,
+				this->hanzi_tab.active ? this->hanzi_tab.bg_active_vram : this->hanzi_tab.bg_vram,
 				0, 0, 0, 0, 0, 0 );
 		oamSet( this->hanzi_tab.oam, oam_entry++,
 				this->hanzi_tab.x+this->hanzi_tab.text_x_offset, this->hanzi_tab.y+this->hanzi_tab.text_y_offset-(this->lesson.render_hanzi ? 0 : 8), 	// position
@@ -292,8 +289,7 @@ void NewWordsViewer::render( Screen screen )
 		oamSet( this->pinyin_tab.oam, oam_entry++,
 				this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8), 	// position
 				1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-				/* FIXME: don't guess! somehow compute correct vram offsets: */
-				this->pinyin_tab.active ? this->pinyin_tab.bg_active_vram+64 : this->pinyin_tab.bg_vram,
+				this->pinyin_tab.active ? this->pinyin_tab.bg_active_vram : this->pinyin_tab.bg_vram,
 				0, 0, 0, 0, 0, 0 );
 		oamSet( this->pinyin_tab.oam, oam_entry++,
 				this->pinyin_tab.x+this->pinyin_tab.text_x_offset, this->pinyin_tab.y+this->pinyin_tab.text_y_offset-(this->lesson.render_pinyin ? 0 : 8), 	// position
@@ -302,14 +298,13 @@ void NewWordsViewer::render( Screen screen )
 		oamSet( this->latin_tab.oam, oam_entry++,
 				this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8), 	// position
 				1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-				/* FIXME: don't guess! somehow compute correct vram offsets: */
-				this->latin_tab.active ? this->latin_tab.bg_active_vram+64 : this->latin_tab.bg_vram,
+				this->latin_tab.active ? this->latin_tab.bg_active_vram : this->latin_tab.bg_vram,
 				0, 0, 0, 0, 0, 0 );
 		oamSet( this->latin_tab.oam, oam_entry++,
 				this->latin_tab.x+this->latin_tab.text_x_offset, this->latin_tab.y+this->latin_tab.text_y_offset-(this->lesson.render_translation ? 0 : 8), 	// position
 				0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->latin_tab.text_vram,
 				0, 0, 0, 0, 0, 0 );
-		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
+			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );
 	}

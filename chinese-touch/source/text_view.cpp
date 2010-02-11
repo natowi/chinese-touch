@@ -26,9 +26,9 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Diction
 		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
-		left_button(&oamSub,"<",32,16,0,0,freetype_renderer.latin_face,10,0,0), 
-		right_button(&oamSub,">",32,16,text_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
-		exit_button(&oamSub,"x",16,16,0,text_screen.res_y-16,freetype_renderer.latin_face,10,-1,1)
+		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
+		right_button(&oamSub,">",SpriteSize_32x16,text_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,freetype_renderer.latin_face,10,-1,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -45,18 +45,12 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Diction
 	oamEnable( &oamSub );
 
 	// vorgerenderte Spritegrafiken laden:
-	this->left_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_left_buttonBitmap, this->left_button.bg_vram, this->left_button.width * this->left_button.height *2 );
-	this->left_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_left_button_activeBitmap, this->left_button.bg_active_vram, this->left_button.width * this->left_button.height *2 );
-	this->right_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_right_buttonBitmap, this->right_button.bg_vram, this->right_button.width * this->right_button.height *2 );
-	this->right_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_right_button_activeBitmap, this->right_button.bg_active_vram, this->right_button.width * this->right_button.height *2 );
-	this->exit_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp );
-	dmaCopy( bottom_left_buttonBitmap, this->exit_button.bg_vram, this->exit_button.width * this->exit_button.height *2 );
-	this->exit_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp );
-	dmaCopy( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram, this->exit_button.width * this->exit_button.height *2 );
+	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
+	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
+	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
+	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
+	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
+	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
 
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -148,39 +142,16 @@ void TextView::render( Screen screen )
 		{
 			if( this->current_new_word_list_it != this->current_new_word_list.begin() )
 			{
-				oamSet( this->left_button.oam, oam_entry++,
-						this->left_button.x, this->left_button.y, 	// position
-						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						this->left_button.active ? this->left_button.bg_active_vram : this->left_button.bg_vram,
-						0, 0, 0, 0, 0, 0 );
-				oamSet( this->left_button.oam, oam_entry++,
-						this->left_button.x, this->left_button.y, 	// position
-						0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->left_button.text_vram,
-						0, 0, 0, 0, 0, 0 );
+				this->left_button.render_to( oam_entry );
 			}
 			NewWordList::iterator test_it = this->current_new_word_list_it;
 			if( ++test_it != this->current_new_word_list.end() )
 			{
-				oamSet( this->right_button.oam, oam_entry++,
-						this->right_button.x, this->right_button.y, 	// position
-						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						this->right_button.active ? this->right_button.bg_active_vram : this->right_button.bg_vram,
-						0, 0, 0, 0, 0, 0 );
-				oamSet( this->right_button.oam, oam_entry++,
-						this->right_button.x+this->right_button.text_x_offset, this->right_button.y+this->right_button.text_y_offset, 	// position
-						0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->right_button.text_vram,
-						0, 0, 0, 0, 0, 0 );
+				this->right_button.render_to( oam_entry );
 			}
 		}
-		oamSet( this->exit_button.oam, oam_entry++,
-				this->exit_button.x, this->exit_button.y, 	// position
-				1, 1, SpriteSize_16x16, SpriteColorFormat_Bmp, 
-				this->exit_button.active ? this->exit_button.bg_active_vram : this->exit_button.bg_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->exit_button.oam, oam_entry++,
-				this->exit_button.x+this->exit_button.text_x_offset, this->exit_button.y+this->exit_button.text_y_offset, 	// position
-				0, 0, SpriteSize_16x16, SpriteColorFormat_256Color, this->exit_button.text_vram,
-				0, 0, 0, 0, 0, 0 );
+		this->exit_button.render_to( oam_entry );
+		
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );

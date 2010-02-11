@@ -100,13 +100,13 @@ int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _lesson, Config& _config )
 	: freetype_renderer(_freetype_renderer), drawing_pad(drawing_screen), lesson(_lesson), 
 		word_index(0), config(_config), 
-		left_button(&oamSub,"<",32,16,0,0,freetype_renderer.latin_face,10,0,0), 
-		right_button(&oamSub,">",32,16,drawing_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
-		exit_button(&oamSub,"x",16,16,0,drawing_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
-		clear_button(&oamSub,"c",16,16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
-		hanzi_tab(&oamSub,"汉字",32,16,drawing_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
-		pinyin_tab(&oamSub,"拼音",32,16,drawing_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
-		latin_tab(&oamSub,"latin",32,16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1)
+		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
+		right_button(&oamSub,">",SpriteSize_32x16,drawing_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
+		clear_button(&oamSub,"c",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
+		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,drawing_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
+		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,drawing_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
+		latin_tab(&oamSub,"latin",SpriteSize_32x16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -123,28 +123,18 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 	oamEnable( &oamSub );
 
 	// vorgerenderte Spritegrafiken laden:
-	this->left_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_left_buttonBitmap, this->left_button.bg_vram, this->left_button.width * this->left_button.height *2 );
-	this->left_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_left_button_activeBitmap, this->left_button.bg_active_vram, this->left_button.width * this->left_button.height *2 );
-	this->right_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_right_buttonBitmap, this->right_button.bg_vram, this->right_button.width * this->right_button.height *2 );
-	this->right_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_right_button_activeBitmap, this->right_button.bg_active_vram, this->right_button.width * this->right_button.height *2 );
-	this->exit_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp );
-	dmaCopy( bottom_left_buttonBitmap, this->exit_button.bg_vram, this->exit_button.width * this->exit_button.height *2 );
-	this->exit_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp );
-	dmaCopy( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram, this->exit_button.width * this->exit_button.height *2 );
-	this->clear_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp );
-	dmaCopy( bottom_right_buttonBitmap, this->clear_button.bg_vram, this->clear_button.width * this->clear_button.height *2 );
-	this->clear_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp );
-	dmaCopy( bottom_right_button_activeBitmap, this->clear_button.bg_active_vram, this->clear_button.width * this->clear_button.height *2 );
-	this->hanzi_tab.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_paper_tabBitmap, this->hanzi_tab.bg_vram, this->hanzi_tab.width * this->hanzi_tab.height *2 );
-	this->hanzi_tab.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram, this->hanzi_tab.width * this->hanzi_tab.height *2 );
-	this->hanzi_tab.bg_inactive_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram, this->hanzi_tab.width * this->hanzi_tab.height *2 );
+	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
+	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
+	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
+	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
+	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
+	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
+	this->clear_button.init_vram( bottom_right_buttonBitmap, this->clear_button.bg_vram );
+	this->clear_button.init_vram( bottom_right_button_activeBitmap, this->clear_button.bg_active_vram );
+	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
+	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
+	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
+
 	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
 	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
 	this->pinyin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
@@ -236,75 +226,19 @@ void NewWordsViewer::render( Screen screen )
 		{
 			if( this->word_index > 0 )
 			{
-				oamSet( this->left_button.oam, oam_entry++,
-						this->left_button.x, this->left_button.y, 	// position
-						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						this->left_button.active ? this->left_button.bg_active_vram : this->left_button.bg_vram,
-						0, 0, 0, 0, 0, 0 );
-				oamSet( this->left_button.oam, oam_entry++,
-						this->left_button.x+this->left_button.text_x_offset, this->left_button.y+this->left_button.text_y_offset, 	// position
-						0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->left_button.text_vram,
-						0, 0, 0, 0, 0, 0 );
+				this->left_button.render_to( oam_entry );
 			}
 			if( this->word_index < this->lesson.new_words.size()-1 )
 			{
-				oamSet( this->right_button.oam, oam_entry++,
-						this->right_button.x, this->right_button.y, 	// position
-						1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-						this->right_button.active ? this->right_button.bg_active_vram : this->right_button.bg_vram,
-						0, 0, 0, 0, 0, 0 );
-				oamSet( this->right_button.oam, oam_entry++,
-						this->right_button.x+this->right_button.text_x_offset, this->right_button.y+this->right_button.text_y_offset, 	// position
-						0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->right_button.text_vram,
-						0, 0, 0, 0, 0, 0 );
+				this->right_button.render_to( oam_entry );
 			}
 		}
-		oamSet( this->exit_button.oam, oam_entry++,
-				this->exit_button.x, this->exit_button.y, 	// position
-				1, 1, SpriteSize_16x16, SpriteColorFormat_Bmp, 
-				this->exit_button.active ? this->exit_button.bg_active_vram : this->exit_button.bg_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->exit_button.oam, oam_entry++,
-				this->exit_button.x+this->exit_button.text_x_offset, this->exit_button.y+this->exit_button.text_y_offset, 	// position
-				0, 0, SpriteSize_16x16, SpriteColorFormat_256Color, this->exit_button.text_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->clear_button.oam, oam_entry++,
-				this->clear_button.x, this->clear_button.y, 	// position
-				1, 1, SpriteSize_16x16, SpriteColorFormat_Bmp, 
-				this->clear_button.active ? this->clear_button.bg_active_vram : this->clear_button.bg_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->clear_button.oam, oam_entry++,
-				this->clear_button.x+this->clear_button.text_x_offset, this->clear_button.y+this->clear_button.text_y_offset, 	// position
-				0, 0, SpriteSize_16x16, SpriteColorFormat_256Color, this->clear_button.text_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->hanzi_tab.oam, oam_entry++,
-				this->hanzi_tab.x, this->hanzi_tab.y-(this->lesson.render_hanzi ? 0 : 8), 	// position
-				1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-				this->hanzi_tab.active ? this->hanzi_tab.bg_active_vram : this->hanzi_tab.bg_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->hanzi_tab.oam, oam_entry++,
-				this->hanzi_tab.x+this->hanzi_tab.text_x_offset, this->hanzi_tab.y+this->hanzi_tab.text_y_offset-(this->lesson.render_hanzi ? 0 : 8), 	// position
-				0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->hanzi_tab.text_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->pinyin_tab.oam, oam_entry++,
-				this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8), 	// position
-				1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-				this->pinyin_tab.active ? this->pinyin_tab.bg_active_vram : this->pinyin_tab.bg_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->pinyin_tab.oam, oam_entry++,
-				this->pinyin_tab.x+this->pinyin_tab.text_x_offset, this->pinyin_tab.y+this->pinyin_tab.text_y_offset-(this->lesson.render_pinyin ? 0 : 8), 	// position
-				0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->pinyin_tab.text_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->latin_tab.oam, oam_entry++,
-				this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8), 	// position
-				1, 1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-				this->latin_tab.active ? this->latin_tab.bg_active_vram : this->latin_tab.bg_vram,
-				0, 0, 0, 0, 0, 0 );
-		oamSet( this->latin_tab.oam, oam_entry++,
-				this->latin_tab.x+this->latin_tab.text_x_offset, this->latin_tab.y+this->latin_tab.text_y_offset-(this->lesson.render_translation ? 0 : 8), 	// position
-				0, 0, SpriteSize_32x16, SpriteColorFormat_256Color, this->latin_tab.text_vram,
-				0, 0, 0, 0, 0, 0 );
-			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
+		this->exit_button.render_to( oam_entry );
+		this->clear_button.render_to( oam_entry );
+		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->lesson.render_hanzi ? 0 : 8) );
+		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8) );
+		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8) );
+		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );
 	}

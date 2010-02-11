@@ -91,12 +91,12 @@ LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
 LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config )
 	: freetype_renderer(_freetype_renderer), library(_library), config(_config), 
 		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
-		book_icon(&oamSub,"",32,32,5,0,freetype_renderer.latin_face,9), 
-		lesson_icon(&oamSub,"",32,32,5,0,freetype_renderer.latin_face,9),
-		new_words_button(&oamSub,"生词",MenuEntry::BUTTON_WIDTH,MenuEntry::BUTTON_HEIGHT,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9),
-		grammar_button(&oamSub,"语法",MenuEntry::BUTTON_WIDTH,MenuEntry::BUTTON_HEIGHT,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		text_button(&oamSub,"课文",MenuEntry::BUTTON_WIDTH,MenuEntry::BUTTON_HEIGHT,MenuEntry::TEXT_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		exercises_button(&oamSub,"练习",MenuEntry::BUTTON_WIDTH,MenuEntry::BUTTON_HEIGHT,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1)
+		book_icon(&oamSub,"",SpriteSize_32x32,5,0,freetype_renderer.latin_face,9), 
+		lesson_icon(&oamSub,"",SpriteSize_32x32,5,0,freetype_renderer.latin_face,9),
+		new_words_button(&oamSub,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9),
+		grammar_button(&oamSub,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
+		text_button(&oamSub,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
+		exercises_button(&oamSub,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->info_screen );
 	dmaCopy( bg_dragonBitmap, this->info_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -115,18 +115,13 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	oamEnable( &oamSub );
 
 	// vorgerenderte Spritegrafiken laden:
-	this->book_icon.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x32, SpriteColorFormat_Bmp );
-	dmaCopy( accessories_dictionaryBitmap, this->book_icon.bg_vram, this->book_icon.width * this->book_icon.height *2 );
-	this->book_icon.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x32, SpriteColorFormat_Bmp );
-	dmaCopy( accessories_dictionary_openBitmap, this->book_icon.bg_active_vram, this->book_icon.width * this->book_icon.height *2 );
-	this->lesson_icon.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x32, SpriteColorFormat_Bmp );
-	dmaCopy( text_x_genericBitmap, this->lesson_icon.bg_vram, this->lesson_icon.width * this->lesson_icon.height *2 );
-	this->new_words_button.bg_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( menu_buttonBitmap, this->new_words_button.bg_vram, this->new_words_button.width * this->new_words_button.height *2 );
-	this->new_words_button.bg_active_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( menu_button_activeBitmap, this->new_words_button.bg_active_vram, this->new_words_button.width * this->new_words_button.height *2 );
-	this->new_words_button.bg_inactive_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_Bmp );
-	dmaCopy( menu_button_inactiveBitmap, this->new_words_button.bg_inactive_vram, this->new_words_button.width * this->new_words_button.height *2 );
+	this->book_icon.init_vram( accessories_dictionaryBitmap, this->book_icon.bg_vram );
+	this->book_icon.init_vram( accessories_dictionary_openBitmap, this->book_icon.bg_active_vram );
+	this->lesson_icon.init_vram( text_x_genericBitmap, this->lesson_icon.bg_vram );
+	this->new_words_button.init_vram( menu_buttonBitmap, this->new_words_button.bg_vram );
+	this->new_words_button.init_vram( menu_button_activeBitmap, this->new_words_button.bg_active_vram );
+	this->new_words_button.init_vram( menu_button_inactiveBitmap, this->new_words_button.bg_inactive_vram );
+	
 	this->grammar_button.bg_vram = this->new_words_button.bg_vram;
 	this->grammar_button.bg_active_vram = this->new_words_button.bg_active_vram;
 	this->grammar_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
@@ -343,16 +338,10 @@ void LessonMenu::render( Screen screen )
 			}
 			if( top > -MenuEntry::BASE_HEIGHT )
 			{
-				if( book_entry && book_entry->exploded )
-				{
-					oamSet( this->book_icon.oam, oam_entry++, this->book_icon.x, top, /*prio=*/0, /*alpha=*/15, 
-							SpriteSize_32x32, SpriteColorFormat_Bmp, this->book_icon.bg_active_vram, 0, 0, 0, 0, 0, 0 );
-				}
-				else
-				{
-					oamSet( this->book_icon.oam, oam_entry++, this->book_icon.x, top, /*prio=*/0, /*alpha=*/15, 
-							SpriteSize_32x32, SpriteColorFormat_Bmp, this->book_icon.bg_vram, 0, 0, 0, 0, 0, 0 );
-				}
+				if( book_entry && book_entry->exploded ) this->book_icon.active = true;
+				else this->book_icon.active = false;
+				this->book_icon.render_to( oam_entry, this->book_icon.x, top );
+				
 				// book_entry anlegen, falls nicht schon früher geschehen,
 				// da wir ihn nun wirklich brauchen:
 				if( !book_entry )
@@ -377,8 +366,8 @@ void LessonMenu::render( Screen screen )
 					MenuEntry* lesson_entry = 0;
 					if( top > -MenuEntry::ACTIVE_HEIGHT )
 					{
-						oamSet( this->lesson_icon.oam, oam_entry++, this->lesson_icon.x, top, /*prio=*/0, /*alpha=*/15, 
-								SpriteSize_32x32, SpriteColorFormat_Bmp, this->lesson_icon.bg_vram, 0, 0, 0, 0, 0, 0 );
+						this->lesson_icon.render_to( oam_entry, this->lesson_icon.x, top );
+						
 						if( this->menu_list.count( lesson_id ) )
 						{
 							lesson_entry = this->menu_list[ lesson_id ];
@@ -404,16 +393,7 @@ void LessonMenu::render( Screen screen )
 							for( TextButtonList::iterator i = this->text_buttons.begin();
 								i != this->text_buttons.end(); i++ )
 							{
-								oamSet( (*i)->oam, oam_entry++,
-										(*i)->x, top+MenuEntry::BUTTON_Y_OFFSET, 	// position
-										/*prio=*/1, /*alpha=*/1, SpriteSize_32x16, SpriteColorFormat_Bmp, 
-										(*i)->inactive ? (*i)->bg_inactive_vram :
-											( (*i)->active ? (*i)->bg_active_vram : (*i)->bg_vram ),
-										0, 0, 0, 0, 0, 0 );
-								oamSet( (*i)->oam, oam_entry++,
-										(*i)->x+(*i)->text_x_offset, top+MenuEntry::BUTTON_Y_OFFSET+(*i)->text_y_offset, 	// position
-										/*prio=*/0, /*alpha=*/0, SpriteSize_32x16, SpriteColorFormat_256Color, 
-										(*i)->text_vram, 0, 0, 0, 0, 0, 0 );
+								(*i)->render_to( oam_entry, (*i)->x, top+MenuEntry::BUTTON_Y_OFFSET );
 							}
 						}
 						top += MenuEntry::ACTIVE_HEIGHT;

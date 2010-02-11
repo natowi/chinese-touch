@@ -1,18 +1,38 @@
 #include <nds.h>
+#include <nds/arm9/sprite.h>
 
 #include "freetype_renderer.h"
 #include "text_button.h"
 
 TextButton::TextButton( OamState* _oam, const std::string& _text, 
-						int _width, int _height, int _x, int _y,
+						SpriteSize _sprite_size, int _x, int _y,
 						FT_Face _face, int _font_size,
 						int _text_x_offset, int _text_y_offset )
-	: oam(_oam), text(_text), width(_width), height(_height), x(_x), y(_y), 
+	: oam(_oam), text(_text), sprite_size(_sprite_size), x(_x), y(_y), 
 	text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
 	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
 	active(false), inactive(false), owns_bg_vram(true),
 	face(_face), font_size(_font_size)
 {
+	if( SPRITE_SIZE_SHAPE(sprite_size)==OBJSHAPE_SQUARE )
+	{
+		if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_8 ) this->width=8;
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_16 ) this->width=16;
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) this->width=32;
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) this->width=64;
+		this->height = this->width;
+	}
+	else
+	{
+		if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_8 ) { this->width=16; this->height=8; }
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_16 ) { this->width=32; this->height=8; }
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 )  { this->width=32; this->height=16; }
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) { this->width=64; this->height=32; }
+		if( SPRITE_SIZE_SHAPE(sprite_size)==OBJSHAPE_TALL )
+		{
+			int temp = this->height; this->height = this->width; this->width = temp;
+		}
+	}
 }
 
 TextButton::~TextButton()
@@ -26,8 +46,35 @@ TextButton::~TextButton()
 	}
 }
 
-void TextButton::render_to( RenderScreen& render_screen )
+void TextButton::init_vram( const void* source, u16*& vram_dest )
 {
+	vram_dest = oamAllocateGfx( this->oam, this->sprite_size, SpriteColorFormat_Bmp );
+	dmaCopy( source, vram_dest, this->width * this->height * 2 );
+}
+
+void TextButton::render_to( int& oam_entry )
+{
+	this->render_to( oam_entry, this->x, this->y );
+}
+
+void TextButton::render_to( int& oam_entry, int _x, int _y )
+{
+	if( this->bg_vram )
+	{
+		oamSet( this->oam, oam_entry++,
+				_x, _y, 	// position
+				1, 1, this->sprite_size, SpriteColorFormat_Bmp, 
+				this->active && this->bg_active_vram ? this->bg_active_vram : this->bg_vram,
+				0, 0, 0, 0, 0, 0 );
+	}
+	if( this->text_vram )
+	{
+		oamSet( this->oam, oam_entry++,
+				_x+this->text_x_offset, _y+this->text_y_offset, 	// position
+				0, 0, this->sprite_size, SpriteColorFormat_256Color, 
+				this->text_vram,
+				0, 0, 0, 0, 0, 0 );
+	}
 }
 
 bool TextButton::is_responsible( int ref_x, int ref_y )

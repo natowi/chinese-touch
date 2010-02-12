@@ -16,7 +16,8 @@ class NewWordsViewer
 		unsigned int word_index;
 		Config& config;
 		TextButton left_button, right_button, exit_button, clear_button, 
-			hanzi_tab, pinyin_tab, latin_tab;
+			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
+			rating_happy, rating_ok, rating_confused, rating_dead;
 		TextButtonList text_buttons;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 	public:

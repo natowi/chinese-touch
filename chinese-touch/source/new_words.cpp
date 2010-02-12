@@ -23,6 +23,11 @@
 #include "top_paper_tab_active.h"
 #include "top_paper_tab_inactive.h"
 #include "bg_dragon.h"
+#include "bottom_rating_bar.h"
+#include "bottom_rating_happy.h"
+#include "bottom_rating_ok.h"
+#include "bottom_rating_confused.h"
+#include "bottom_rating_dead.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
@@ -106,7 +111,12 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 		clear_button(&oamSub,"c",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
 		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,drawing_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
 		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,drawing_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
-		latin_tab(&oamSub,"latin",SpriteSize_32x16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1)
+		latin_tab(&oamSub,"latin",SpriteSize_32x16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
+		rating_bar(&oamSub,"",SpriteSize_64x32,drawing_screen.res_x/2-32,drawing_screen.res_y-32,freetype_renderer.latin_face,7,0,0),
+		rating_happy(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-32,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_ok(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_confused(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_dead(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -134,6 +144,12 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
 	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
 	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
+	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
+	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
+	this->rating_happy.init_vram( bottom_rating_happyBitmap, this->rating_happy.bg_vram );
+	this->rating_ok.init_vram( bottom_rating_okBitmap, this->rating_ok.bg_vram );
+	this->rating_confused.init_vram( bottom_rating_confusedBitmap, this->rating_confused.bg_vram );
+	this->rating_dead.init_vram( bottom_rating_deadBitmap, this->rating_dead.bg_vram );
 
 	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
 	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
@@ -151,6 +167,11 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 	this->text_buttons.push_back( &this->hanzi_tab );
 	this->text_buttons.push_back( &this->pinyin_tab );
 	this->text_buttons.push_back( &this->latin_tab );
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_happy );
+	this->text_buttons.push_back( &this->rating_ok );
+	this->text_buttons.push_back( &this->rating_confused );
+	this->text_buttons.push_back( &this->rating_dead );
 
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
@@ -238,6 +259,11 @@ void NewWordsViewer::render( Screen screen )
 		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->lesson.render_hanzi ? 0 : 8) );
 		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8) );
 		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8) );
+		this->rating_bar.render_to( oam_entry );
+		this->rating_happy.render_to( oam_entry );
+		this->rating_ok.render_to( oam_entry );
+		this->rating_confused.render_to( oam_entry );
+		this->rating_dead.render_to( oam_entry );
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );

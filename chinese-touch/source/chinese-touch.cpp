@@ -50,6 +50,7 @@ int main()
 			book[ lesson_number ] = new Lesson( lesson_number, &book );
 			book[ lesson_number ]->new_words.push_back( new NewWord("foo","bar",book[lesson_number]) );
 			book[ lesson_number ]->new_words.push_back( new NewWord("testi","test",book[lesson_number]) );
+			book[ lesson_number ]->new_words.push_back( new NewWord("abc","xyz",book[lesson_number]) );
 		}
 
 		LOG( "initializing Freetype" );
@@ -59,6 +60,11 @@ int main()
 		LOG( "loading config" );
 		config.load();
 
+#if 0
+		NewWordsViewer* new_words = new NewWordsViewer( *ft, *(book.begin()->second), config );
+		new_words->run_until_exit();
+		delete new_words;
+#endif
 #if 0
 	ErrorConsole::init_screen();
 	RenderScreen r;

@@ -10,6 +10,7 @@ TextButton::TextButton( OamState* _oam, const std::string& _text,
 						int _text_x_offset, int _text_y_offset )
 	: oam(_oam), text(_text), sprite_size(_sprite_size), x(_x), y(_y), 
 	text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
+	bg_prio(1), text_prio(0),
 	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
 	active(false), inactive(false), owns_bg_vram(true),
 	face(_face), font_size(_font_size)
@@ -66,7 +67,7 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 	{
 		oamSet( this->oam, oam_entry++,
 				_x, _y, 	// position
-				1, 1, this->sprite_size, SpriteColorFormat_Bmp, 
+				this->bg_prio, 1, this->sprite_size, SpriteColorFormat_Bmp, 
 				vram,
 				0, 0, 0, 0, 0, 0 );
 	}
@@ -74,7 +75,7 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 	{
 		oamSet( this->oam, oam_entry++,
 				_x+this->text_x_offset, _y+this->text_y_offset, 	// position
-				0, 0, this->sprite_size, SpriteColorFormat_256Color, 
+				this->text_prio, 0, this->sprite_size, SpriteColorFormat_256Color, 
 				this->text_vram,
 				0, 0, 0, 0, 0, 0 );
 	}

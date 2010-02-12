@@ -24,10 +24,10 @@
 #include "top_paper_tab_inactive.h"
 #include "bg_dragon.h"
 #include "bottom_rating_bar.h"
-#include "bottom_rating_happy.h"
-#include "bottom_rating_ok.h"
-#include "bottom_rating_confused.h"
-#include "bottom_rating_dead.h"
+#include "bottom_rating_easy.h"
+#include "bottom_rating_medium.h"
+#include "bottom_rating_hard.h"
+#include "bottom_rating_impossible.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
@@ -113,10 +113,10 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,drawing_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
 		latin_tab(&oamSub,"latin",SpriteSize_32x16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
 		rating_bar(&oamSub,"",SpriteSize_64x32,drawing_screen.res_x/2-32,drawing_screen.res_y-32,freetype_renderer.latin_face,7,0,0),
-		rating_happy(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-32,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_ok(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_confused(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_dead(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0)
+		rating_easy(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-32,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_medium(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_hard(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_impossible(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -146,10 +146,10 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
 	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
 	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
-	this->rating_happy.init_vram( bottom_rating_happyBitmap, this->rating_happy.bg_vram );
-	this->rating_ok.init_vram( bottom_rating_okBitmap, this->rating_ok.bg_vram );
-	this->rating_confused.init_vram( bottom_rating_confusedBitmap, this->rating_confused.bg_vram );
-	this->rating_dead.init_vram( bottom_rating_deadBitmap, this->rating_dead.bg_vram );
+	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
+	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
+	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
+	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
 
 	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
 	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
@@ -168,10 +168,10 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 	this->text_buttons.push_back( &this->pinyin_tab );
 	this->text_buttons.push_back( &this->latin_tab );
 	this->text_buttons.push_back( &this->rating_bar );
-	this->text_buttons.push_back( &this->rating_happy );
-	this->text_buttons.push_back( &this->rating_ok );
-	this->text_buttons.push_back( &this->rating_confused );
-	this->text_buttons.push_back( &this->rating_dead );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
 
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
@@ -260,10 +260,14 @@ void NewWordsViewer::render( Screen screen )
 		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8) );
 		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8) );
 		this->rating_bar.render_to( oam_entry );
-		this->rating_happy.render_to( oam_entry );
-		this->rating_ok.render_to( oam_entry );
-		this->rating_confused.render_to( oam_entry );
-		this->rating_dead.render_to( oam_entry );
+		if( this->rating_easy.active || this->lesson.new_words[this->word_index]->rating==RATING_EASY )
+			this->rating_easy.render_to( oam_entry );
+		if( this->rating_medium.active || this->lesson.new_words[this->word_index]->rating==RATING_MEDIUM )
+			this->rating_medium.render_to( oam_entry );
+		if( this->rating_hard.active || this->lesson.new_words[this->word_index]->rating==RATING_HARD )
+			this->rating_hard.render_to( oam_entry );
+		if( this->rating_impossible.active || this->lesson.new_words[this->word_index]->rating==RATING_IMPOSSIBLE )
+			this->rating_impossible.render_to( oam_entry );
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );
@@ -399,6 +403,42 @@ void NewWordsViewer::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
+            else if( this->rating_easy.is_responsible(touch.px, touch.py) 
+				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
+			{
+				if( !this->rating_easy.active )
+				{
+					this->rating_easy.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_medium.is_responsible(touch.px, touch.py) 
+				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
+			{
+				if( !this->rating_medium.active )
+				{
+					this->rating_medium.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_hard.is_responsible(touch.px, touch.py) 
+				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
+			{
+				if( !this->rating_hard.active )
+				{
+					this->rating_hard.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_impossible.is_responsible(touch.px, touch.py) 
+				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
+			{
+				if( !this->rating_impossible.active )
+				{
+					this->rating_impossible.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
 			else
 			{
 				bool changed = false;
@@ -479,6 +519,38 @@ void NewWordsViewer::run_until_exit()
             {
 				this->latin_tab.active = false;
 				this->lesson.toggle_translation();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_easy.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_easy.active )
+            {
+				this->rating_easy.active = false;
+				this->lesson.new_words[this->word_index]->rating = RATING_EASY;
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_medium.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_medium.active )
+            {
+				this->rating_medium.active = false;
+				this->lesson.new_words[this->word_index]->rating = RATING_MEDIUM;
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_hard.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_hard.active )
+            {
+				this->rating_hard.active = false;
+				this->lesson.new_words[this->word_index]->rating = RATING_HARD;
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_impossible.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_impossible.active )
+            {
+				this->rating_impossible.active = false;
+				this->lesson.new_words[this->word_index]->rating = RATING_IMPOSSIBLE;
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

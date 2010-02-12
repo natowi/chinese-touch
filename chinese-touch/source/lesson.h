@@ -29,23 +29,32 @@ public:
 };
 typedef std::map<std::string,Definition*> Definitions;
 
-/*! \brief kapselt eine Vokabel mit allen interessanten Informationen
-	Komposition aus einem chinesischen Wort, der zugehörigen 
-	Lautumschrift in Pinyin, sowie einer Abbildung von ISO-Sprachcodes zu in den 
-	jeweiligen Sprachen verfassten Übersetzungen bzw. Definitionen */
+/*! \brief Difficulty rating levels */
+typedef enum
+{
+	RATING_NONE = 0,
+	RATING_IMPOSSIBLE,
+	RATING_HARD,
+	RATING_MEDIUM,
+	RATING_EASY,
+} Rating;
+
+/*! \brief Encapsulates a new word and all related information
+	Composition of a chinese word, chinese pronunciation in Pinyin and a mapping 
+	from ISO language codes to definitions/translations in the corresponding languages */
 class NewWord
 {
 public:
     NewWord( const std::string& _hanzi, const std::string& _pinyin, 
             Lesson* _lesson ) 
-        : hanzi(_hanzi), pinyin(_pinyin), successes(0), errors(0), 
-        lesson(_lesson) {};
+        : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson),
+        rating(RATING_NONE) {};
     void render( FreetypeRenderer& ft, RenderScreen& render_screen );
 public:
     std::string hanzi, pinyin;
     Definitions definitions;
-    unsigned int successes, errors;
     Lesson* lesson;
+	Rating rating; //!< User defined difficulty rating
 };
 typedef std::vector<NewWord*> NewWordVector;
 

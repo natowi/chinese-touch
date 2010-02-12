@@ -17,7 +17,7 @@ class NewWordsViewer
 		Config& config;
 		TextButton left_button, right_button, exit_button, clear_button, 
 			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
-			rating_happy, rating_ok, rating_confused, rating_dead;
+			rating_easy, rating_medium, rating_hard, rating_impossible;
 		TextButtonList text_buttons;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 	public:

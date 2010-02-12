@@ -19,7 +19,7 @@ TextButton::TextButton( OamState* _oam, const std::string& _text,
 		if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_8 ) this->width=8;
 		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_16 ) this->width=16;
 		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) this->width=32;
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) this->width=64;
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_64 ) this->width=64;
 		this->height = this->width;
 	}
 	else
@@ -27,7 +27,7 @@ TextButton::TextButton( OamState* _oam, const std::string& _text,
 		if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_8 ) { this->width=16; this->height=8; }
 		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_16 ) { this->width=32; this->height=8; }
 		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 )  { this->width=32; this->height=16; }
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) { this->width=64; this->height=32; }
+		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_64 ) { this->width=64; this->height=32; }
 		if( SPRITE_SIZE_SHAPE(sprite_size)==OBJSHAPE_TALL )
 		{
 			int temp = this->height; this->height = this->width; this->width = temp;
@@ -59,12 +59,15 @@ void TextButton::render_to( int& oam_entry )
 
 void TextButton::render_to( int& oam_entry, int _x, int _y )
 {
-	if( this->bg_vram )
+	u16* vram = this->bg_vram;
+	if( this->active && this->bg_active_vram ) vram = this->bg_active_vram;
+	if( this->inactive && this->bg_inactive_vram ) vram = this->bg_inactive_vram;
+	if( vram )
 	{
 		oamSet( this->oam, oam_entry++,
 				_x, _y, 	// position
 				1, 1, this->sprite_size, SpriteColorFormat_Bmp, 
-				this->active && this->bg_active_vram ? this->bg_active_vram : this->bg_vram,
+				vram,
 				0, 0, 0, 0, 0, 0 );
 	}
 	if( this->text_vram )

@@ -42,7 +42,7 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
-LIBS	:= 	/home/thomas/data/programming/nds/freetype-2.3.9/objs/.libs/libfreetype.a \
+LIBS	:= 	../freetype/objs/.libs/libfreetype.a \
             -lfat -lnds9
  
  

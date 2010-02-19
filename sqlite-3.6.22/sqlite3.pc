@@ -1,6 +1,6 @@
 # Package Information for pkg-config
 
-prefix=/usr/local
+prefix=/opt/devkitpro/devkitARM
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
@@ -9,5 +9,5 @@ Name: SQLite
 Description: SQL database engine
 Version: 3.6.22
 Libs: -L${libdir} -lsqlite3
-Libs.private: -ldl 
+Libs.private: 
 Cflags: -I${includedir}

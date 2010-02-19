@@ -22764,6 +22764,7 @@ static int unixLock(sqlite3_file *id, int locktype){
   ** even if the locking primitive used is always a write-lock.
   */
   int rc = SQLITE_OK;
+  return rc;
   unixFile *pFile = (unixFile*)id;
   struct unixLockInfo *pLock = pFile->pLock;
   struct flock lock;
@@ -23341,7 +23342,7 @@ static int dotlockLock(sqlite3_file *id, int locktype) {
     pFile->locktype = locktype;
 #if !OS_VXWORKS
     /* Always update the timestamp on the old file */
-    utimes(zLockFile, NULL);
+    //utimes(zLockFile, NULL);
 #endif
     return SQLITE_OK;
   }
@@ -25754,6 +25755,7 @@ static int unixRandomness(sqlite3_vfs *NotUsed, int nBuf, char *zBuf){
 ** might be greater than or equal to the argument, but not less
 ** than the argument.
 */
+#if 0
 static int unixSleep(sqlite3_vfs *NotUsed, int microseconds){
 #if OS_VXWORKS
   struct timespec sp;
@@ -25774,6 +25776,7 @@ static int unixSleep(sqlite3_vfs *NotUsed, int microseconds){
   return seconds*1000000;
 #endif
 }
+#endif
 
 /*
 ** The following variable, if set to a non-zero value, is interpreted as
@@ -26825,7 +26828,6 @@ SQLITE_API int sqlite3_os_init(void){
     unixDlSym,            /* xDlSym */                      \
     unixDlClose,          /* xDlClose */                    \
     unixRandomness,       /* xRandomness */                 \
-    unixSleep,            /* xSleep */                      \
     unixCurrentTime,      /* xCurrentTime */                \
     unixGetLastError      /* xGetLastError */               \
   }
@@ -96847,7 +96849,7 @@ static int openDatabase(
 
   /* Open the backend database driver */
   db->openFlags = flags;
-  rc = sqlite3BtreeFactory(db, zFilename, 0, SQLITE_DEFAULT_CACHE_SIZE, 
+  rc = sqlite3BtreeFactory(db, zFilename, 1, SQLITE_DEFAULT_CACHE_SIZE, 
                            flags | SQLITE_OPEN_MAIN_DB,
                            &db->aDb[0].pBt);
   if( rc!=SQLITE_OK ){

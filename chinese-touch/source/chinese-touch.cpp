@@ -5,6 +5,7 @@
 
 #include <nds.h>
 #include <fat.h>
+#include <sqlite3.h>
 
 #include "chinese-touch.h"
 #include "freetype_renderer.h"
@@ -16,6 +17,8 @@
 #include "lesson_menu.h"
 #include "new_words.h"
 #include "text_view.h"
+#include "words_db.h"
+
 
 int main()
 {
@@ -28,13 +31,25 @@ int main()
 		{
 			throw ERROR( "error initializing fat driver" );
 		}
-
+		
+		
+		try
+		{
+			WordsDB::open();
+		}
+		catch( Error& e )
+		{
+			WARN( e.full_msg );
+			WordsDB::create();
+		}
+		
 		Dictionary dictionary;
 
 		LOG( "initializing library" );
 		Library library( global_fat_initialized, dictionary );
 		LOG( "scanning library..." );
 		library.rescan();
+		WordsDB::finalize_initial_import();
 		LOG( "scanning complete" );
 		if( !library.size() )
 		{

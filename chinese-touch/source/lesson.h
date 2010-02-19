@@ -55,6 +55,7 @@ public:
     Definitions definitions;
     Lesson* lesson;
 	Rating rating; //!< User defined difficulty rating
+	int id;
 };
 typedef std::vector<NewWord*> NewWordVector;
 
@@ -84,6 +85,7 @@ public:
     int number;
     bool render_hanzi, render_pinyin, render_word_type, render_translation, render_comment;
     Book* book;
+	int id;
 };
 
 class Library;
@@ -98,6 +100,7 @@ public:
     std::string name, title, description, author, publisher, isbn;
     int year;
     Library* library;
+	int id;
 };
 
 //! \brief Die Buchsammlung bildet Buchnamen auf Buchobjekte ab:

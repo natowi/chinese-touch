@@ -9,6 +9,7 @@
 #define BASE_DIR "/" PROGRAM_NAME "/"
 #define CONFIG_FILE_NAME BASE_DIR PROGRAM_NAME ".conf"
 #define LOG_FILE_NAME BASE_DIR PROGRAM_NAME ".log"
+#define WORDS_DB_FILE_NAME BASE_DIR "words.db"
 
 extern bool global_fat_initialized;
 

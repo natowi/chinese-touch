@@ -10,6 +10,8 @@
 #include "config.h"
 #include "error_console.h"
 #include "sprite_helper.h"
+#include "words_db.h"
+
 #include "greys256.h"
 #include "top_left_button.h"
 #include "top_left_button_active.h"
@@ -236,6 +238,7 @@ void NewWordsViewer::render( Screen screen )
 			&& this->word_index < this->lesson.new_words.size() )
 		{
 			NewWord* new_word = this->lesson.new_words[this->word_index];
+			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
 			new_word->render( this->freetype_renderer, this->word_screen );
 		}
 	}
@@ -527,6 +530,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_easy.active = false;
 				this->lesson.new_words[this->word_index]->rating = RATING_EASY;
+				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -535,6 +539,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_medium.active = false;
 				this->lesson.new_words[this->word_index]->rating = RATING_MEDIUM;
+				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -543,6 +548,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_hard.active = false;
 				this->lesson.new_words[this->word_index]->rating = RATING_HARD;
+				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -551,6 +557,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_impossible.active = false;
 				this->lesson.new_words[this->word_index]->rating = RATING_IMPOSSIBLE;
+				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

@@ -12,6 +12,7 @@
 #include "lesson.h"
 #include "config.h"
 #include "error_console.h"
+#include "words_db.h"
 
 
 void Library::rescan()
@@ -49,6 +50,7 @@ void Library::rescan()
             }
             Book* book = new Book( book_name, this );
             book->parse_config( book_conf_path );
+			book->id = WordsDB::get_book_id( *book, true );
             (*this)[ book_name ] = book;
             LOG( "book: " << book_path );
             DIR* lessons_dir = opendir( lessons_path.c_str() );
@@ -93,6 +95,7 @@ void Library::rescan()
 						else
 						{
 							lesson = new Lesson( lesson_number, book );
+							lesson->id = WordsDB::get_lesson_id( *lesson, true );
 							(*book)[ lesson_number ] = lesson;
 						}
 						if( lesson_extension == "dict" )
@@ -215,6 +218,8 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
                 NewWord* word = new NewWord( hanzi, pinyin, this );
                 word->definitions[ definition.lang ] = new Definition( definition );
                 this->new_words.push_back( word );
+				// way too slow to do that here for all words at once:
+				// WordsDB::add_or_update_word( *word );
 				dictionary.add_new_word( word );
                 hanzi = "";
                 pinyin = "";

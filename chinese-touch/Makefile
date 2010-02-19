@@ -19,7 +19,7 @@ TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=	include freetype/include
+INCLUDES	:=	include freetype/include sqlite
 GRAPHICS	:=	graphics
 
 
@@ -28,7 +28,7 @@ GRAPHICS	:=	graphics
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2\
+CFLAGS	:=	-ggdb -Wall -O0\
  		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
 		-ffast-math \
 		$(ARCH)
@@ -43,6 +43,7 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
 LIBS	:= 	../freetype/objs/.libs/libfreetype.a \
+			../sqlite/.libs/libsqlite3.a \
             -lfat -lnds9
  
  

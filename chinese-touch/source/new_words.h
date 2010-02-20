@@ -6,7 +6,7 @@
 #include "drawing_pad.h"
 #include "config.h"
 
-class NewWordsViewer
+class NewWordsViewer : public NewWordRenderSettings
 {
 	public:
 		FreetypeRenderer& freetype_renderer;

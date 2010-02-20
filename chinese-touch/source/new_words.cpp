@@ -32,7 +32,7 @@
 #include "bottom_rating_impossible.h"
 
 
-void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
+void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings )
 {
 	if( !WordsDB::read_word(*this) ) WordsDB::add_or_write_word( *this );
 	render_screen.clear();
@@ -42,7 +42,7 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
     render_style.center_x = true;
     int top = 5;
     int size = 32;
-    if( this->lesson->render_hanzi )
+    if( render_settings.render_hanzi )
     {
         RenderInfo rect = ft.render( render_screen, this->hanzi, ft.han_face, size, 0, top, &render_style );
         top += rect.height;
@@ -55,7 +55,7 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
     
     // render pinyin centered
     size = 14;
-    if( this->lesson->render_pinyin )
+    if( render_settings.render_pinyin )
     {
         RenderInfo rect = ft.render( render_screen, this->pinyin, ft.han_face, size, 0, top, &render_style );
         top += rect.height;
@@ -70,7 +70,7 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
 	
     // render word type
     size = 7;
-    if( this->lesson->render_translation && this->lesson->render_word_type 
+    if( render_settings.render_translation && render_settings.render_word_type 
 		&& this->definitions.count(lang) && this->definitions[lang]->word_type.length() )
     {
         RenderInfo rect = ft.render( render_screen, this->definitions[lang]->word_type, ft.latin_face, size, 0, top, &render_style );
@@ -81,7 +81,7 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
 
     // render first n characters of translation
     size = 9;
-    if( this->lesson->render_translation && this->definitions.count(lang) 
+    if( render_settings.render_translation && this->definitions.count(lang) 
 		&& this->definitions[lang]->translation.length() )
     {
 		std::string text = this->definitions[lang]->translation.substr(0,char_limit);
@@ -92,7 +92,7 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
 
 	// render first n characters of comment
     size = 8;
-    if( this->lesson->render_comment && this->lesson->render_translation 
+    if( render_settings.render_comment && render_settings.render_translation 
 		&& this->definitions.count(lang) && this->definitions[lang]->comment.length() )
     {
 		std::string text = this->definitions[lang]->comment.substr(0,char_limit);
@@ -242,7 +242,7 @@ void NewWordsViewer::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( this->freetype_renderer, this->word_screen );
+			new_word->render( this->freetype_renderer, this->word_screen, *this );
 		}
 	}
 	else if( screen == SCREEN_SUB )
@@ -262,20 +262,20 @@ void NewWordsViewer::render( Screen screen )
 		}
 		this->exit_button.render_to( oam_entry );
 		this->clear_button.render_to( oam_entry );
-		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->lesson.render_hanzi ? 0 : 8) );
-		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8) );
-		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8) );
+		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_hanzi ? 0 : 8) );
+		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pinyin ? 0 : 8) );
+		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
 		this->rating_bar.render_to( oam_entry );
 		if( new_word )
 		{
 			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
-			if( this->rating_easy.active || this->lesson.new_words[this->word_index]->rating==RATING_EASY )
+			if( this->rating_easy.active || new_word->rating==RATING_EASY )
 				this->rating_easy.render_to( oam_entry );
-			if( this->rating_medium.active || this->lesson.new_words[this->word_index]->rating==RATING_MEDIUM )
+			if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
 				this->rating_medium.render_to( oam_entry );
-			if( this->rating_hard.active || this->lesson.new_words[this->word_index]->rating==RATING_HARD )
+			if( this->rating_hard.active || new_word->rating==RATING_HARD )
 				this->rating_hard.render_to( oam_entry );
-			if( this->rating_impossible.active || this->lesson.new_words[this->word_index]->rating==RATING_IMPOSSIBLE )
+			if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
 				this->rating_impossible.render_to( oam_entry );
 		}
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
@@ -512,7 +512,7 @@ void NewWordsViewer::run_until_exit()
 				&& this->hanzi_tab.active )
             {
 				this->hanzi_tab.active = false;
-				this->lesson.toggle_hanzi();
+				this->toggle_hanzi();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -520,7 +520,7 @@ void NewWordsViewer::run_until_exit()
 				&& this->pinyin_tab.active )
             {
 				this->pinyin_tab.active = false;
-				this->lesson.toggle_pinyin();
+				this->toggle_pinyin();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -528,7 +528,7 @@ void NewWordsViewer::run_until_exit()
 				&& this->latin_tab.active )
             {
 				this->latin_tab.active = false;
-				this->lesson.toggle_translation();
+				this->toggle_translation();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

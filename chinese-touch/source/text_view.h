@@ -23,7 +23,7 @@ enum ContextMode
 	CONTEXT_WORDS_BY_CHARCODE
 };
 
-class TextView : private std::list<BufferedLine*>
+class TextView : private std::list<BufferedLine*>, public NewWordRenderSettings
 {
 public:
 	FreetypeRenderer& freetype_renderer;
@@ -41,7 +41,9 @@ public:
 	static int LINE_HEIGHT;
 	ContextMode context_mode;
 	RenderChar* context_render_char;
-	TextButton left_button, right_button, exit_button;
+	TextButton left_button, right_button, exit_button,
+			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
+			rating_easy, rating_medium, rating_hard, rating_impossible;
 	TextButtonList text_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 

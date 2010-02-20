@@ -7,6 +7,8 @@
 #include "unicode.h"
 #include "error_console.h"
 #include "sprite_helper.h"
+#include "words_db.h"
+
 #include "greys256.h"
 #include "top_left_button.h"
 #include "top_left_button_active.h"
@@ -15,6 +17,14 @@
 #include "bottom_left_button.h"
 #include "bottom_left_button_active.h"
 #include "bg_dragon.h"
+#include "top_paper_tab.h"
+#include "top_paper_tab_active.h"
+#include "top_paper_tab_inactive.h"
+#include "bottom_rating_bar.h"
+#include "bottom_rating_easy.h"
+#include "bottom_rating_medium.h"
+#include "bottom_rating_hard.h"
+#include "bottom_rating_impossible.h"
 
 
 int TextView::LINE_HEIGHT = 16;
@@ -28,7 +38,15 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Diction
 		context_render_char(0),
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,text_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,freetype_renderer.latin_face,10,-1,1)
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
+		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,text_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
+		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,text_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
+		latin_tab(&oamSub,"latin",SpriteSize_32x16,text_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
+		rating_bar(&oamSub,"",SpriteSize_64x32,text_screen.res_x/2-32,text_screen.res_y-32,freetype_renderer.latin_face,7,0,0),
+		rating_easy(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-32,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_medium(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_hard(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		rating_impossible(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2+16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -51,29 +69,61 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Diction
 	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
 	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
 	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
+	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
+	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
+	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
+	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
+	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
+	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
+	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
+	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
+	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+
+	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
+	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
+	this->pinyin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
+	this->pinyin_tab.owns_bg_vram = false;
+	this->latin_tab.bg_vram = hanzi_tab.bg_vram;
+	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
+	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
+	this->latin_tab.owns_bg_vram = false;
 
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
 	this->text_buttons.push_back( &this->exit_button );
+	this->text_buttons.push_back( &this->hanzi_tab );
+	this->text_buttons.push_back( &this->pinyin_tab );
+	this->text_buttons.push_back( &this->latin_tab );
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
 
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
-		// Alpha-Bits bei definierten Spritepixeln auf "undurchsichtig" setzen:
-		if( (*i)->bg_vram ) set_16bpp_sprite_opague( (*i)->bg_vram, (*i)->width, (*i)->height, 0 );
-		if( (*i)->bg_active_vram ) set_16bpp_sprite_opague( (*i)->bg_active_vram, (*i)->width, (*i)->height, 0 );
-		if( (*i)->bg_inactive_vram ) set_16bpp_sprite_opague( (*i)->bg_inactive_vram, (*i)->width, (*i)->height, 0 );
-		// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
-		(*i)->text_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_256Color );
-		RenderScreenBuffer button_text( (*i)->width, (*i)->height );
-		RenderStyle render_style;
-		render_style.center_x = true;
-		this->freetype_renderer.render( button_text, (*i)->text, 
-			(*i)->face, (*i)->font_size, 0, 1, &render_style );
-		// Spritekonvertierung:
-		// (Zwischenpufferung aus Bequemlichkeit, weil VRAM nur mit 16-bit-Wörtern beschreibbbar)
-		u8 conversion_buffer[(*i)->width * (*i)->height];
-		tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, (*i)->width, (*i)->height );
-		memcpy( (*i)->text_vram, conversion_buffer, (*i)->width * (*i)->height * 1 );
+		if( (*i)->owns_bg_vram )
+		{
+			// Alpha-Bits bei definierten Spritepixeln auf "undurchsichtig" setzen:
+			if( (*i)->bg_vram ) set_16bpp_sprite_opague( (*i)->bg_vram, (*i)->width, (*i)->height, 0 );
+			if( (*i)->bg_active_vram ) set_16bpp_sprite_opague( (*i)->bg_active_vram, (*i)->width, (*i)->height, 0 );
+			if( (*i)->bg_inactive_vram ) set_16bpp_sprite_opague( (*i)->bg_inactive_vram, (*i)->width, (*i)->height, 0 );
+		}
+		if( (*i)->text.length() )
+		{
+			// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
+			(*i)->text_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_256Color );
+			RenderScreenBuffer button_text( (*i)->width, (*i)->height );
+			RenderStyle render_style;
+			render_style.center_x = true;
+			this->freetype_renderer.render( button_text, (*i)->text, 
+				(*i)->face, (*i)->font_size, 0, 1, &render_style );
+			// Spritekonvertierung:
+			// (Zwischenpufferung aus Bequemlichkeit, weil VRAM nur mit 16-bit-Wörtern beschreibbbar)
+			u8 conversion_buffer[(*i)->width * (*i)->height];
+			tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, (*i)->width, (*i)->height );
+			memcpy( (*i)->text_vram, conversion_buffer, (*i)->width * (*i)->height * 1 );
+		}
 	}
 	
 	// Palette für 8-Bit-Buttonbeschriftungen wie Hintergrundpalette initialisieren:
@@ -124,13 +174,17 @@ TextView::~TextView()
 
 void TextView::render( Screen screen )
 {
+	NewWord* new_word = 0;
+	if( this->current_new_word_list_it != this->current_new_word_list.end() )
+	{
+		new_word = *this->current_new_word_list_it;
+	}
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
-		if( this->current_new_word_list_it != this->current_new_word_list.end() )
+		if( new_word )
 		{
-			NewWord* new_word = *this->current_new_word_list_it;
-			new_word->render( this->freetype_renderer, this->word_screen );
+			new_word->render( this->freetype_renderer, this->word_screen, *this );
 		}
 	}
 	else if( screen == SCREEN_SUB )
@@ -151,6 +205,22 @@ void TextView::render( Screen screen )
 			}
 		}
 		this->exit_button.render_to( oam_entry );
+		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_hanzi ? 0 : 8) );
+		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pinyin ? 0 : 8) );
+		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
+		this->rating_bar.render_to( oam_entry );
+		if( new_word )
+		{
+			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
+			if( this->rating_easy.active || new_word->rating==RATING_EASY )
+				this->rating_easy.render_to( oam_entry );
+			if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
+				this->rating_medium.render_to( oam_entry );
+			if( this->rating_hard.active || new_word->rating==RATING_HARD )
+				this->rating_hard.render_to( oam_entry );
+			if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
+				this->rating_impossible.render_to( oam_entry );
+		}
 		
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
@@ -274,6 +344,73 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
+            else if( this->hanzi_tab.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+			{
+				if( !this->hanzi_tab.active )
+				{
+					this->hanzi_tab.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->pinyin_tab.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+			{
+				if( !this->pinyin_tab.active )
+				{
+					this->pinyin_tab.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->latin_tab.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+			{
+				if( !this->latin_tab.active )
+				{
+					this->latin_tab.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_easy.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+			{
+				if( !this->rating_easy.active )
+				{
+					this->rating_easy.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_medium.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+			{
+				if( !this->rating_medium.active )
+				{
+					this->rating_medium.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_hard.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+			{
+				if( !this->rating_hard.active )
+				{
+					this->rating_hard.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( this->rating_impossible.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+			{
+				if( !this->rating_impossible.active )
+				{
+					this->rating_impossible.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
 			else
 			{
 				bool changed = false;
@@ -332,6 +469,70 @@ void TextView::run_until_exit()
 					}
 				}
 			}
+            else if( this->hanzi_tab.is_responsible(old_touch.px, old_touch.py) 
+				&& this->hanzi_tab.active )
+            {
+				this->hanzi_tab.active = false;
+				this->toggle_hanzi();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->pinyin_tab.is_responsible(old_touch.px, old_touch.py) 
+				&& this->pinyin_tab.active )
+            {
+				this->pinyin_tab.active = false;
+				this->toggle_pinyin();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->latin_tab.is_responsible(old_touch.px, old_touch.py) 
+				&& this->latin_tab.active )
+            {
+				this->latin_tab.active = false;
+				this->toggle_translation();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_easy.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_easy.active
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+            {
+				this->rating_easy.active = false;
+				(*this->current_new_word_list_it)->rating = RATING_EASY;
+				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_medium.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_medium.active
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+            {
+				this->rating_medium.active = false;
+				(*this->current_new_word_list_it)->rating = RATING_MEDIUM;
+				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_hard.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_hard.active
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+            {
+				this->rating_hard.active = false;
+				(*this->current_new_word_list_it)->rating = RATING_HARD;
+				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->rating_impossible.is_responsible(old_touch.px, old_touch.py) 
+				&& this->rating_impossible.active
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+            {
+				this->rating_impossible.active = false;
+				(*this->current_new_word_list_it)->rating = RATING_IMPOSSIBLE;
+				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
 			else
 			{
 				// Dictionary nach relevanten Treffern durchsuchen:

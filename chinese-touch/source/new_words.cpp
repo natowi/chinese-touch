@@ -34,6 +34,7 @@
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen )
 {
+	if( !WordsDB::read_word(*this) ) WordsDB::add_or_write_word( *this );
 	render_screen.clear();
     
     // render hanzi centered
@@ -231,14 +232,16 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 
 void NewWordsViewer::render( Screen screen )
 {
+	NewWord* new_word = 0;
+	if( this->word_index >= 0 && this->word_index < this->lesson.new_words.size() )
+	{
+		new_word = this->lesson.new_words[this->word_index];
+	}
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
-		if( this->word_index >= 0 
-			&& this->word_index < this->lesson.new_words.size() )
+		if( new_word )
 		{
-			NewWord* new_word = this->lesson.new_words[this->word_index];
-			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
 			new_word->render( this->freetype_renderer, this->word_screen );
 		}
 	}
@@ -263,14 +266,18 @@ void NewWordsViewer::render( Screen screen )
 		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->lesson.render_pinyin ? 0 : 8) );
 		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->lesson.render_translation ? 0 : 8) );
 		this->rating_bar.render_to( oam_entry );
-		if( this->rating_easy.active || this->lesson.new_words[this->word_index]->rating==RATING_EASY )
-			this->rating_easy.render_to( oam_entry );
-		if( this->rating_medium.active || this->lesson.new_words[this->word_index]->rating==RATING_MEDIUM )
-			this->rating_medium.render_to( oam_entry );
-		if( this->rating_hard.active || this->lesson.new_words[this->word_index]->rating==RATING_HARD )
-			this->rating_hard.render_to( oam_entry );
-		if( this->rating_impossible.active || this->lesson.new_words[this->word_index]->rating==RATING_IMPOSSIBLE )
-			this->rating_impossible.render_to( oam_entry );
+		if( new_word )
+		{
+			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
+			if( this->rating_easy.active || this->lesson.new_words[this->word_index]->rating==RATING_EASY )
+				this->rating_easy.render_to( oam_entry );
+			if( this->rating_medium.active || this->lesson.new_words[this->word_index]->rating==RATING_MEDIUM )
+				this->rating_medium.render_to( oam_entry );
+			if( this->rating_hard.active || this->lesson.new_words[this->word_index]->rating==RATING_HARD )
+				this->rating_hard.render_to( oam_entry );
+			if( this->rating_impossible.active || this->lesson.new_words[this->word_index]->rating==RATING_IMPOSSIBLE )
+				this->rating_impossible.render_to( oam_entry );
+		}
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );

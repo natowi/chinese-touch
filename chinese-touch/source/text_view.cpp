@@ -172,7 +172,7 @@ TextView::~TextView()
 	}
 }
 
-void TextView::render( Screen screen )
+void TextView::render( Screen screen, bool update_sprites )
 {
 	NewWord* new_word = 0;
 	if( this->current_new_word_list_it != this->current_new_word_list.end() )
@@ -190,41 +190,45 @@ void TextView::render( Screen screen )
 	else if( screen == SCREEN_SUB )
 	{
 		this->sub_frame_count++;
-		oamClear( &oamSub, 0, 0 );
-		int oam_entry = 0;
-		if( this->current_new_word_list.size() )
+		if( update_sprites )
 		{
-			if( this->current_new_word_list_it != this->current_new_word_list.begin() )
+			oamClear( &oamSub, 0, 0 );
+			int oam_entry = 0;
+			if( this->current_new_word_list.size() )
 			{
-				this->left_button.render_to( oam_entry );
+				if( this->current_new_word_list_it != this->current_new_word_list.begin() )
+				{
+					this->left_button.render_to( oam_entry );
+				}
+				NewWordList::iterator test_it = this->current_new_word_list_it;
+				if( ++test_it != this->current_new_word_list.end() )
+				{
+					this->right_button.render_to( oam_entry );
+				}
 			}
-			NewWordList::iterator test_it = this->current_new_word_list_it;
-			if( ++test_it != this->current_new_word_list.end() )
+			this->exit_button.render_to( oam_entry );
+			this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_hanzi ? 0 : 8) );
+			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pinyin ? 0 : 8) );
+			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
+			this->rating_bar.render_to( oam_entry );
+			if( new_word )
 			{
-				this->right_button.render_to( oam_entry );
+				if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
+				if( this->rating_easy.active || new_word->rating==RATING_EASY )
+					this->rating_easy.render_to( oam_entry );
+				if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
+					this->rating_medium.render_to( oam_entry );
+				if( this->rating_hard.active || new_word->rating==RATING_HARD )
+					this->rating_hard.render_to( oam_entry );
+				if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
+					this->rating_impossible.render_to( oam_entry );
 			}
-		}
-		this->exit_button.render_to( oam_entry );
-		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_hanzi ? 0 : 8) );
-		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pinyin ? 0 : 8) );
-		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
-		this->rating_bar.render_to( oam_entry );
-		if( new_word )
-		{
-			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
-			if( this->rating_easy.active || new_word->rating==RATING_EASY )
-				this->rating_easy.render_to( oam_entry );
-			if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
-				this->rating_medium.render_to( oam_entry );
-			if( this->rating_hard.active || new_word->rating==RATING_HARD )
-				this->rating_hard.render_to( oam_entry );
-			if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
-				this->rating_impossible.render_to( oam_entry );
+			
+			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
+			swiWaitForVBlank();
+			oamUpdate( &oamSub );
 		}
 		
-		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
-		swiWaitForVBlank();
-		oamUpdate( &oamSub );
 		int top = this->y_offset;
 		this->text_screen.clear( 1 );
 		if( this->current_highlight )
@@ -430,7 +434,7 @@ void TextView::run_until_exit()
 					this->y_offset += y_diff;
 					this->v_y = y_diff;
 				}
-				if( changed ) this->render( SCREEN_SUB );
+				if( changed ) this->render( SCREEN_SUB, false );
 			}
 			old_touch = touch;
 		}
@@ -634,7 +638,7 @@ void TextView::run_until_exit()
 				if( !resistance ) resistance = this->v_y;
 				this->v_y -= resistance;
 				this->y_offset += this->v_y;
-				this->render( SCREEN_SUB );
+				this->render( SCREEN_SUB, false );
 			}
 		}
 	}

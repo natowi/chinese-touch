@@ -52,7 +52,7 @@ public:
 public:
 	TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Dictionary& _dict );
 	~TextView();
-	void render( Screen screen );
+	void render( Screen screen, bool update_sprites=true );
 	void run_until_exit();
 };
 

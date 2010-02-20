@@ -2,7 +2,7 @@
 ./configure --host=arm-eabi --prefix=$DEVKITARM --disable-largefile \
 	--disable-shared --disable-static --disable-readline \
 	--disable-threadsafe --disable-dynamic-extensions \
-CFLAGS="-ggdb -Wall -O0 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -mthumb -mthumb-interwork -I/opt/devkitpro/libnds/include -I/opt/devkitpro/libnds/include -DARM9" \
+CFLAGS="-ggdb -Wall -O2 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -mthumb -mthumb-interwork -I/opt/devkitpro/libnds/include -I/opt/devkitpro/libnds/include -DARM9" \
 CXXFLAGS="$CFLAGS -fno-rtti -fno-exceptions" \
 LDFLAGS="-specs=ds_arm9.specs /opt/devkitpro/libnds/lib/libnds9d.a"
 

@@ -207,10 +207,10 @@ void TextView::render( Screen screen, bool update_sprites )
 				}
 			}
 			this->exit_button.render_to( oam_entry );
-			this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_hanzi ? 0 : 8) );
-			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pinyin ? 0 : 8) );
-			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
-			this->rating_bar.render_to( oam_entry );
+			this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(new_word ? (this->render_hanzi ? 0 : 8) : 12) );
+			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(new_word ? (this->render_pinyin ? 0 : 8) : 12) );
+			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(new_word ? (this->render_translation ? 0 : 8) : 12) );
+			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
 			if( new_word )
 			{
 				if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
@@ -349,7 +349,8 @@ void TextView::run_until_exit()
 				}
 			}
             else if( this->hanzi_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
 			{
 				if( !this->hanzi_tab.active )
 				{
@@ -358,7 +359,8 @@ void TextView::run_until_exit()
 				}
 			}
             else if( this->pinyin_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
 			{
 				if( !this->pinyin_tab.active )
 				{
@@ -367,7 +369,8 @@ void TextView::run_until_exit()
 				}
 			}
             else if( this->latin_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
 			{
 				if( !this->latin_tab.active )
 				{
@@ -425,6 +428,7 @@ void TextView::run_until_exit()
 				}
 				int y_diff = touch.py - old_touch.py;
 				int abs_y_diff = abs( y_diff );
+				int old_pixels_scrolled = pixels_scrolled;
 				if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*TextView::MAX_ACCELERATION_FACTOR)) 
 								|| (abs_y_diff <= TextView::MAX_ACCELERATION_FACTOR)) )
 				{
@@ -434,7 +438,8 @@ void TextView::run_until_exit()
 					this->y_offset += y_diff;
 					this->v_y = y_diff;
 				}
-				if( changed ) this->render( SCREEN_SUB, false );
+				if( changed ) this->render( SCREEN_SUB, (old_pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT) 
+														&& (pixels_scrolled >= BUTTON_ACTIVATION_SCROLL_LIMIT) );
 			}
 			old_touch = touch;
 		}

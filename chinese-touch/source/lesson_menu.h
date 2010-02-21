@@ -19,7 +19,13 @@ class LessonMenuChoice
 			CONTENT_TYPE_NEW_WORDS,
 			CONTENT_TYPE_GRAMMAR,
 			CONTENT_TYPE_TEXT,
-			CONTENT_TYPE_EXERCISES
+			CONTENT_TYPE_EXERCISES,
+			CONTENT_TYPE_EXPLODE,
+			CONTENT_TYPE_IMPLODE,
+			CONTENT_TYPE_EASY_WORDS,
+			CONTENT_TYPE_MEDIUM_WORDS,
+			CONTENT_TYPE_HARD_WORDS,
+			CONTENT_TYPE_IMPOSSIBLE_WORDS
 		} content_type;
 	public:
 		LessonMenuChoice() : book(0), lesson(0), 
@@ -39,14 +45,22 @@ class MenuEntry
 		static int ACTIVE_HEIGHT;
 		static int FONT_SIZE;
 		static int TEXT_X_OFFSET;
+		static int ICON_X_OFFSET;
 		static int BUTTON_GAP;
 		static int BUTTON_Y_OFFSET;
 		static int BUTTON_WIDTH;
 		static int BUTTON_HEIGHT;
+		static int SMALL_BUTTON_WIDTH;
 		static int NEW_WORDS_BUTTON_X_OFFSET;
 		static int GRAMMAR_BUTTON_X_OFFSET;
 		static int TEXT_BUTTON_X_OFFSET;
 		static int EXERCISES_BUTTON_X_OFFSET;
+		static int EXPLODE_BUTTON_X_OFFSET;
+		static int RATED_WORDS_BUTTON_X_OFFSET;
+		static int EASY_WORDS_BUTTON_X_OFFSET;
+		static int MEDIUM_WORDS_BUTTON_X_OFFSET;
+		static int HARD_WORDS_BUTTON_X_OFFSET;
+		static int IMPOSSIBLE_WORDS_BUTTON_X_OFFSET;
 	public:
 		MenuEntry() : text_surface( new RenderScreenBuffer(200, MenuEntry::BASE_HEIGHT) ),
 						book(0), lesson(0), exploded(false), top(0), last_frame_rendered(0) {}
@@ -75,8 +89,9 @@ public:
 	int v_y;
 	void* active_list_id;
 	int frame_count;
-	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button;
-	TextButtonList text_buttons;
+	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button,
+		explode_button, implode_button, rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible;
+	TextButtonList text_buttons, lesson_buttons, book_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */

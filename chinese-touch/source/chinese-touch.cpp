@@ -49,24 +49,7 @@ int main()
 		Library library( global_fat_initialized, dictionary );
 		LOG( "scanning library..." );
 		library.rescan();
-		WordsDB::finalize_initial_import();
 		LOG( "scanning complete" );
-		if( !library.size() )
-		{
-			WARN( "empty library" );
-			std::string book_name = "dummy book";
-			library[ book_name ] = new Book( book_name, &library);
-		}
-		Book& book = *library.begin()->second;
-		if( !book.size() )
-		{
-			WARN( "empty book \"" <<  book.name << "\"" );
-			int lesson_number = 1;
-			book[ lesson_number ] = new Lesson( lesson_number, &book );
-			book[ lesson_number ]->new_words.push_back( new NewWord("foo","bar",book[lesson_number]) );
-			book[ lesson_number ]->new_words.push_back( new NewWord("testi","test",book[lesson_number]) );
-			book[ lesson_number ]->new_words.push_back( new NewWord("abc","xyz",book[lesson_number]) );
-		}
 
 		LOG( "initializing Freetype" );
 		FreetypeRenderer* ft = new FreetypeRenderer( "ukai.ttc", "VeraSe.ttf" );
@@ -75,11 +58,6 @@ int main()
 		LOG( "loading config" );
 		config.load();
 
-#if 0
-		NewWordsViewer* new_words = new NewWordsViewer( *ft, *(book.begin()->second), config );
-		new_words->run_until_exit();
-		delete new_words;
-#endif
 #if 0
 	ErrorConsole::init_screen();
 	RenderScreen r;
@@ -93,59 +71,97 @@ int main()
 		{
 			try
 			{
-				/* Testlauf des Lektionsauswahlmenüs: */
 				LOG( "initializing lesson menu" );
 				LessonMenu* lesson_menu = new LessonMenu( *ft, library, config );
 				LessonMenuChoice lesson_menu_choice;
 				lesson_menu->run_for_user_choice( lesson_menu_choice );
 				delete lesson_menu;
-
-				/* Testlauf des Vokabeltrainers: */
-				if( lesson_menu_choice.lesson )
+				
+				switch( lesson_menu_choice.content_type )
 				{
-					switch( lesson_menu_choice.content_type )
+					case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+					case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+					case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+					case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
 					{
-						case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
+						if( !lesson_menu_choice.book )
+							throw ERROR( "LessonMenu returned no book" );
+						Rating selected_rating = RATING_NONE;
+						switch( lesson_menu_choice.content_type )
 						{
-							NewWordsViewer* new_words = new NewWordsViewer( *ft, *lesson_menu_choice.lesson, config );
-							new_words->run_until_exit();
-							delete new_words;
-							break;
+							case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+								selected_rating = RATING_EASY;
+								break;
+							case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+								selected_rating = RATING_MEDIUM;
+								break;
+							case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+								selected_rating = RATING_HARD;
+								break;
+							case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
+								selected_rating = RATING_IMPOSSIBLE;
+								break;
+							default:
+								break;
 						}
-						case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
-						{
-							TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
-							if( texts.size() )
-							{
-								TextView text_view( *ft, config, *texts[0], dictionary );
-								text_view.run_until_exit();
-							} else throw ERROR( "Keine Grammatik für diese Lektion vorhanden" );
-							break;
-						}
-						case LessonMenuChoice::CONTENT_TYPE_TEXT:
-						{
-							TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
-							if( texts.size() )
-							{
-								TextView text_view( *ft, config, *texts[0], dictionary );
-								text_view.run_until_exit();
-							} else throw ERROR( "Kein Text für diese Lektion vorhanden" );
-							break;
-						}
-						case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
-						{
-							TextVector& texts = lesson_menu_choice.lesson->exercises;
-							if( texts.size() )
-							{
-								TextView text_view( *ft, config, *texts[0], dictionary );
-								text_view.run_until_exit();
-							} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
-							break;
-						}
-						default: throw ERROR( "LessonMenu returned invalid content type!" );
+						NewWordList words;
+						WordsDB::get_words_by_rating( words, selected_rating, lesson_menu_choice.book );
+						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, config );
+						new_words->run_until_exit();
+						delete new_words;
+						for( NewWordList::iterator i=words.begin(); i!=words.end(); i++ )
+							if( *i ) delete *i;
+						break;
 					}
+					case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
+					{
+						if( !lesson_menu_choice.lesson )
+							throw ERROR( "LessonMenu returned no lesson" );
+						NewWordList words;
+						words.insert( words.end(), lesson_menu_choice.lesson->new_words.begin(), lesson_menu_choice.lesson->new_words.end() );
+						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, config );
+						new_words->run_until_exit();
+						delete new_words;
+						break;
+					}
+					case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
+					{
+						if( !lesson_menu_choice.lesson )
+							throw ERROR( "LessonMenu returned no lesson" );
+						TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
+						if( texts.size() )
+						{
+							TextView text_view( *ft, config, *texts[0], dictionary );
+							text_view.run_until_exit();
+						} else throw ERROR( "Keine Grammatik für diese Lektion vorhanden" );
+						break;
+					}
+					case LessonMenuChoice::CONTENT_TYPE_TEXT:
+					{
+						if( !lesson_menu_choice.lesson )
+							throw ERROR( "LessonMenu returned no lesson" );
+						TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
+						if( texts.size() )
+						{
+							TextView text_view( *ft, config, *texts[0], dictionary );
+							text_view.run_until_exit();
+						} else throw ERROR( "Kein Text für diese Lektion vorhanden" );
+						break;
+					}
+					case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
+					{
+						if( !lesson_menu_choice.lesson )
+							throw ERROR( "LessonMenu returned no lesson" );
+						TextVector& texts = lesson_menu_choice.lesson->exercises;
+						if( texts.size() )
+						{
+							TextView text_view( *ft, config, *texts[0], dictionary );
+							text_view.run_until_exit();
+						} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
+						break;
+					}
+					default: throw ERROR( "LessonMenu returned invalid content type" );
 				}
-				else throw ERROR( "LessonMenu returned no lesson!" );
 			}
 			catch( Error& e )
 			{

@@ -62,14 +62,14 @@ public:
     NewWord( const std::string& _hanzi, const std::string& _pinyin, 
             Lesson* _lesson ) 
         : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson),
-        rating(RATING_NONE) {};
+        rating(RATING_NONE), id(0), duplicate_id(0) {};
     void render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings );
 public:
     std::string hanzi, pinyin;
     Definitions definitions;
     Lesson* lesson;
 	Rating rating; //!< User defined difficulty rating
-	int id;
+	int id, duplicate_id;
 };
 typedef std::vector<NewWord*> NewWordVector;
 

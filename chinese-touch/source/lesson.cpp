@@ -207,6 +207,8 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
     definition.lang = "de";
     int word_count = 0;
     int column = 0;
+	typedef std::map<std::string,int> StringMap;
+	StringMap seen_words;
     while( shengci_file.good() )
     {
         shengci_file.getline( line_buffer, sizeof(line_buffer) );
@@ -217,6 +219,8 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
             {
                 NewWord* word = new NewWord( hanzi, pinyin, this );
                 word->definitions[ definition.lang ] = new Definition( definition );
+				word->duplicate_id = seen_words.count(word->hanzi) ? seen_words[word->hanzi] : 0;
+				seen_words[word->hanzi] = word->duplicate_id+1;
                 this->new_words.push_back( word );
 				// way too slow to do that here for all words at once:
 				// WordsDB::add_or_update_word( *word );

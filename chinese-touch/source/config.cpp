@@ -13,16 +13,16 @@ Config::Config()
     memset( (void*)&this->data, 0, sizeof(this->data) );
 }
 
-void Config::save_position( NewWord* word, unsigned int number )
+void Config::save_position( NewWord* word )
 {
-    if( !word || (this->previous_word == word 
-					&& !this->changed) )
+    if( !word || !word->lesson || !word->lesson->book
+		|| (this->previous_word == word && !this->changed) )
     {
         return;
     }
     this->previous_word = word;
     this->changed = true;
-    this->data.config.current_word_number = number;
+    this->data.config.current_word_id = word->id;
     this->data.config.current_lesson_number = word->lesson->number;
     const std::string& book_name = word->lesson->book->name;
 	memset( (void*)&this->data.config.current_book_name, 0, CONFIG_STRING_SIZE );
@@ -36,16 +36,41 @@ void Config::save_position( NewWord* word, unsigned int number )
 
 void Config::save_position( Lesson* lesson )
 {
-	if( !lesson || (this->data.config.current_lesson_number 
-					== lesson->number && !this->changed) )
+	if( !lesson || !lesson->book
+		|| (this->data.config.current_lesson_number == lesson->number 
+			&& !this->changed) )
 	{
 		return;
 	}
 	this->previous_word = 0;
 	this->changed = true;
-	this->data.config.current_word_number = 0;
+	this->data.config.current_word_id = 0;
 	this->data.config.current_lesson_number = lesson->number;
 	const std::string& book_name = lesson->book->name;
+	memset( (void*)&this->data.config.current_book_name, 0, CONFIG_STRING_SIZE );
+	memcpy( this->data.config.current_book_name, 
+			book_name.c_str(),
+			book_name.length() < CONFIG_STRING_SIZE ? book_name.length()
+													: CONFIG_STRING_SIZE );
+	this->data.config.current_book_name[CONFIG_STRING_SIZE-1] = 0;
+	this->save();
+}
+
+void Config::save_position( Book* book )
+{
+	if( !book 
+		|| (strncmp(this->data.config.current_book_name,
+					book->name.c_str(),
+					CONFIG_STRING_SIZE)==0 
+			&& !this->changed) )
+	{
+		return;
+	}
+	this->previous_word = 0;
+	this->changed = true;
+	this->data.config.current_word_id = 0;
+	this->data.config.current_lesson_number = 0;
+	const std::string& book_name = book->name;
 	memset( (void*)&this->data.config.current_book_name, 0, CONFIG_STRING_SIZE );
 	memcpy( this->data.config.current_book_name, 
 			book_name.c_str(),

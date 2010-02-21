@@ -5,17 +5,16 @@
 #include <string>
 
 #include "lesson.h"
+#include "dictionary.h"
 
 
 class WordsDB
 {
 private:
 	static sqlite3* db;
-	static bool newly_created;
 public:
 	static void open( bool create_db=false );
 	static void create();
-	static void finalize_initial_import();
 	static void close();
 	static int get_book_id( Book& book, bool add_missing );
 	static int get_lesson_id( Lesson& lesson, bool add_missing );
@@ -26,6 +25,7 @@ public:
 	static void add_or_write_word( NewWord& );
 	static void write_word( NewWord& );
 	static bool read_word( NewWord& );
+	static void get_words_by_rating( NewWordList& word_list, Rating selected_rating, Book* book, std::string op = "=" );
 };
 
 #endif

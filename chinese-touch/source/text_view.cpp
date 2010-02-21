@@ -286,7 +286,6 @@ void TextView::run_until_exit()
 		}
 		
 		NewWordList::iterator test_it = this->current_new_word_list_it;
-		test_it++;
 		if( pressed & KEY_L && this->current_new_word_list_it != this->current_new_word_list.begin() )
 		{
 			this->left_button.active = true;
@@ -296,7 +295,7 @@ void TextView::run_until_exit()
 			this->render( SCREEN_MAIN );
 			this->render( SCREEN_SUB );
 		}
-		else if( pressed & KEY_R && test_it != this->current_new_word_list.end() )
+		else if( pressed & KEY_R && ++test_it != this->current_new_word_list.end() )
 		{
 			this->right_button.active = true;
 			this->render( SCREEN_SUB );

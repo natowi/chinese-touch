@@ -105,9 +105,9 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _lesson, Config& _config )
-	: freetype_renderer(_freetype_renderer), drawing_pad(drawing_screen), lesson(_lesson), 
-		word_index(0), config(_config), 
+NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config& _config )
+	: freetype_renderer(_freetype_renderer), drawing_pad(drawing_screen), words(_words), 
+		current_word(words.begin()), config(_config), 
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,drawing_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
@@ -206,36 +206,21 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, Lesson& _l
 	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
 
 	// Wortliste initialisieren und auf gespeicherten Index positionieren:
-	this->word_index = 0;
-	if( this->config.get_current_book_name()==this->lesson.book->name
-		&& this->config.get_current_lesson_number()==this->lesson.number )
+	int word_id = this->config.get_current_word_id();
+	for( this->current_word=this->words.begin(); this->current_word!=this->words.end(); this->current_word++ )
 	{
-		this->word_index = this->config.get_current_word_number();
+		if( (*this->current_word)->id == word_id ) break;
 	}
-	if( !this->lesson.new_words.size() )
-	{
-		WARN( "Empty lesson \"" << this->lesson.title << "\". Generating hardcoded test word." );
-		NewWord* word = new NewWord( "汉字", "hànzì", &lesson );
-		Definition* definition = new Definition();
-		definition->lang = "de";
-		definition->translation = "Chinesische Schrift";
-		definition->word_type = "N";
-		word->definitions[ definition->lang ] = definition;
-		this->lesson.new_words.push_back( word );
-	}
-	if( this->lesson.new_words.size() <= this->word_index )
-	{
-		this->word_index = this->lesson.new_words.size()-1;
-	}
+	if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
 	bgHide( this->word_screen.bg_id );
 }
 
 void NewWordsViewer::render( Screen screen )
 {
 	NewWord* new_word = 0;
-	if( this->word_index >= 0 && this->word_index < this->lesson.new_words.size() )
+	if( this->current_word!=this->words.end() )
 	{
-		new_word = this->lesson.new_words[this->word_index];
+		new_word = *this->current_word;
 	}
 	if( screen == SCREEN_MAIN )
 	{
@@ -249,13 +234,14 @@ void NewWordsViewer::render( Screen screen )
 	{
 		oamClear( &oamSub, 0, 0 );
 		int oam_entry = 0;
-		if( this->lesson.new_words.size() )
+		if( this->words.size() )
 		{
-			if( this->word_index > 0 )
+			if( this->current_word != this->words.begin() )
 			{
 				this->left_button.render_to( oam_entry );
 			}
-			if( this->word_index < this->lesson.new_words.size()-1 )
+			NewWordList::iterator test_it = this->current_word;
+			if( ++test_it != this->words.end() )
 			{
 				this->right_button.render_to( oam_entry );
 			}
@@ -286,7 +272,7 @@ void NewWordsViewer::render( Screen screen )
 
 void NewWordsViewer::run_until_exit()
 {
-	this->config.save_position( &this->lesson );
+	this->config.save_position( *this->current_word );
 	this->render( SCREEN_SUB );
 	this->render( SCREEN_MAIN );
 	touchPosition old_touch;
@@ -294,10 +280,9 @@ void NewWordsViewer::run_until_exit()
 	bool touched = false;
 	int pixels_drawn = 0;
 	int old_distance = 0;
-    while( this->word_index >= 0 
-			&& this->word_index < this->lesson.new_words.size() )
+    while( this->current_word!=this->words.end() )
     {
-        this->config.save_position( this->lesson.new_words[this->word_index], this->word_index );
+        this->config.save_position( *this->current_word );
         scanKeys();
 		int pressed = keysDown();
 		int released = keysUp();
@@ -319,21 +304,22 @@ void NewWordsViewer::run_until_exit()
 			ErrorConsole::dump();
 		}
 		
-		if( pressed & KEY_L && this->word_index > 0 )
+		NewWordList::iterator test_it = this->current_word;
+		if( pressed & KEY_L && this->current_word!=this->words.begin() )
 		{
 			this->left_button.active = true;
 			this->render( SCREEN_SUB );
 			this->left_button.active = false;
-			this->word_index--;
+			this->current_word--;
 			this->render( SCREEN_MAIN );
 			this->render( SCREEN_SUB );
 		}
-		else if( pressed & KEY_R && this->word_index+1 < this->lesson.new_words.size() )
+		else if( pressed & KEY_R && ++test_it!=this->words.end() )
 		{
 			this->right_button.active = true;
 			this->render( SCREEN_SUB );
 			this->right_button.active = false;
-			this->word_index++;
+			this->current_word++;
 			this->render( SCREEN_MAIN );
 			this->render( SCREEN_SUB );
 		}
@@ -348,7 +334,8 @@ void NewWordsViewer::run_until_exit()
 				pixels_drawn = 0;
 				old_touch = touch;
 			}
-            if( this->word_index > 0
+			NewWordList::iterator test_it = this->current_word;
+            if( this->current_word!=this->words.begin()
 				&& this->left_button.is_responsible(touch.px, touch.py)
 				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
 			{
@@ -358,7 +345,7 @@ void NewWordsViewer::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
-            else if( this->word_index+1 < this->lesson.new_words.size()
+            else if( ++test_it != this->words.end()
 				&& this->right_button.is_responsible(touch.px, touch.py)
 				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
 			{
@@ -475,21 +462,22 @@ void NewWordsViewer::run_until_exit()
 		else if( touched && pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
 		{
 			touched = false;
-            if( this->word_index > 0
+			NewWordList::iterator test_it = this->current_word;
+            if( this->current_word != this->words.begin()
 				&& this->left_button.is_responsible(old_touch.px, old_touch.py)
 				&& this->left_button.active )
             {
 				this->left_button.active = false;
-				this->word_index--;
+				this->current_word--;
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
-            else if( this->word_index+1 < this->lesson.new_words.size()
+            else if( ++test_it != this->words.end()
 				&& this->right_button.is_responsible(old_touch.px, old_touch.py)
 				&& this->right_button.active )
             {
 				this->right_button.active = false;
-				this->word_index++;
+				this->current_word++;
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -504,8 +492,8 @@ void NewWordsViewer::run_until_exit()
 				&& this->exit_button.active )
             {
 				this->exit_button.active = false;
-				NewWord* word = this->lesson.new_words[ this->word_index ];
-				this->config.save_position( word, this->word_index );
+				NewWord* word = *this->current_word;
+				this->config.save_position( word );
 				return;
             }
             else if( this->hanzi_tab.is_responsible(old_touch.px, old_touch.py) 
@@ -536,8 +524,8 @@ void NewWordsViewer::run_until_exit()
 				&& this->rating_easy.active )
             {
 				this->rating_easy.active = false;
-				this->lesson.new_words[this->word_index]->rating = RATING_EASY;
-				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
+				(*this->current_word)->rating = RATING_EASY;
+				WordsDB::add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -545,8 +533,8 @@ void NewWordsViewer::run_until_exit()
 				&& this->rating_medium.active )
             {
 				this->rating_medium.active = false;
-				this->lesson.new_words[this->word_index]->rating = RATING_MEDIUM;
-				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
+				(*this->current_word)->rating = RATING_MEDIUM;
+				WordsDB::add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -554,8 +542,8 @@ void NewWordsViewer::run_until_exit()
 				&& this->rating_hard.active )
             {
 				this->rating_hard.active = false;
-				this->lesson.new_words[this->word_index]->rating = RATING_HARD;
-				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
+				(*this->current_word)->rating = RATING_HARD;
+				WordsDB::add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -563,8 +551,8 @@ void NewWordsViewer::run_until_exit()
 				&& this->rating_impossible.active )
             {
 				this->rating_impossible.active = false;
-				this->lesson.new_words[this->word_index]->rating = RATING_IMPOSSIBLE;
-				WordsDB::add_or_write_word( *this->lesson.new_words[this->word_index] );
+				(*this->current_word)->rating = RATING_IMPOSSIBLE;
+				WordsDB::add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

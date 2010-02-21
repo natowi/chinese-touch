@@ -16,7 +16,6 @@ std::string replace_pattern( std::string src, const std::string& pattern, const 
 
 
 sqlite3* WordsDB::db = 0;
-bool WordsDB::newly_created = false;
 
 void WordsDB::open( bool create_db )
 {
@@ -38,7 +37,7 @@ void WordsDB::create()
 	WordsDB::open( true );
 	typedef std::list<std::string> StringList;
 	StringList create_statements;
-	create_statements.push_back( "CREATE TABLE words (comment TEXT, definition TEXT, id INTEGER PRIMARY KEY, lesson_id NUMERIC, pronunciation TEXT, rating NUMERIC, type TEXT, word TEXT)" );
+	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE books (id INTEGER PRIMARY KEY, path TEXT)" );
 	create_statements.push_back( "CREATE TABLE lessons (id INTEGER PRIMARY KEY, book_id NUMERIC, number NUMERIC)" );
 	
@@ -52,12 +51,6 @@ void WordsDB::create()
 			throw ERROR( msg.str() );
 		}
 	}
-	WordsDB::newly_created = true;
-}
-
-void WordsDB::finalize_initial_import()
-{
-	WordsDB::newly_created = false;
 }
 
 void WordsDB::close()
@@ -92,18 +85,15 @@ static int map_list_callback( void *pv_map_list, int argc, char **argv, char **a
 int WordsDB::get_book_id( Book& book, bool add_missing )
 {
 	IntList int_list;
-	if( !WordsDB::newly_created )
+	std::string statement = "select id from books where path like \""+book.name+"\"";
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), int_list_callback, &int_list, 0))!=SQLITE_OK )
 	{
-		std::string statement = "select id from books where path like \""+book.name+"\"";
-		int rc;
-		if( (rc = sqlite3_exec(db, statement.c_str(), int_list_callback, &int_list, 0))!=SQLITE_OK )
-		{
-			std::stringstream msg;
-			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
-			throw ERROR( msg.str() );
-		}
-		if( int_list.size()>1 ) throw ERROR( "More than one book with path "+book.name );
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
 	}
+	if( int_list.size()>1 ) throw ERROR( "More than one book with path "+book.name );
 	if( !int_list.size() )
 	{
 		if( add_missing )
@@ -126,20 +116,17 @@ int WordsDB::get_book_id( Book& book, bool add_missing )
 int WordsDB::get_lesson_id( Lesson& lesson, bool add_missing )
 {
 	IntList int_list;
-	if( !WordsDB::newly_created )
+	std::stringstream statement_stream;
+	statement_stream << "select id from lessons where book_id=" << lesson.book->id << " and number=" << lesson.number;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), int_list_callback, &int_list, 0))!=SQLITE_OK )
 	{
-		std::stringstream statement_stream;
-		statement_stream << "select id from lessons where book_id=" << lesson.book->id << " and number=" << lesson.number;
-		std::string statement = statement_stream.str();
-		int rc;
-		if( (rc = sqlite3_exec(db, statement.c_str(), int_list_callback, &int_list, 0))!=SQLITE_OK )
-		{
-			std::stringstream msg;
-			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
-			throw ERROR( msg.str() );
-		}
-		if( int_list.size()>1 ) throw ERROR( "More than one lesson returned by statement: "+statement );
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
 	}
+	if( int_list.size()>1 ) throw ERROR( "More than one lesson returned by statement: "+statement );
 	if( !int_list.size() )
 	{
 		if( add_missing )
@@ -177,33 +164,33 @@ void WordsDB::find_words_by_context( const std::string& text, const UCCharList& 
 void WordsDB::add_or_write_word( NewWord& new_word )
 {
 	MapList map_list;
-	if( !WordsDB::newly_created )
+	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
+	std::stringstream statement_stream;
+	statement_stream << "select id, pronunciation, type, definition, comment, rating from words"
+		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
+		<< " and lesson_id=" << new_word.lesson->id
+		<< " and duplicate_id=" << new_word.duplicate_id;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
 	{
-		std::stringstream statement_stream;
-		statement_stream << "select id, pronunciation, type, definition, comment, rating from words where" 
-			<< " lesson_id=" << new_word.lesson->id
-			<< " and word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\"";
-		std::string statement = statement_stream.str();
-		int rc;
-		if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
-		{
-			std::stringstream msg;
-			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
-			throw ERROR( msg.str() );
-		}
-		if( map_list.size()>1 ) throw ERROR( "More than one word returned by statement: "+statement );
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
 	}
+	if( map_list.size()>1 ) throw ERROR( "More than one word returned by statement: "+statement );
 	if( !map_list.size() && new_word.lesson->id )
 	{
 		std::stringstream statement_stream;
-		statement_stream << "insert into words (word, pronunciation, type, definition, comment, rating, lesson_id) values (" 
+		statement_stream << "insert into words (word, pronunciation, type, definition, comment, rating, lesson_id, duplicate_id) values (" 
 			<< "\"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.pinyin,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.definitions["de"]->word_type,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.definitions["de"]->translation,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.definitions["de"]->comment,"\"","\"\"") << "\", "
 			<< new_word.rating << ", "
-			<< new_word.lesson->id << ")";
+			<< new_word.lesson->id << ", "
+			<< new_word.duplicate_id << ")";
 		std::string statement = statement_stream.str();
 		int rc;
 		if( (rc = sqlite3_exec(db, statement.c_str(), 0, 0, 0))!=SQLITE_OK )
@@ -251,10 +238,12 @@ void WordsDB::write_word( NewWord& new_word )
 bool WordsDB::read_word( NewWord& new_word )
 {
 	MapList map_list;
+	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
 	std::stringstream statement_stream;
-	statement_stream << "select id, pronunciation, type, definition, comment, rating from words where" 
-		<< " lesson_id=" << new_word.lesson->id
-		<< " and word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\"";
+	statement_stream << "select id, pronunciation, type, definition, comment, rating from words"
+		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
+		<< " and lesson_id=" << new_word.lesson->id 
+		<< " and duplicate_id=" << new_word.duplicate_id;
 	std::string statement = statement_stream.str();
 	int rc;
 	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
@@ -276,4 +265,47 @@ bool WordsDB::read_word( NewWord& new_word )
 		return true;
 	}
 	return false;
+}
+
+void WordsDB::get_words_by_rating( NewWordList& word_list, Rating selected_rating, Book* book, std::string op )
+{
+	MapList map_list;
+	if( !book ) throw ERROR( "Book undefined" );
+	std::stringstream statement_stream;
+	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
+			<< ", rating, lesson_id, duplicate_id, book_id, lessons.number as lesson_number"
+		<< " from words inner join lessons on lesson_id=lessons.id"
+		<< " where rating" << op << selected_rating
+		<< " and book_id=" << book->id;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
+	}
+	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
+	{
+		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], 0 );
+		word->id = atoi( (*i)["id"].c_str() );
+		Definition* def = new Definition();
+		def->word_type = (*i)["type"];
+		def->translation = (*i)["definition"];
+		def->comment = (*i)["comment"];
+		def->lang = "de";
+		word->definitions[ def->lang ] = def;
+		word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+		int lesson_number = atoi( (*i)["lesson_number"].c_str() );
+		if( book->count(lesson_number) && (*book)[lesson_number] )
+		{
+			word->lesson = (*book)[lesson_number];
+		}
+		else 
+		{
+			delete word;
+			throw ERROR( book->name+" has no lesson "+(*i)["lesson_number"] );
+		}		
+		word_list.push_back( word );
+	}
 }

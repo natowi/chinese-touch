@@ -23,6 +23,9 @@
 #include "bottom_rating_medium.h"
 #include "bottom_rating_hard.h"
 #include "bottom_rating_impossible.h"
+#include "small_menu_button.h"
+#include "small_menu_button_active.h"
+#include "small_menu_button_inactive.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -40,6 +43,8 @@ int MenuEntry::NEW_WORDS_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_G
 int MenuEntry::GRAMMAR_BUTTON_X_OFFSET = 1 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::TEXT_BUTTON_X_OFFSET = 2 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::EXERCISES_BUTTON_X_OFFSET = 3 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET = ICON_X_OFFSET + 0 * SMALL_BUTTON_WIDTH;
+int MenuEntry::JUMP_UP_BUTTON_X_OFFSET = ICON_X_OFFSET + 1 * SMALL_BUTTON_WIDTH;
 
 int MenuEntry::EXPLODE_BUTTON_X_OFFSET = ICON_X_OFFSET;
 int MenuEntry::RATED_WORDS_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
@@ -136,6 +141,16 @@ LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
 			{
 				return LessonMenuChoice::CONTENT_TYPE_EXERCISES;
 			}
+			if( x>=MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET
+				&& x<MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET+MenuEntry::SMALL_BUTTON_WIDTH )
+			{
+				return LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN;
+			}
+			if( x>=MenuEntry::JUMP_UP_BUTTON_X_OFFSET
+				&& x<MenuEntry::JUMP_UP_BUTTON_X_OFFSET+MenuEntry::SMALL_BUTTON_WIDTH )
+			{
+				return LessonMenuChoice::CONTENT_TYPE_JUMP_UP;
+			}
 		}
 	}
 	return LessonMenuChoice::CONTENT_TYPE_NONE;
@@ -147,7 +162,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
 		book_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,freetype_renderer.latin_face,9), 
 		lesson_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,freetype_renderer.latin_face,9),
-		new_words_button(&oamSub,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9),
+		new_words_button(&oamSub,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1),
 		grammar_button(&oamSub,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
 		text_button(&oamSub,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
 		exercises_button(&oamSub,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1),
@@ -157,7 +172,9 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 		rating_easy(&oamSub,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
 		rating_medium(&oamSub,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
 		rating_hard(&oamSub,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7)
+		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
+		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
+		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->info_screen );
 	//ErrorConsole::init_screen( SCREEN_MAIN );
@@ -196,6 +213,14 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	this->exercises_button.bg_active_vram = this->new_words_button.bg_active_vram;
 	this->exercises_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
 	this->exercises_button.owns_bg_vram = false;
+
+	this->jump_down_button.init_vram( small_menu_buttonBitmap, this->jump_down_button.bg_vram );
+	this->jump_down_button.init_vram( small_menu_button_activeBitmap, this->jump_down_button.bg_active_vram );
+	this->jump_down_button.init_vram( small_menu_button_inactiveBitmap, this->jump_down_button.bg_inactive_vram );
+	this->jump_up_button.bg_vram = this->jump_down_button.bg_vram;
+	this->jump_up_button.bg_active_vram = this->jump_down_button.bg_active_vram;
+	this->jump_up_button.bg_inactive_vram = this->jump_down_button.bg_inactive_vram;
+	this->jump_up_button.owns_bg_vram = false;
 	
 	this->explode_button.bg_vram = this->new_words_button.bg_vram;
 	this->explode_button.bg_active_vram = this->new_words_button.bg_active_vram;
@@ -218,6 +243,8 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	this->lesson_buttons.push_back( &this->grammar_button );
 	this->lesson_buttons.push_back( &this->text_button );
 	this->lesson_buttons.push_back( &this->exercises_button );
+	this->lesson_buttons.push_back( &this->jump_down_button );
+	this->lesson_buttons.push_back( &this->jump_up_button );
 
 	this->book_buttons.push_back( &this->explode_button );
 	this->book_buttons.push_back( &this->implode_button );
@@ -710,7 +737,45 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 						//std::cout << choice.content_type << " ";
 						if( this->get_activation_by_content_type(choice.content_type) )
 						{
-							return;
+							switch( choice.content_type )
+							{
+								case LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN:
+									for( Book::iterator i=choice.book->find(choice.lesson->number); i!=choice.book->end(); i++ )
+									{
+										void* list_id = static_cast<void*>( i->second );
+										MenuList::iterator test_it = this->menu_list.find( list_id );
+										if( test_it!=this->menu_list.end() )
+										{
+											this->active_list_id = list_id;
+											test_it->second->top;
+											this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
+											this->render( SCREEN_SUB );
+										}
+									}
+									break;
+								case LessonMenuChoice::CONTENT_TYPE_JUMP_UP:
+									for( Book::iterator i=choice.book->find(choice.lesson->number); ; i-- )
+									{
+										void* list_id = static_cast<void*>( i->second );
+										MenuList::iterator test_it = this->menu_list.find( list_id );
+										if( test_it!=this->menu_list.end() )
+										{
+											this->active_list_id = list_id;
+											test_it->second->top;
+											this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
+											this->render( SCREEN_SUB );
+										}
+										if( i==choice.book->begin() ) break;
+									}
+									break;
+								case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
+								case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
+								case LessonMenuChoice::CONTENT_TYPE_TEXT:
+								case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
+									return;
+								default:
+									break;
+							}
 						}
 					}
 				}
@@ -808,6 +873,16 @@ TextButton* LessonMenu::get_button_by_content_type( LessonMenuChoice::ContentTyp
 		case LessonMenuChoice::CONTENT_TYPE_EXPLODE:
 		{
 			button = &this->explode_button;
+			break;
+		}
+		case LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN:
+		{
+			button = &this->jump_down_button;
+			break;
+		}
+		case LessonMenuChoice::CONTENT_TYPE_JUMP_UP:
+		{
+			button = &this->jump_up_button;
 			break;
 		}
 		case LessonMenuChoice::CONTENT_TYPE_IMPLODE:

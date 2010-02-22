@@ -20,6 +20,8 @@ class LessonMenuChoice
 			CONTENT_TYPE_GRAMMAR,
 			CONTENT_TYPE_TEXT,
 			CONTENT_TYPE_EXERCISES,
+			CONTENT_TYPE_JUMP_DOWN,
+			CONTENT_TYPE_JUMP_UP,
 			CONTENT_TYPE_EXPLODE,
 			CONTENT_TYPE_IMPLODE,
 			CONTENT_TYPE_EASY_WORDS,
@@ -55,6 +57,8 @@ class MenuEntry
 		static int GRAMMAR_BUTTON_X_OFFSET;
 		static int TEXT_BUTTON_X_OFFSET;
 		static int EXERCISES_BUTTON_X_OFFSET;
+		static int JUMP_DOWN_BUTTON_X_OFFSET;
+		static int JUMP_UP_BUTTON_X_OFFSET;
 		static int EXPLODE_BUTTON_X_OFFSET;
 		static int RATED_WORDS_BUTTON_X_OFFSET;
 		static int EASY_WORDS_BUTTON_X_OFFSET;
@@ -90,7 +94,8 @@ public:
 	void* active_list_id;
 	int frame_count;
 	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button,
-		explode_button, implode_button, rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible;
+		explode_button, implode_button, rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
+		jump_down_button, jump_up_button;
 	TextButtonList text_buttons, lesson_buttons, book_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 

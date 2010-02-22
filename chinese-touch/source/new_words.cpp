@@ -5,6 +5,7 @@
 #include <nds/arm9/sprite.h>
 #include <nds/arm9/background.h>
 #include <nds/arm9/input.h>
+#include <time.h>
 
 #include "new_words.h"
 #include "config.h"
@@ -34,7 +35,12 @@
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings )
 {
-	if( !WordsDB::read_word(*this) ) WordsDB::add_or_write_word( *this );
+	// try to read the corresponding entry from the database:
+	WordsDB::read_word(*this);
+	// update words access time:
+	this->atime = time(0);
+	// write updated word to database:
+	WordsDB::add_or_write_word( *this );
 	render_screen.clear();
     
     // render hanzi centered
@@ -105,7 +111,7 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config& _config )
+NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config* _config )
 	: freetype_renderer(_freetype_renderer), drawing_pad(drawing_screen), words(_words), 
 		current_word(words.begin()), config(_config), 
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
@@ -206,12 +212,15 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
 
 	// Wortliste initialisieren und auf gespeicherten Index positionieren:
-	int word_id = this->config.get_current_word_id();
-	for( this->current_word=this->words.begin(); this->current_word!=this->words.end(); this->current_word++ )
+	if( this->config ) 
 	{
-		if( (*this->current_word)->id == word_id ) break;
+		int word_id = this->config->get_current_word_id();
+		for( this->current_word=this->words.begin(); this->current_word!=this->words.end(); this->current_word++ )
+		{
+			if( (*this->current_word)->id == word_id ) break;
+		}
+		if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
 	}
-	if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
 	bgHide( this->word_screen.bg_id );
 }
 
@@ -272,7 +281,7 @@ void NewWordsViewer::render( Screen screen )
 
 void NewWordsViewer::run_until_exit()
 {
-	this->config.save_position( *this->current_word );
+	if( this->config ) this->config->save_position( *this->current_word );
 	this->render( SCREEN_SUB );
 	this->render( SCREEN_MAIN );
 	touchPosition old_touch;
@@ -282,7 +291,7 @@ void NewWordsViewer::run_until_exit()
 	int old_distance = 0;
     while( this->current_word!=this->words.end() )
     {
-        this->config.save_position( *this->current_word );
+        if( this->config ) this->config->save_position( *this->current_word );
         scanKeys();
 		int pressed = keysDown();
 		int released = keysUp();
@@ -493,7 +502,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->exit_button.active = false;
 				NewWord* word = *this->current_word;
-				this->config.save_position( word );
+				if( this->config ) this->config->save_position( word );
 				return;
             }
             else if( this->hanzi_tab.is_responsible(old_touch.px, old_touch.py) 

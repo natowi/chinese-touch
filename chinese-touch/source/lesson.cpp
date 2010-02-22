@@ -200,7 +200,13 @@ void Lesson::parse_config( const std::string& conf_file_name )
 
 void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  dictionary )
 {
-    std::ifstream shengci_file( dict_file_name.c_str() );
+	struct stat dict_file_stats;
+	if( stat( dict_file_name.c_str(), &dict_file_stats)==-1 )
+	{
+		WARN( strerror(errno) );
+		return;
+	}
+    std::ifstream dict_file( dict_file_name.c_str() );
     char line_buffer[1024];
     std::string hanzi, pinyin;
     Definition definition;
@@ -209,9 +215,9 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
     int column = 0;
 	typedef std::map<std::string,int> StringMap;
 	StringMap seen_words;
-    while( shengci_file.good() )
+    while( dict_file.good() )
     {
-        shengci_file.getline( line_buffer, sizeof(line_buffer) );
+        dict_file.getline( line_buffer, sizeof(line_buffer) );
         std::string line = line_buffer;
         if( line.substr(0, 2) == "|-" )
         {
@@ -220,6 +226,7 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
                 NewWord* word = new NewWord( hanzi, pinyin, this );
                 word->definitions[ definition.lang ] = new Definition( definition );
 				word->duplicate_id = seen_words.count(word->hanzi) ? seen_words[word->hanzi] : 0;
+				word->atime = dict_file_stats.st_mtime;
 				seen_words[word->hanzi] = word->duplicate_id+1;
                 this->new_words.push_back( word );
 				// way too slow to do that here for all words at once:
@@ -262,7 +269,7 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
         case 5: definition.comment.append( line ); break;
         }
     }
-    shengci_file.close();
+    dict_file.close();
 }
 
 

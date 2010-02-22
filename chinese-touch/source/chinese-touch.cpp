@@ -106,7 +106,8 @@ int main()
 						}
 						NewWordList words;
 						WordsDB::get_words_by_rating( words, selected_rating, lesson_menu_choice.book );
-						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, config );
+						NewWordsViewer* new_words = new NewWordsViewer( *ft, words );
+						config.save_position( lesson_menu_choice.book, true );
 						new_words->run_until_exit();
 						delete new_words;
 						for( NewWordList::iterator i=words.begin(); i!=words.end(); i++ )
@@ -119,7 +120,7 @@ int main()
 							throw ERROR( "LessonMenu returned no lesson" );
 						NewWordList words;
 						words.insert( words.end(), lesson_menu_choice.lesson->new_words.begin(), lesson_menu_choice.lesson->new_words.end() );
-						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, config );
+						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
 						new_words->run_until_exit();
 						delete new_words;
 						break;

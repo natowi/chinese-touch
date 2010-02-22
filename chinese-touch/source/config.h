@@ -30,9 +30,9 @@ public:
     Config();
     void load();
     void save();
-    void save_position( NewWord* word );
-	void save_position( Lesson* lesson );
-	void save_position( Book* book );
+    void save_position( NewWord* word, bool force=false );
+	void save_position( Lesson* lesson, bool force=false );
+	void save_position( Book* book, bool force=false );
     std::string get_current_book_name() { return this->data.config.current_book_name; }
     int get_current_lesson_number() { return this->data.config.current_lesson_number; }
     int get_current_word_id() { return this->data.config.current_word_id; }

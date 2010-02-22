@@ -70,6 +70,7 @@ public:
     Lesson* lesson;
 	Rating rating; //!< User defined difficulty rating
 	int id, duplicate_id;
+	time_t atime;
 };
 typedef std::vector<NewWord*> NewWordVector;
 

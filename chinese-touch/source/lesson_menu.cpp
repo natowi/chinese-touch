@@ -266,7 +266,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	// Menü zur gespeicherten Position bewegen:
 	std::string config_book_name = this->config.get_current_book_name();
 	int config_lesson_number = this->config.get_current_lesson_number();
-	if( config_book_name.length() && config_lesson_number )
+	if( config_book_name.length() )
 	{
 		bool found = false;
 		// tatsächlichen Wert nur verändern, wenn wir auch was finden:
@@ -278,30 +278,37 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 			// geht davon aus, dass nur das selektierte Buch ausgeklappt ist:
 			if( book_it->first == config_book_name )
 			{
-				for( Book::iterator lesson_it=book_it->second->begin();
-					lesson_it!=book_it->second->end(); 
-					lesson_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
+				if( config_lesson_number )
 				{
-					if( lesson_it->first == config_lesson_number )
+					for( Book::iterator lesson_it=book_it->second->begin();
+						lesson_it!=book_it->second->end(); 
+						lesson_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
 					{
-						_y_offset -= MenuEntry::BASE_HEIGHT;
-						found = true;
-						this->active_list_id = static_cast<void*>( lesson_it->second );
-						this->y_offset = _y_offset;
-						// Stück zurück und leichten Impuls setzen um das Vorspulen zu verdeutlichen:
-						this->y_offset+=20;
-						this->v_y=-5;
-						break;
+						if( lesson_it->first == config_lesson_number )
+						{
+							_y_offset -= MenuEntry::BASE_HEIGHT;
+							found = true;
+							this->active_list_id = static_cast<void*>( lesson_it->second );
+							break;
+						}
 					}
+				} else
+				{
+					found = true;
+					this->active_list_id = static_cast<void*>( book_it->second );
 				}
-		}
+			}
 			if( found )
 			{
+				this->y_offset = _y_offset;
+				// Stück zurück und leichten Impuls setzen um das Vorspulen zu verdeutlichen:
+				this->y_offset+=20;
+				this->v_y=-5;
 				/* Menüeintrag für das enthaltende Buch anlegen und ausklappen 
 					(den Rest macht die Rendermethode...) */
 				MenuEntry* entry = new MenuEntry();
 				entry->book = book_it->second;
-				entry->exploded = true;
+				if( config_lesson_number ) entry->exploded = true;
 				this->menu_list[ static_cast<void*>(entry->book) ] = entry;
 				entry->render_text( this->freetype_renderer, entry->book->title );
 				break;

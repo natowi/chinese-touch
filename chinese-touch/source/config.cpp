@@ -13,10 +13,10 @@ Config::Config()
     memset( (void*)&this->data, 0, sizeof(this->data) );
 }
 
-void Config::save_position( NewWord* word )
+void Config::save_position( NewWord* word, bool force )
 {
     if( !word || !word->lesson || !word->lesson->book
-		|| (this->previous_word == word && !this->changed) )
+		|| (this->previous_word == word && !this->changed && !force) )
     {
         return;
     }
@@ -34,11 +34,11 @@ void Config::save_position( NewWord* word )
     this->save();
 }
 
-void Config::save_position( Lesson* lesson )
+void Config::save_position( Lesson* lesson, bool force )
 {
 	if( !lesson || !lesson->book
 		|| (this->data.config.current_lesson_number == lesson->number 
-			&& !this->changed) )
+			&& !this->changed && !force) )
 	{
 		return;
 	}
@@ -56,13 +56,13 @@ void Config::save_position( Lesson* lesson )
 	this->save();
 }
 
-void Config::save_position( Book* book )
+void Config::save_position( Book* book, bool force )
 {
 	if( !book 
 		|| (strncmp(this->data.config.current_book_name,
 					book->name.c_str(),
 					CONFIG_STRING_SIZE)==0 
-			&& !this->changed) )
+			&& !this->changed && !force) )
 	{
 		return;
 	}

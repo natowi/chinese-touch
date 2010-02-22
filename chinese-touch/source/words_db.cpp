@@ -37,7 +37,7 @@ void WordsDB::create()
 	WordsDB::open( true );
 	typedef std::list<std::string> StringList;
 	StringList create_statements;
-	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC)" );
+	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE books (id INTEGER PRIMARY KEY, path TEXT)" );
 	create_statements.push_back( "CREATE TABLE lessons (id INTEGER PRIMARY KEY, book_id NUMERIC, number NUMERIC)" );
 	
@@ -166,7 +166,7 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 	MapList map_list;
 	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
 	std::stringstream statement_stream;
-	statement_stream << "select id, pronunciation, type, definition, comment, rating from words"
+	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime from words"
 		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
 		<< " and lesson_id=" << new_word.lesson->id
 		<< " and duplicate_id=" << new_word.duplicate_id;
@@ -182,7 +182,7 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 	if( !map_list.size() && new_word.lesson->id )
 	{
 		std::stringstream statement_stream;
-		statement_stream << "insert into words (word, pronunciation, type, definition, comment, rating, lesson_id, duplicate_id) values (" 
+		statement_stream << "insert into words (word, pronunciation, type, definition, comment, rating, lesson_id, duplicate_id, atime) values (" 
 			<< "\"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.pinyin,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.definitions["de"]->word_type,"\"","\"\"") << "\", "
@@ -190,7 +190,8 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 			<< "\"" << replace_pattern(new_word.definitions["de"]->comment,"\"","\"\"") << "\", "
 			<< new_word.rating << ", "
 			<< new_word.lesson->id << ", "
-			<< new_word.duplicate_id << ")";
+			<< new_word.duplicate_id << ", "
+			<< new_word.atime << ")";
 		std::string statement = statement_stream.str();
 		int rc;
 		if( (rc = sqlite3_exec(db, statement.c_str(), 0, 0, 0))!=SQLITE_OK )
@@ -203,11 +204,12 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 	else
 	{
 		StringMap& row_map = *map_list.begin();
-		if( row_map["pronunciation"]!=new_word.pinyin
-			|| row_map["type"]!=new_word.definitions["de"]->word_type
-			|| row_map["definition"]!=new_word.definitions["de"]->translation
-			|| row_map["comment"]!=new_word.definitions["de"]->comment
-			|| atoi(row_map["rating"].c_str())!=new_word.rating )
+		if( row_map["pronunciation"] != new_word.pinyin
+			|| row_map["type"] != new_word.definitions["de"]->word_type
+			|| row_map["definition"] != new_word.definitions["de"]->translation
+			|| row_map["comment"] != new_word.definitions["de"]->comment
+			|| atoi(row_map["rating"].c_str()) != new_word.rating
+			|| atol(row_map["atime"].c_str()) != new_word.atime )
 		{
 			new_word.id = atoi( row_map["id"].c_str() );
 			WordsDB::write_word( new_word );
@@ -218,12 +220,13 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 void WordsDB::write_word( NewWord& new_word )
 {
 	std::stringstream statement_stream;
-	statement_stream << "update words set "
-		<< "pronunciation=\"" << replace_pattern(new_word.pinyin,"\"","\"\"") << "\", "
-		<< "type=\"" << replace_pattern(new_word.definitions["de"]->word_type,"\"","\"\"") << "\", "
-		<< "definition=\"" << replace_pattern(new_word.definitions["de"]->translation,"\"","\"\"") << "\", "
-		<< "comment=\"" << replace_pattern(new_word.definitions["de"]->comment,"\"","\"\"") << "\", "
-		<< "rating=" << new_word.rating
+	statement_stream << "update words set"
+		<< " pronunciation=\"" << replace_pattern(new_word.pinyin,"\"","\"\"") << "\""
+		<< ", type=\"" << replace_pattern(new_word.definitions["de"]->word_type,"\"","\"\"") << "\""
+		<< ", definition=\"" << replace_pattern(new_word.definitions["de"]->translation,"\"","\"\"") << "\""
+		<< ", comment=\"" << replace_pattern(new_word.definitions["de"]->comment,"\"","\"\"") << "\""
+		<< ", rating=" << new_word.rating
+		<< ", atime=" << new_word.atime
 		<< " where id=" << new_word.id;
 	std::string statement = statement_stream.str();
 	int rc;
@@ -240,7 +243,7 @@ bool WordsDB::read_word( NewWord& new_word )
 	MapList map_list;
 	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
 	std::stringstream statement_stream;
-	statement_stream << "select id, pronunciation, type, definition, comment, rating from words"
+	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime from words"
 		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
 		<< " and lesson_id=" << new_word.lesson->id 
 		<< " and duplicate_id=" << new_word.duplicate_id;
@@ -262,6 +265,7 @@ bool WordsDB::read_word( NewWord& new_word )
 		new_word.definitions["de"]->translation = row_map["definition"];
 		new_word.definitions["de"]->comment = row_map["comment"];
 		new_word.rating = (Rating) atoi( row_map["rating"].c_str() );
+		new_word.atime = (Rating) atol( row_map["atime"].c_str() );
 		return true;
 	}
 	return false;
@@ -273,10 +277,11 @@ void WordsDB::get_words_by_rating( NewWordList& word_list, Rating selected_ratin
 	if( !book ) throw ERROR( "Book undefined" );
 	std::stringstream statement_stream;
 	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
-			<< ", rating, lesson_id, duplicate_id, book_id, lessons.number as lesson_number"
+			<< ", rating, lesson_id, duplicate_id, atime, book_id, lessons.number as lesson_number"
 		<< " from words inner join lessons on lesson_id=lessons.id"
 		<< " where rating" << op << selected_rating
-		<< " and book_id=" << book->id;
+		<< " and book_id=" << book->id
+		<< " order by atime,id";
 	std::string statement = statement_stream.str();
 	int rc;
 	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
@@ -296,6 +301,7 @@ void WordsDB::get_words_by_rating( NewWordList& word_list, Rating selected_ratin
 		def->lang = "de";
 		word->definitions[ def->lang ] = def;
 		word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+		word->atime = atol( (*i)["atime"].c_str() );
 		int lesson_number = atoi( (*i)["lesson_number"].c_str() );
 		if( book->count(lesson_number) && (*book)[lesson_number] )
 		{

@@ -105,9 +105,11 @@ int main()
 								break;
 						}
 						NewWordList words;
-						WordsDB::get_words_by_rating( words, selected_rating, lesson_menu_choice.book );
+						WordsDB::get_words_from_book_by_rating( words, lesson_menu_choice.book, selected_rating, 
+													  lesson_menu_choice.lesson ? lesson_menu_choice.lesson->number : 0 );
 						NewWordsViewer* new_words = new NewWordsViewer( *ft, words );
-						config.save_position( lesson_menu_choice.book, true );
+						if( lesson_menu_choice.lesson ) config.save_position( lesson_menu_choice.lesson, true );
+						else config.save_position( lesson_menu_choice.book, true );
 						new_words->run_until_exit();
 						delete new_words;
 						for( NewWordList::iterator i=words.begin(); i!=words.end(); i++ )

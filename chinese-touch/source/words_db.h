@@ -25,7 +25,7 @@ public:
 	static void add_or_write_word( NewWord& );
 	static void write_word( NewWord& );
 	static bool read_word( NewWord& );
-	static void get_words_by_rating( NewWordList& word_list, Rating selected_rating, Book* book, std::string op = "=" );
+	static void get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number=0 );
 };
 
 #endif

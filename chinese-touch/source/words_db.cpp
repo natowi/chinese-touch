@@ -271,7 +271,7 @@ bool WordsDB::read_word( NewWord& new_word )
 	return false;
 }
 
-void WordsDB::get_words_by_rating( NewWordList& word_list, Rating selected_rating, Book* book, std::string op )
+void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number )
 {
 	MapList map_list;
 	if( !book ) throw ERROR( "Book undefined" );
@@ -279,9 +279,10 @@ void WordsDB::get_words_by_rating( NewWordList& word_list, Rating selected_ratin
 	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
 			<< ", rating, lesson_id, duplicate_id, atime, book_id, lessons.number as lesson_number"
 		<< " from words inner join lessons on lesson_id=lessons.id"
-		<< " where rating" << op << selected_rating
-		<< " and book_id=" << book->id
-		<< " order by atime,id";
+		<< " where rating=" << selected_rating
+		<< " and book_id=" << book->id;
+	if( max_lesson_number ) statement_stream << " and lesson_number<=" << max_lesson_number;
+	statement_stream << " order by atime,id";
 	std::string statement = statement_stream.str();
 	int rc;
 	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )

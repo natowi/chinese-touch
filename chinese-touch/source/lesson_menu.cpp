@@ -33,25 +33,26 @@ int MenuEntry::ACTIVE_HEIGHT = 52;
 int MenuEntry::FONT_SIZE = 7;
 int MenuEntry::ICON_X_OFFSET = 5;
 int MenuEntry::TEXT_X_OFFSET = 50;
-int MenuEntry::BUTTON_GAP = 6;
+int MenuEntry::BUTTON_GAP = 3;
 int MenuEntry::BUTTON_Y_OFFSET = MenuEntry::BASE_HEIGHT+2;
 int MenuEntry::BUTTON_WIDTH = 32;
 int MenuEntry::BUTTON_HEIGHT = 16;
 int MenuEntry::SMALL_BUTTON_WIDTH = 16;
 
+int MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET = ICON_X_OFFSET + 0 * SMALL_BUTTON_WIDTH;
+int MenuEntry::JUMP_UP_BUTTON_X_OFFSET = ICON_X_OFFSET + 1 * SMALL_BUTTON_WIDTH;
 int MenuEntry::NEW_WORDS_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::GRAMMAR_BUTTON_X_OFFSET = 1 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::TEXT_BUTTON_X_OFFSET = 2 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::EXERCISES_BUTTON_X_OFFSET = 3 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
-int MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET = ICON_X_OFFSET + 0 * SMALL_BUTTON_WIDTH;
-int MenuEntry::JUMP_UP_BUTTON_X_OFFSET = ICON_X_OFFSET + 1 * SMALL_BUTTON_WIDTH;
 
-int MenuEntry::EXPLODE_BUTTON_X_OFFSET = ICON_X_OFFSET;
-int MenuEntry::RATED_WORDS_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::RATED_WORDS_BUTTON_X_OFFSET = 4 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::EASY_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*0;
 int MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*1;
 int MenuEntry::HARD_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*2;
 int MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*3;
+
+int MenuEntry::EXPLODE_BUTTON_X_OFFSET = ICON_X_OFFSET;
 
 int LessonMenu::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int LessonMenu::MAX_ACCELERATION_FACTOR = 10;
@@ -84,7 +85,29 @@ LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
 	if( y>=this->top+MenuEntry::BUTTON_Y_OFFSET 
 		&& y<this->top+MenuEntry::BUTTON_Y_OFFSET+MenuEntry::BUTTON_HEIGHT )
 	{
-		if( this->book )
+		// generic buttons:
+		if( x>=MenuEntry::EASY_WORDS_BUTTON_X_OFFSET
+			&& x<MenuEntry::EASY_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
+		{
+			return LessonMenuChoice::CONTENT_TYPE_EASY_WORDS;
+		}
+		if( x>=MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET
+			&& x<MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
+		{
+			return LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS;
+		}
+		if( x>=MenuEntry::HARD_WORDS_BUTTON_X_OFFSET
+			&& x<MenuEntry::HARD_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
+		{
+			return LessonMenuChoice::CONTENT_TYPE_HARD_WORDS;
+		}
+		if( x>=MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET
+			&& x<MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
+		{
+			return LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
+		}
+		
+		if( this->book ) // buttons only applicable to books:
 		{
 			if( !this->exploded 
 				&& x>=MenuEntry::EXPLODE_BUTTON_X_OFFSET
@@ -98,28 +121,8 @@ LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
 			{
 				return LessonMenuChoice::CONTENT_TYPE_IMPLODE;
 			}
-			if( x>=MenuEntry::EASY_WORDS_BUTTON_X_OFFSET
-				&& x<MenuEntry::EASY_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_EASY_WORDS;
-			}
-			if( x>=MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET
-				&& x<MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS;
-			}
-			if( x>=MenuEntry::HARD_WORDS_BUTTON_X_OFFSET
-				&& x<MenuEntry::HARD_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_HARD_WORDS;
-			}
-			if( x>=MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET
-				&& x<MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
-			}
 		}
-		else if( this->lesson )
+		else if( this->lesson ) // buttons only applicable to lessons:
 		{
 			if( x>=MenuEntry::NEW_WORDS_BUTTON_X_OFFSET
 				&& x<MenuEntry::NEW_WORDS_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
@@ -248,14 +251,14 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 
 	this->book_buttons.push_back( &this->explode_button );
 	this->book_buttons.push_back( &this->implode_button );
-	this->book_buttons.push_back( &this->rating_bar );
-	this->book_buttons.push_back( &this->rating_easy );
-	this->book_buttons.push_back( &this->rating_medium );
-	this->book_buttons.push_back( &this->rating_hard );
-	this->book_buttons.push_back( &this->rating_impossible );
 	
 	this->text_buttons.insert( this->text_buttons.end(), this->lesson_buttons.begin(), this->lesson_buttons.end() );
 	this->text_buttons.insert( this->text_buttons.end(), this->book_buttons.begin(), this->book_buttons.end() );
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
 	
 	// create temporary superset for initialization:
 	TextButtonList init_button_list( this->text_buttons );
@@ -529,11 +532,17 @@ void LessonMenu::render( Screen screen )
 						this->exercises_button.inactive = lesson_entry->lesson->exercises.empty();
 						if( top > -MenuEntry::ACTIVE_HEIGHT )
 						{
+							int y = top+MenuEntry::BUTTON_Y_OFFSET;
 							for( TextButtonList::iterator i = this->lesson_buttons.begin();
 								i != this->lesson_buttons.end(); i++ )
 							{
-								(*i)->render_to( oam_entry, (*i)->x, top+MenuEntry::BUTTON_Y_OFFSET );
+								(*i)->render_to( oam_entry, (*i)->x, y );
 							}
+							this->rating_bar.render_to( oam_entry, this->rating_bar.x, y );
+							if( this->rating_easy.active ) this->rating_easy.render_to( oam_entry, this->rating_easy.x, y );
+							if( this->rating_medium.active ) this->rating_medium.render_to( oam_entry, this->rating_medium.x, y );
+							if( this->rating_hard.active ) this->rating_hard.render_to( oam_entry, this->rating_hard.x, y );
+							if( this->rating_impossible.active ) this->rating_impossible.render_to( oam_entry, this->rating_impossible.x, y );
 						}
 						top += MenuEntry::ACTIVE_HEIGHT;
 					}
@@ -772,6 +781,10 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 								case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
 								case LessonMenuChoice::CONTENT_TYPE_TEXT:
 								case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
+								case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+								case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+								case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+								case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
 									return;
 								default:
 									break;

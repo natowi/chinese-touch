@@ -293,26 +293,27 @@ void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book,
 	}
 	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
 	{
-		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], 0 );
-		word->id = atoi( (*i)["id"].c_str() );
-		Definition* def = new Definition();
-		def->word_type = (*i)["type"];
-		def->translation = (*i)["definition"];
-		def->comment = (*i)["comment"];
-		def->lang = "de";
-		word->definitions[ def->lang ] = def;
-		word->rating = (Rating) atoi( (*i)["rating"].c_str() );
-		word->atime = atol( (*i)["atime"].c_str() );
 		int lesson_number = atoi( (*i)["lesson_number"].c_str() );
 		if( book->count(lesson_number) && (*book)[lesson_number] )
 		{
+			NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], 0 );
+			word->id = atoi( (*i)["id"].c_str() );
+			Definition* def = new Definition();
+			def->word_type = (*i)["type"];
+			def->translation = (*i)["definition"];
+			def->comment = (*i)["comment"];
+			def->lang = "de";
+			word->definitions[ def->lang ] = def;
+			word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+			word->atime = atol( (*i)["atime"].c_str() );
 			word->lesson = (*book)[lesson_number];
+			word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
+			word_list.push_back( word );
 		}
 		else 
 		{
-			delete word;
+			// FIXME: caller hast to catch and clean up words to prevent memory leak
 			throw ERROR( book->name+" has no lesson "+(*i)["lesson_number"] );
 		}		
-		word_list.push_back( word );
 	}
 }

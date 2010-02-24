@@ -1,12 +1,27 @@
-Chinese Touch is a language learning tool for Nintendo DS with a focus on Chinese. Acknowledging the difficulties of designing a complete course that fulfills requirements of different learners and because of the ongoing learning efforts of its designers Chinese Touch follows the idea of user driven extensibility. Thus it is meant more as a generic tool to make your own learning docs easily portable and more accessable. Just convert your existing texts and word lists into a collection of utf8-encoded plain text files and you can practice reading and writing right on your DS the way you want. Apart from that the precompiled version includes a beginners guide to Chinese (Mandarin) from wikibooks.org.
+Chinese Touch is a language learning tool for Nintendo DS with a focus on 
+Chinese. In contrast to many other applications (there are not that many for 
+Nintendo DS anyway) Chinese Touch does not try to provide a complete course for 
+a specific level of language skill, but is meant more as a generic tool to make 
+your own learning docs easily portable and more accessable for your individual 
+needs. Many learners, especially tech-savvy ones, already transcribe word lists 
+or even text from their text books to the computer (try it, its a good training 
+already) to take advantage of dictionary programs, flashcard applications and so 
+on or even use digital sources in the first place. So all you have to do is to 
+convert your digitally available texts and word lists into a collection of UTF8-
+encoded plain text files and copy them onto to your flash memory cart into the 
+directory structure Chinese Touch understands. That way Chinese Touch can assist
+you in practicing reading and writing and memorizing words right on your DS 
+wherever you are, whenever you have a couple of minutes of spare time, using 
+your prefered learning materials. Apart from that the ready-to-use program 
+archive available from the downloads section already includes a beginners guide 
+to Chinese (Mandarin) from wikibooks.org. Just extract its contents to your 
+flash memory cart and give it a try.
 
-The current implementation basicly features two modes:
+Please check the project wiki for a basic introduction to the features currently
+implemented in Chinese Touch.
 
-1. The word list browser displays single chinese words along with pinyin and translation which you can show or hide individually to practice memorization. You can use the touchscreen to practice writing or just complete hidden information and control yourself afterwards. 
+Also checkout your copy of the source code from subversion if interested.
 
-2. The text browser displays longer texts which you can easily scroll using the touchscreen. You can tap on unknown characters and display context-matching word list entries on the upper screen. Tap again and display any word containing the character. This makes reading texts containing many unknown characters much less time consuming and less frustrating, whereas it might have a negative influence on word memorization.
-
-Chinese Touch organizes your learning stuff in a hierarchy of books and lessons, while every lesson can contain a list of new words, a grammar text, a chinese text and plain textual excercises. Your lessons are available from the lesson menu that Chinese Touch boots right into.
-
-Want to contribute or looking for updates?
+Looking for updates, seeking help or do you even want to contribute?
 See: http://code.google.com/p/chinese-touch/
+

@@ -123,7 +123,7 @@ void Library::rescan()
 						{
 							lesson->parse_text( lesson_path, lesson->grammar_texts ); //! \see Lesson::parse_text
 						}
-						/*! - A lessons excercises text file is called \<lesson-number\>.text */
+						/*! - A lessons excercises text file is called \<lesson-number\>.exercise */
 						else if( lesson_extension == "exercise" )
 						{
 							lesson->parse_text( lesson_path, lesson->exercises ); //! \see Lesson::parse_text

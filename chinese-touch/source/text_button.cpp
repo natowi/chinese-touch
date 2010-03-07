@@ -88,10 +88,35 @@ bool TextButton::is_responsible( int ref_x, int ref_y )
 }
 
 
-TextButtonListStorage::~TextButtonListStorage()
+TextButtonMapStorage::~TextButtonMapStorage()
 {
-	for( TextButtonListStorage::iterator i=this->begin(); i!=this->end(); i++ )
+	for( TextButtonMapStorage::iterator i=this->begin(); i!=this->end(); i++ )
 	{
-		if( *i ) delete *i;
+		if( i->second ) 
+			delete i->second;
 	}
+	this->clear();
+}
+
+void TextButtonMapStorage::add_text_button(const std::string& name, TextButton* text_button)
+{
+	if( text_button )
+	{
+		if( this->count(name) && (*this)[name]!=text_button )
+		{
+			// clean-up old button:
+			if( (*this)[name] )
+				delete (*this)[name];
+		}
+		(*this)[name] = text_button;
+		text_button->name = name;
+	}
+}
+
+TextButton* TextButtonMapStorage::get_text_button(const std::string& name)
+{
+	if( this->count(name) )
+	{
+		return (*this)[name];
+	} else return 0;
 }

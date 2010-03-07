@@ -14,7 +14,7 @@ class TextButton
 {
 public:
 	OamState* oam;
-	std::string text;
+	std::string name, text;
 	SpriteSize sprite_size;
 	int width, height, x, y, text_x_offset, text_y_offset, bg_prio, text_prio;
 	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram;
@@ -37,10 +37,12 @@ class TextButtonList : public std::list<TextButton*>
 {
 };
 
-class TextButtonListStorage : public TextButtonList
+class TextButtonMapStorage : public std::map<std::string,TextButton*>
 {
 public:
-	~TextButtonListStorage();
+	~TextButtonMapStorage();
+	void add_text_button( const std::string &name, TextButton* text_button );
+	TextButton* get_text_button( const std::string &name );
 };
 
 #endif

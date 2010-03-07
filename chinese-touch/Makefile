@@ -34,7 +34,7 @@ CFLAGS	:=	-ggdb -Wall -O2\
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM9
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fexceptions
+CXXFLAGS	:= $(CFLAGS) -fexceptions
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)

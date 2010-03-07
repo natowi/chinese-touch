@@ -207,8 +207,8 @@ void TextView::render( Screen screen, bool update_sprites )
 				}
 			}
 			this->exit_button.render_to( oam_entry );
-			this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(new_word ? (this->render_hanzi ? 0 : 8) : 12) );
-			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(new_word ? (this->render_pinyin ? 0 : 8) : 12) );
+			this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(new_word ? (this->render_foreign_word ? 0 : 8) : 12) );
+			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(new_word ? (this->render_pronuciation ? 0 : 8) : 12) );
 			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(new_word ? (this->render_translation ? 0 : 8) : 12) );
 			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
 			if( new_word )
@@ -481,7 +481,7 @@ void TextView::run_until_exit()
 				&& this->hanzi_tab.active )
             {
 				this->hanzi_tab.active = false;
-				this->toggle_hanzi();
+				this->toggle_foreign_word();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -489,7 +489,7 @@ void TextView::run_until_exit()
 				&& this->pinyin_tab.active )
             {
 				this->pinyin_tab.active = false;
-				this->toggle_pinyin();
+				this->toggle_pronunciation();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

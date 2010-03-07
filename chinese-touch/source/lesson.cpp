@@ -15,7 +15,7 @@
 #include "words_db.h"
 
 
-/*! Scans the directory structure "/chinese-touch/books/\<bookname\>/*" for book and lesson configuration files */
+/*! Scans the directory structure "/chinese-touch/books/\<bookname\>/..." for book and lesson configuration files */
 void Library::rescan()
 {
     std::string books_path = "/" PROGRAM_NAME "/books";

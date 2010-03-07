@@ -5,6 +5,7 @@
 #include "lesson_menu.h"
 #include "drawing_pad.h"
 #include "config.h"
+#include "settings_dialog.h"
 
 class NewWordsViewer : public NewWordRenderSettings
 {
@@ -20,6 +21,7 @@ class NewWordsViewer : public NewWordRenderSettings
 			rating_easy, rating_medium, rating_hard, rating_impossible;
 		TextButtonList text_buttons;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
+		Settings settings;
 	public:
 		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config* _config=0 );
 		void render( Screen screen );

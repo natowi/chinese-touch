@@ -14,15 +14,24 @@
 class NewWordRenderSettings
 {
 	public:
-		bool render_hanzi, render_pinyin, render_word_type, render_translation, render_comment;
+		bool render_foreign_word, render_pronuciation, render_translation;
+		bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
+		bool restore_on_switch;
 	public:
-		NewWordRenderSettings() : render_hanzi(true), render_pinyin(true), render_word_type(true),
-			render_translation(true), render_comment(true) {}
-		void toggle_hanzi() { this->render_hanzi = !this->render_hanzi; }
-		void toggle_pinyin() { this->render_pinyin = !this->render_pinyin; }
-		void toggle_word_type() { this->render_word_type = !this->render_word_type; }
+		NewWordRenderSettings() 
+			: render_foreign_word(true), render_pronuciation(true), render_translation(true),
+				init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
+				restore_on_switch(true) {}
+		void toggle_foreign_word() { this->render_foreign_word = !this->render_foreign_word; }
+		void toggle_pronunciation() { this->render_pronuciation = !this->render_pronuciation; }
 		void toggle_translation() { this->render_translation = !this->render_translation; }
-		void toggle_comment() { this->render_comment = !this->render_comment; }
+		void restore_init_settings()
+		{
+			this->render_foreign_word = this->init_render_foreign_word;
+			this->render_pronuciation = this->init_render_pronuciation;
+			this->render_translation = this->init_render_translation;
+		}
+		void restore_init_settings_if_needed() { if(this->restore_on_switch) this->restore_init_settings(); }
 };
 
 class Lesson;

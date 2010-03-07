@@ -31,6 +31,7 @@
 #include "bottom_rating_medium.h"
 #include "bottom_rating_hard.h"
 #include "bottom_rating_impossible.h"
+#include "settings_dialog.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings )
@@ -42,70 +43,65 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 	// write updated word to database:
 	WordsDB::add_or_write_word( *this );
 	render_screen.clear();
-    
-    // render hanzi centered
-    RenderStyle render_style;
-    render_style.center_x = true;
-    int top = 5;
-    int size = 32;
-    if( render_settings.render_hanzi )
-    {
-        RenderInfo rect = ft.render( render_screen, this->hanzi, ft.han_face, size, 0, top, &render_style );
-        top += rect.height;
-    }
-    else
-    {
-        top += size*1.2;
-    }
-    top += 10;
-    
-    // render pinyin centered
-    size = 14;
-    if( render_settings.render_pinyin )
-    {
-        RenderInfo rect = ft.render( render_screen, this->pinyin, ft.han_face, size, 0, top, &render_style );
-        top += rect.height;
-    }
-    else
-    {
-        top += size*1.2;
-    }
-    top += 10;
-    
+
+	// render hanzi centered
+	RenderStyle render_style;
+	render_style.center_x = true;
+	int top = 5;
+	int size = 32;
+	if( render_settings.render_foreign_word )
+	{
+		RenderInfo rect = ft.render( render_screen, this->hanzi, ft.han_face, size, 0, top, &render_style );
+		top += rect.height;
+	}
+	else
+	{
+		top += size*1.2;
+	}
+	top += 10;
+
+	// render pinyin centered
+	size = 14;
+	if( render_settings.render_pronuciation )
+	{
+		RenderInfo rect = ft.render( render_screen, this->pinyin, ft.han_face, size, 0, top, &render_style );
+		top += rect.height;
+	}
+	else
+	{
+		top += size*1.2;
+	}
+	top += 10;
+
 	std::string lang = "de";
-	
-    // render word type
-    size = 7;
-    if( render_settings.render_translation && render_settings.render_word_type 
+
+	// render word type
+	size = 7;
+	if( render_settings.render_translation
 		&& this->definitions.count(lang) && this->definitions[lang]->word_type.length() )
-    {
-        RenderInfo rect = ft.render( render_screen, this->definitions[lang]->word_type, ft.latin_face, size, 0, top, &render_style );
-        top += rect.height+5;
-    }
-
-	unsigned int char_limit = 100;
-
-    // render first n characters of translation
-    size = 9;
-    if( render_settings.render_translation && this->definitions.count(lang) 
-		&& this->definitions[lang]->translation.length() )
-    {
-		std::string text = this->definitions[lang]->translation.substr(0,char_limit);
-		if( text.length()==char_limit ) text += "...";
-        RenderInfo rect = ft.render( render_screen, text, ft.latin_face, size, 0, top, &render_style );
-        top += rect.height+10;
-    }
-
-	// render first n characters of comment
-    size = 8;
-    if( render_settings.render_comment && render_settings.render_translation 
-		&& this->definitions.count(lang) && this->definitions[lang]->comment.length() )
-    {
-		std::string text = this->definitions[lang]->comment.substr(0,char_limit);
-		if( text.length()==char_limit ) text += "...";
-        RenderInfo rect = ft.render( render_screen, text, ft.latin_face, size, 0, top, &render_style );
-        top += rect.height;
-    }
+	{
+		{
+			RenderInfo rect = ft.render( render_screen, this->definitions[lang]->word_type, ft.latin_face, size, 0, top, &render_style );
+			top += rect.height+5;
+		}
+		unsigned int char_limit = 100;
+		{
+			// render first n characters of translation
+			size = 9;
+			std::string text = this->definitions[lang]->translation.substr(0,char_limit);
+			if( text.length()==char_limit ) text += "...";
+			RenderInfo rect = ft.render( render_screen, text, ft.latin_face, size, 0, top, &render_style );
+			top += rect.height+10;
+		}
+		{
+			// render first n characters of comment
+			size = 8;
+			std::string text = this->definitions[lang]->comment.substr(0,char_limit);
+			if( text.length()==char_limit ) text += "...";
+			RenderInfo rect = ft.render( render_screen, text, ft.latin_face, size, 0, top, &render_style );
+			top += rect.height;
+		}
+	}
 }
 
 
@@ -132,6 +128,16 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
+	
+	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
+	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->init_render_foreign_word) );
+	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->init_render_pronuciation) );
+	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->init_render_translation) );
+	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Setting on Switch",this->restore_on_switch) );
+	SettingsDialog settings_dialog( this->freetype_renderer, settings );
+	settings_dialog.run_until_exit();
+	this->restore_init_settings();
+	
 	this->freetype_renderer.init_screen( SCREEN_SUB, this->drawing_screen );
 	this->drawing_screen.clear();
 
@@ -257,8 +263,8 @@ void NewWordsViewer::render( Screen screen )
 		}
 		this->exit_button.render_to( oam_entry );
 		this->clear_button.render_to( oam_entry );
-		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_hanzi ? 0 : 8) );
-		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pinyin ? 0 : 8) );
+		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_foreign_word ? 0 : 8) );
+		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pronuciation ? 0 : 8) );
 		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
 		this->rating_bar.render_to( oam_entry );
 		if( new_word )
@@ -477,6 +483,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->left_button.active = false;
 				this->current_word--;
+				this->restore_init_settings_if_needed();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -486,6 +493,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->right_button.active = false;
 				this->current_word++;
+				this->restore_init_settings_if_needed();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -508,7 +516,7 @@ void NewWordsViewer::run_until_exit()
 				&& this->hanzi_tab.active )
             {
 				this->hanzi_tab.active = false;
-				this->toggle_hanzi();
+				this->toggle_foreign_word();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -516,7 +524,7 @@ void NewWordsViewer::run_until_exit()
 				&& this->pinyin_tab.active )
             {
 				this->pinyin_tab.active = false;
-				this->toggle_pinyin();
+				this->toggle_pronunciation();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

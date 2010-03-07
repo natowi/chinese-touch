@@ -461,7 +461,6 @@ void NewWordsViewer::run_until_exit()
 				{
 					old_distance = distance;
 					pixels_drawn += distance;
-					changed = true;
 					this->drawing_pad.draw_line( touch.px, touch.py, old_touch.px, old_touch.py );
 				}
 				if( changed ) this->render( SCREEN_SUB );

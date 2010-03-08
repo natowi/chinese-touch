@@ -77,22 +77,25 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 
 	// render word type
 	size = 7;
-	if( render_settings.render_translation
-		&& this->definitions.count(lang) && this->definitions[lang]->word_type.length() )
+	if( render_settings.render_translation && this->definitions.count(lang) )
 	{
+		if( this->definitions[lang]->word_type.length() )
 		{
 			RenderInfo rect = ft.render( render_screen, this->definitions[lang]->word_type, ft.latin_face, size, 0, top, &render_style );
 			top += rect.height+5;
 		}
-		unsigned int char_limit = 100;
+		unsigned int char_limit = 200;
+		if( this->definitions[lang]->translation.length() )
 		{
 			// render first n characters of translation
 			size = 9;
 			std::string text = this->definitions[lang]->translation.substr(0,char_limit);
 			if( text.length()==char_limit ) text += "...";
+			char_limit -= text.length();
 			RenderInfo rect = ft.render( render_screen, text, ft.latin_face, size, 0, top, &render_style );
 			top += rect.height+10;
 		}
+		if( this->definitions[lang]->comment.length() )
 		{
 			// render first n characters of comment
 			size = 8;

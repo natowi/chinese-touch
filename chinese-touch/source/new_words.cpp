@@ -32,6 +32,8 @@
 #include "bottom_rating_hard.h"
 #include "bottom_rating_impossible.h"
 #include "settings_dialog.h"
+#include "right_center_button.h"
+#include "right_center_button_active.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings )
@@ -116,7 +118,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,drawing_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
-		clear_button(&oamSub,"c",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
+		clear_button(&oamSub,"c\nl\nr",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2-16,freetype_renderer.latin_face,7,1,1),
 		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,drawing_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
 		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,drawing_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
 		latin_tab(&oamSub,"latin",SpriteSize_32x16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
@@ -124,7 +126,8 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		rating_easy(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-32,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_medium(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_hard(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0)
+		rating_impossible(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -138,10 +141,30 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->init_render_translation) );
 	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Setting on Switch",this->restore_on_switch) );
 	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Drawing Screen on Switch",this->clear_on_switch) );
-	SettingsDialog settings_dialog( this->freetype_renderer, settings );
-	settings_dialog.run_until_exit();
-	this->restore_init_settings();
 	
+	this->text_buttons.push_back( &this->left_button );
+	this->text_buttons.push_back( &this->right_button );
+	this->text_buttons.push_back( &this->exit_button );
+	this->text_buttons.push_back( &this->clear_button );
+	this->text_buttons.push_back( &this->hanzi_tab );
+	this->text_buttons.push_back( &this->pinyin_tab );
+	this->text_buttons.push_back( &this->latin_tab );
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->settings_button );
+	
+	this->show_settings();
+	// Settings would clobber the subscreen, so we initalize it afterwards:
+	this->init_subscreen();
+	
+	bgHide( this->word_screen.bg_id );
+}
+
+void NewWordsViewer::init_subscreen()
+{
 	this->freetype_renderer.init_screen( SCREEN_SUB, this->drawing_screen );
 	this->drawing_screen.clear();
 
@@ -158,8 +181,8 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
 	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
 	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
-	this->clear_button.init_vram( bottom_right_buttonBitmap, this->clear_button.bg_vram );
-	this->clear_button.init_vram( bottom_right_button_activeBitmap, this->clear_button.bg_active_vram );
+	this->clear_button.init_vram( right_center_buttonBitmap, this->clear_button.bg_vram );
+	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
 	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
 	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
 	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
@@ -169,6 +192,8 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
+	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 
 	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
 	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
@@ -178,20 +203,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
 	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
 	this->latin_tab.owns_bg_vram = false;
-
-	this->text_buttons.push_back( &this->left_button );
-	this->text_buttons.push_back( &this->right_button );
-	this->text_buttons.push_back( &this->exit_button );
-	this->text_buttons.push_back( &this->clear_button );
-	this->text_buttons.push_back( &this->hanzi_tab );
-	this->text_buttons.push_back( &this->pinyin_tab );
-	this->text_buttons.push_back( &this->latin_tab );
-	this->text_buttons.push_back( &this->rating_bar );
-	this->text_buttons.push_back( &this->rating_easy );
-	this->text_buttons.push_back( &this->rating_medium );
-	this->text_buttons.push_back( &this->rating_hard );
-	this->text_buttons.push_back( &this->rating_impossible );
-
+	
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
 		if( (*i)->owns_bg_vram )
@@ -204,7 +216,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		if( (*i)->text.length() )
 		{
 			// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
-			(*i)->text_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_256Color );
+			(*i)->text_vram = oamAllocateGfx( &oamSub, (*i)->sprite_size, SpriteColorFormat_256Color );
 			RenderScreenBuffer button_text( (*i)->width, (*i)->height );
 			RenderStyle render_style;
 			render_style.center_x = true;
@@ -231,7 +243,13 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		}
 		if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
 	}
-	bgHide( this->word_screen.bg_id );
+}
+
+void NewWordsViewer::show_settings()
+{
+	SettingsDialog settings_dialog( this->freetype_renderer, this->settings );
+	settings_dialog.run_until_exit();
+	this->restore_init_settings();
 }
 
 void NewWordsViewer::render( Screen screen )
@@ -283,6 +301,7 @@ void NewWordsViewer::render( Screen screen )
 			if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
 				this->rating_impossible.render_to( oam_entry );
 		}
+		this->settings_button.render_to( oam_entry );
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );
@@ -449,6 +468,15 @@ void NewWordsViewer::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
+            else if( this->settings_button.is_responsible(touch.px, touch.py) 
+				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
+			{
+				if( !this->settings_button.active )
+				{
+					this->settings_button.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
 			else
 			{
 				bool changed = false;
@@ -560,6 +588,14 @@ void NewWordsViewer::run_until_exit()
 				(*this->current_word)->rating = RATING_IMPOSSIBLE;
 				WordsDB::add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->settings_button.is_responsible(old_touch.px, old_touch.py) 
+				&& this->settings_button.active )
+            {
+				this->settings_button.active = false;
+				this->show_settings();
+				this->init_subscreen();
 				this->render( SCREEN_SUB );
             }
 			else

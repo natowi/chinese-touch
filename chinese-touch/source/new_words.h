@@ -26,6 +26,8 @@ class NewWordsViewer : public NewWordRenderSettings
 		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config* _config=0 );
 		void render( Screen screen );
 		void run_until_exit();
+		void switch_forward();
+		void switch_backwards();
 };
 
 #endif // NEW_WORDS_H

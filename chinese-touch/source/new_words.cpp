@@ -137,6 +137,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->init_render_pronuciation) );
 	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->init_render_translation) );
 	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Setting on Switch",this->restore_on_switch) );
+	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Drawing Screen on Switch",this->clear_on_switch) );
 	SettingsDialog settings_dialog( this->freetype_renderer, settings );
 	settings_dialog.run_until_exit();
 	this->restore_init_settings();
@@ -327,19 +328,13 @@ void NewWordsViewer::run_until_exit()
 		{
 			this->left_button.active = true;
 			this->render( SCREEN_SUB );
-			this->left_button.active = false;
-			this->current_word--;
-			this->render( SCREEN_MAIN );
-			this->render( SCREEN_SUB );
+			this->switch_backwards();
 		}
 		else if( pressed & KEY_R && ++test_it!=this->words.end() )
 		{
 			this->right_button.active = true;
 			this->render( SCREEN_SUB );
-			this->right_button.active = false;
-			this->current_word++;
-			this->render( SCREEN_MAIN );
-			this->render( SCREEN_SUB );
+			this->switch_forward();
 		}
 		
 		touchPosition touch;
@@ -484,21 +479,13 @@ void NewWordsViewer::run_until_exit()
 				&& this->left_button.is_responsible(old_touch.px, old_touch.py)
 				&& this->left_button.active )
             {
-				this->left_button.active = false;
-				this->current_word--;
-				this->restore_init_settings_if_needed();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
+				this->switch_backwards();
             }
             else if( ++test_it != this->words.end()
 				&& this->right_button.is_responsible(old_touch.px, old_touch.py)
 				&& this->right_button.active )
             {
-				this->right_button.active = false;
-				this->current_word++;
-				this->restore_init_settings_if_needed();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
+				this->switch_forward();
             }
             else if( this->clear_button.is_responsible(old_touch.px, old_touch.py) 
 				&& this->clear_button.active )
@@ -592,4 +579,24 @@ void NewWordsViewer::run_until_exit()
 			}
 		}
     }
+}
+
+void NewWordsViewer::switch_forward()
+{
+	this->right_button.active = false;
+	this->current_word++;
+	this->restore_init_settings_if_needed();
+	if( this->clear_on_switch ) this->drawing_pad.clear();
+	this->render( SCREEN_MAIN );
+	this->render( SCREEN_SUB );
+}
+
+void NewWordsViewer::switch_backwards()
+{
+	this->left_button.active = false;
+	this->current_word--;
+	this->restore_init_settings_if_needed();
+	if( this->clear_on_switch ) this->drawing_pad.clear();
+	this->render( SCREEN_MAIN );
+	this->render( SCREEN_SUB );
 }

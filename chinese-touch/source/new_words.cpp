@@ -139,8 +139,8 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->init_render_foreign_word) );
 	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->init_render_pronuciation) );
 	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->init_render_translation) );
-	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Setting on Switch",this->restore_on_switch) );
-	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Drawing Screen on Switch",this->clear_on_switch) );
+	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Settings on Switch",this->restore_on_switch) );
+	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Writing Screen on Switch",this->clear_on_switch) );
 	
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );

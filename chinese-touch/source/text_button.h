@@ -31,10 +31,13 @@ public:
 	void render_to( int& oam_entry );
 	void render_to( int& oam_entry, int _x, int _y );
 	bool is_responsible( int ref_x, int ref_y );
+	void free_all();
 };
 
 class TextButtonList : public std::list<TextButton*>
 {
+public:
+	void free_all();
 };
 
 class TextButtonMapStorage : public std::map<std::string,TextButton*>
@@ -43,6 +46,7 @@ public:
 	~TextButtonMapStorage();
 	void add_text_button( const std::string &name, TextButton* text_button );
 	TextButton* get_text_button( const std::string &name );
+	void free_all();
 };
 
 #endif

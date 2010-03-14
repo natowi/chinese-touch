@@ -59,6 +59,15 @@ int main()
 		config.load();
 
 #if 0
+	NewWordList words;
+	words.insert( words.end(), 
+				  library.begin()->second->begin()->second->new_words.begin(), 
+				  library.begin()->second->begin()->second->new_words.end() );
+	NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
+	new_words->run_until_exit();
+	delete new_words;
+#endif
+#if 0
 	ErrorConsole::init_screen();
 	RenderScreen r;
 	ft->init_screen( SCREEN_MAIN, r );

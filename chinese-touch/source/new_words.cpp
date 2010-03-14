@@ -156,6 +156,17 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->text_buttons.push_back( &this->rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
 	
+	// Wortliste initialisieren und auf gespeicherten Index positionieren:
+	if( this->config ) 
+	{
+		int word_id = this->config->get_current_word_id();
+		for( this->current_word=this->words.begin(); this->current_word!=this->words.end(); this->current_word++ )
+		{
+			if( (*this->current_word)->id == word_id ) break;
+		}
+		if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
+	}
+	
 	this->show_settings();
 	// Settings would clobber the subscreen, so we initalize it afterwards:
 	this->init_subscreen();
@@ -232,23 +243,14 @@ void NewWordsViewer::init_subscreen()
 	
 	// Palette für 8-Bit-Buttonbeschriftungen wie Hintergrundpalette initialisieren:
 	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
-
-	// Wortliste initialisieren und auf gespeicherten Index positionieren:
-	if( this->config ) 
-	{
-		int word_id = this->config->get_current_word_id();
-		for( this->current_word=this->words.begin(); this->current_word!=this->words.end(); this->current_word++ )
-		{
-			if( (*this->current_word)->id == word_id ) break;
-		}
-		if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
-	}
 }
 
 void NewWordsViewer::show_settings()
 {
+	this->text_buttons.free_all();
 	SettingsDialog settings_dialog( this->freetype_renderer, this->settings );
 	settings_dialog.run_until_exit();
+	this->init_subscreen();
 	this->restore_init_settings();
 }
 
@@ -595,7 +597,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->settings_button.active = false;
 				this->show_settings();
-				this->init_subscreen();
+				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
 			else

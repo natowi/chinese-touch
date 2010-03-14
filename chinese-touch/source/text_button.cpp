@@ -38,12 +38,33 @@ TextButton::TextButton( OamState* _oam, const std::string& _text,
 
 TextButton::~TextButton()
 {
-	if( this->text_vram ) oamFreeGfx( this->oam, this->text_vram );
+	this->free_all();
+}
+
+void TextButton::free_all()
+{
+	if( this->text_vram ) 
+	{
+		oamFreeGfx( this->oam, this->text_vram );
+		this->text_vram = 0;
+	}
 	if( this->owns_bg_vram )
 	{
-		if( this->bg_vram ) oamFreeGfx( this->oam, this->bg_vram );
-		if( this->bg_active_vram ) oamFreeGfx( this->oam, this->bg_active_vram );
-		if( this->bg_inactive_vram ) oamFreeGfx( this->oam, this->bg_inactive_vram );
+		if( this->bg_vram )
+		{
+			oamFreeGfx( this->oam, this->bg_vram );
+			this->bg_vram = 0;
+		}
+		if( this->bg_active_vram ) 
+		{
+			oamFreeGfx( this->oam, this->bg_active_vram );
+			this->bg_active_vram = 0;
+		}
+		if( this->bg_inactive_vram ) 
+		{
+			oamFreeGfx( this->oam, this->bg_inactive_vram );
+			this->bg_inactive_vram = 0;
+		}
 	}
 }
 
@@ -88,6 +109,15 @@ bool TextButton::is_responsible( int ref_x, int ref_y )
 }
 
 
+void TextButtonList::free_all()
+{
+	for( TextButtonList::iterator i=this->begin(); i!=this->end(); i++ )
+	{
+		if( *i ) (*i)->free_all();
+	}
+}
+
+
 TextButtonMapStorage::~TextButtonMapStorage()
 {
 	for( TextButtonMapStorage::iterator i=this->begin(); i!=this->end(); i++ )
@@ -119,4 +149,12 @@ TextButton* TextButtonMapStorage::get_text_button(const std::string& name)
 	{
 		return (*this)[name];
 	} else return 0;
+}
+
+void TextButtonMapStorage::free_all()
+{
+	for( TextButtonMapStorage::iterator i=this->begin(); i!=this->end(); i++ )
+	{
+		if( i->second ) i->second->free_all();
+	}
 }

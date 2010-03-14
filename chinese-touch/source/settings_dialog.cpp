@@ -131,7 +131,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 		if( (*i)->text.length() )
 		{
 			// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
-			(*i)->text_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_256Color );
+			(*i)->text_vram = oamAllocateGfx( &oamSub, (*i)->sprite_size, SpriteColorFormat_256Color );
 			RenderScreenBuffer button_text( (*i)->width, (*i)->height );
 			RenderStyle render_style;
 			render_style.center_x = true;

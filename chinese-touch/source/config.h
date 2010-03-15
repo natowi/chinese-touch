@@ -4,7 +4,7 @@
 #include "lesson.h"
 
 #define PROGRAM_NAME "chinese-touch"
-#define PROGRAM_VERSION "1.1"
+#define PROGRAM_VERSION "1.2"
 #define CONFIG_STRING_SIZE 50
 #define BASE_DIR "/" PROGRAM_NAME "/"
 #define CONFIG_FILE_NAME BASE_DIR PROGRAM_NAME ".conf"

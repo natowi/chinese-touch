@@ -42,6 +42,7 @@ int main()
 			WARN( e.full_msg );
 			WordsDB::create();
 		}
+		WordsDB::update();
 		
 		Dictionary dictionary;
 

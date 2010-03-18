@@ -37,9 +37,10 @@ void WordsDB::create()
 	WordsDB::open( true );
 	typedef std::list<std::string> StringList;
 	StringList create_statements;
-	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC)" );
+	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC, file_id NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE books (id INTEGER PRIMARY KEY, path TEXT)" );
 	create_statements.push_back( "CREATE TABLE lessons (id INTEGER PRIMARY KEY, book_id NUMERIC, number NUMERIC)" );
+	create_statements.push_back( "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)" );
 	
 	for( StringList::iterator i=create_statements.begin(); i!=create_statements.end(); i++ )
 	{
@@ -80,6 +81,40 @@ static int map_list_callback( void *pv_map_list, int argc, char **argv, char **a
 	}
 	map_list->push_back( row_map );
 	return 0;
+}
+
+/*! Implements conditional database update procedures from previous releases */
+void WordsDB::update()
+{
+	{
+		/*! Update from 1.1 to 1.2 requires creating of the files table and the file_id column in the words table */
+		int rc;
+		std::string stmt = "select name from sqlite_master where name=\"files\"";
+		MapList result;
+		if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
+		if( !result.size() )
+		{
+			stmt = "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			stmt = "alter table words add column file_id NUMERIC default 0";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+		}
+	}
 }
 
 int WordsDB::get_book_id( Book& book, bool add_missing )

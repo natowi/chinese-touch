@@ -16,6 +16,7 @@ public:
 	static void open( bool create_db=false );
 	static void create();
 	static void close();
+	static void update();
 	static int get_book_id( Book& book, bool add_missing );
 	static int get_lesson_id( Lesson& lesson, bool add_missing );
 	static void find_words( const std::string& word, NewWordList& result_list, int book_id=0, int lesson_id=0 );

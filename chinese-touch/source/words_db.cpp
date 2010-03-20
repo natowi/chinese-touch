@@ -446,7 +446,7 @@ void WordsDB::set_file_mtime( const std::string& file_path, int new_mtime )
 	else
 	{
 		std::stringstream stmt_stream;
-		stmt_stream << "update files set mtime=" << new_mtime << " where file_id=" << file_id;
+		stmt_stream << "update files set mtime=" << new_mtime << " where id=" << file_id;
 		std::string stmt = stmt_stream.str();
 		int rc;
 		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )

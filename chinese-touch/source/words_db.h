@@ -26,7 +26,10 @@ public:
 	static void add_or_write_word( NewWord& );
 	static void write_word( NewWord& );
 	static bool read_word( NewWord& );
-	static void get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number=0 );
+	static void get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number = 0, int min_lesson_number = 0, bool order_by_atime = true, bool order_by_file_offset = false );
+	static int get_file_id( const std::string& file_path );
+	static int get_file_mtime( const std::string& file_path );
+	static void set_file_mtime( const std::string& file_path, int new_mtime );
 };
 
 #endif

@@ -69,6 +69,7 @@ typedef enum
 	RATING_HARD, //!< hard to read and/or write.
 	RATING_MEDIUM, //!< medium to read and/or write.
 	RATING_EASY, //!< easy to read and/or write.
+	RATING_ANY, //!< any rating, including none
 } Rating;
 
 /*! A foreign language word and several associated properties like translations and so on. */
@@ -78,7 +79,7 @@ public:
     NewWord( const std::string& _hanzi, const std::string& _pinyin, 
             Lesson* _lesson ) 
         : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson),
-        rating(RATING_NONE), id(0), duplicate_id(0) {};
+        rating(RATING_NONE), id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0) {};
     void render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings );
 public:
     std::string hanzi, //!< Foreign language word.
@@ -93,6 +94,8 @@ public:
 		lesson, 1 for second and so on). */
 		duplicate_id;
 	time_t atime; //!< Last time this words dictionary entry was shown to the user.
+	int file_id; //!< Database identifier of the dictionary file this word was read from
+	int file_offset; //!< Number of the word entry within the dictionary file it was read from
 };
 /*! An array of pointers to NewWord instances. \see NewWord */
 typedef std::vector<NewWord*> NewWordVector;
@@ -104,11 +107,11 @@ class Lesson
 {
 public:
     Lesson( int _number, Book* _book ) : number(_number), book(_book) {};
+	std::string find_config_file_by_extension( const std::string& extension );
     void parse_config( const std::string& lesson_file_name );
-    void parse_dictionary( const std::string& lesson_file_name, Dictionary& dictionary );
-	void parse_text( const std::string& text_file_name, TextVector& container );
+    void parse_dictionary_if_needed();
+	void parse_text( const std::string& extension, TextVector& container );
 public:
-	NewWordVector new_words; //!< The dictionary table of this lesson. \see NewWord
 	TextVector lesson_texts; //!< An array of lesson texts. \see Text
 	TextVector grammar_texts; //!< An array of the lessons grammar texts. \see Text
 	TextVector exercises; //!< An array of the lessons exercises texts. \see Text
@@ -117,6 +120,10 @@ public:
     int number; //!< The number of this lesson within a book.
     Book* book; //!< A pointer to the book this lesson belongs to.
 	int id; //!< This lessons unique id within the sqlite database (0 if unassociated).
+	bool new_words_available, //!< True if this lesson has a dictionary file (and thus possibly words in the database)
+		lesson_texts_available, //!< True if this lesson has a .text-file
+		grammar_texts_available, //!< True if this lesson has a .grammar-file
+		exercises_available; //!< True if this lesson has a .exercises-file
 };
 
 class Library;
@@ -128,6 +135,7 @@ public:
     Book( const std::string& _name, Library* _library ) : name(_name),
         library(_library) {}
     void parse_config( const std::string& book_conf_file_name );
+	std::string get_full_path();
 public:
     std::string name, //!< The name of the book is equal to its subdirectory name below /chinese-touch/books/.
 		title, //!< The books title.

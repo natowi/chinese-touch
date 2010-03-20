@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sstream>
+#include <sys/stat.h>
 
 #include "lesson.h"
 #include "config.h"
@@ -18,7 +19,7 @@
 /*! Scans the directory structure "/chinese-touch/books/\<bookname\>/..." for book and lesson configuration files */
 void Library::rescan()
 {
-    std::string books_path = "/" PROGRAM_NAME "/books";
+    std::string books_path = BOOKS_DIR;
     DIR* books_dir = opendir( books_path.c_str() );
     if( !books_dir )
     {
@@ -106,7 +107,7 @@ void Library::rescan()
 						/*! - A lessons dictionary table is called \<lesson-number\>.dict */
 						if( lesson_extension == "dict" )
 						{
-							lesson->parse_dictionary( lesson_path, this->dictionary ); //! \see Lesson::parse_dictionary
+							lesson->new_words_available = true;
 						}
 						/*! - A lessons base configuration file is called \<lesson-number\>.conf */
 						else if( lesson_extension == "conf" )
@@ -116,17 +117,17 @@ void Library::rescan()
 						/*! - A lessons text file is called \<lesson-number\>.text */
 						else if( lesson_extension == "text" )
 						{
-							lesson->parse_text( lesson_path, lesson->lesson_texts ); //! \see Lesson::parse_text
+							lesson->lesson_texts_available = true;
 						}
 						/*! - A lessons grammar text file is called \<lesson-number\>.grammar */
 						else if( lesson_extension == "grammar" )
 						{
-							lesson->parse_text( lesson_path, lesson->grammar_texts ); //! \see Lesson::parse_text
+							lesson->grammar_texts_available = true;
 						}
 						/*! - A lessons excercises text file is called \<lesson-number\>.exercise */
 						else if( lesson_extension == "exercise" )
 						{
-							lesson->parse_text( lesson_path, lesson->exercises ); //! \see Lesson::parse_text
+							lesson->exercises_available = true;
 						}
 					}
                 }
@@ -187,6 +188,11 @@ void Book::parse_config( const std::string& conf_file_name )
 	}
 }
 
+std::string Book::get_full_path()
+{
+	return std::string(BOOKS_DIR)+this->name+"/";
+}
+
 
 /*! Parse a lesson configuration file, containing various key=value pairs (one per line), defining lesson properties */
 void Lesson::parse_config( const std::string& conf_file_name )
@@ -217,6 +223,24 @@ void Lesson::parse_config( const std::string& conf_file_name )
 	}
 }
 
+std::string Lesson::find_config_file_by_extension( const std::string& extension )
+{
+	std::string error;
+	struct stat config_file_stats;
+	std::string config_file_path_prefix = this->book->get_full_path();
+	for( int zeros=0; zeros<4; zeros++, config_file_path_prefix+="0" )
+	{
+		std::stringstream config_file_path;
+		config_file_path << config_file_path_prefix << this->number << extension;
+		if( stat( config_file_path.str().c_str(), &config_file_stats)==-1 )
+		{
+			error = strerror(errno);
+		}
+		else return config_file_path.str();
+	}
+	if( error.length() ) WARN( error );
+	return "";
+}
 
 /*! Parse a dictionary file, containing a table definition in MediaWiki format. 
 	You can easily create those tables using OpenOffice and its MediaWiki export filter. 
@@ -237,14 +261,20 @@ void Lesson::parse_config( const std::string& conf_file_name )
 
 |}
 \endverbatim */
-void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  dictionary )
+void Lesson::parse_dictionary_if_needed()
 {
+	std::string dict_file_name = this->find_config_file_by_extension( ".dict" );
+	if( !dict_file_name.length() )
+		return;
 	struct stat dict_file_stats;
 	if( stat( dict_file_name.c_str(), &dict_file_stats)==-1 )
 	{
-		WARN( strerror(errno) );
-		return;
+		throw ERROR( strerror(errno) );
 	}
+	if( WordsDB::get_file_mtime(dict_file_name) == dict_file_stats.st_mtime )
+		return;
+	WordsDB::set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
+	int file_id = WordsDB::get_file_id( dict_file_name );
     std::ifstream dict_file( dict_file_name.c_str() );
     char line_buffer[1024];
     std::string hanzi, pinyin;
@@ -268,11 +298,10 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
                 word->definitions[ definition.lang ] = new Definition( definition );
 				word->duplicate_id = seen_words.count(word->hanzi) ? seen_words[word->hanzi] : 0;
 				word->atime = dict_file_stats.st_mtime;
+				word->file_id = file_id;
+				word->file_offset = word_count;
 				seen_words[word->hanzi] = word->duplicate_id+1;
-                this->new_words.push_back( word );
-				// way too slow to do that here for all words at once:
-				// WordsDB::add_or_update_word( *word );
-				dictionary.add_new_word( word );
+				WordsDB::add_or_write_word( *word );
                 hanzi = "";
                 pinyin = "";
                 definition.translation = "";
@@ -315,8 +344,11 @@ void Lesson::parse_dictionary( const std::string& dict_file_name, Dictionary&  d
 
 
 /*! Copy the contents of a lessons text file into an in memory buffer for later use */
-void Lesson::parse_text( const std::string& text_file_name, TextVector& container )
+void Lesson::parse_text( const std::string& extension, TextVector& container )
 {
+	std::string text_file_name = this->find_config_file_by_extension( extension );
+	if( !text_file_name.length() )
+		return;
 	std::ifstream text_file( text_file_name.c_str() );
 	char buffer[512];
 	Text* text = new Text( "none", this );

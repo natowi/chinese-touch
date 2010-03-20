@@ -369,23 +369,30 @@ void LessonMenu::render( Screen screen )
 				publisher = entry->book->publisher;
 				description = entry->book->description;
 				int word_count = 0;
+				// FIXME: query SQL database:
+#if 0
 				for( Book::iterator lesson_it = entry->book->begin();
 					lesson_it != entry->book->end(); lesson_it++ )
 				{
 					Lesson* lesson = lesson_it->second;
 					word_count += lesson->new_words.size();
 				}
+#endif
 				std::stringstream stats_stream;
-				stats_stream << "contains " << entry->book->size() << " lessons and " << word_count << " words";
+				stats_stream << "contains " << entry->book->size() << " lessons";
+				// FIXME: query SQL database: " and " << word_count << " words";
 				stats_text = stats_stream.str();
 			}
 			else if( entry->lesson )
 			{
 				title = entry->lesson->title;
 				description = entry->lesson->description;
+				// FIXME: query SQL database:
+#if 0
 				std::stringstream stats_stream;
 				stats_stream << "contains " << entry->lesson->new_words.size() << " words";
 				stats_text = stats_stream.str();
+#endif
 			}
 		}
 		else
@@ -526,10 +533,10 @@ void LessonMenu::render( Screen screen )
 					}
 					if( lesson_entry && lesson_entry->lesson && (lesson_id == this->active_list_id) )
 					{
-						this->new_words_button.inactive = lesson_entry->lesson->new_words.empty();
-						this->grammar_button.inactive = lesson_entry->lesson->grammar_texts.empty();
-						this->text_button.inactive = lesson_entry->lesson->lesson_texts.empty();
-						this->exercises_button.inactive = lesson_entry->lesson->exercises.empty();
+						this->new_words_button.inactive = !lesson_entry->lesson->new_words_available;
+						this->grammar_button.inactive = !lesson_entry->lesson->grammar_texts_available;
+						this->text_button.inactive = !lesson_entry->lesson->lesson_texts_available;
+						this->exercises_button.inactive = !lesson_entry->lesson->exercises_available;
 						if( top > -MenuEntry::ACTIVE_HEIGHT )
 						{
 							int y = top+MenuEntry::BUTTON_Y_OFFSET;

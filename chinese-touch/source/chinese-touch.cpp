@@ -128,20 +128,30 @@ int main()
 					}
 					case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
 					{
-						if( !lesson_menu_choice.lesson )
+						Lesson* lesson = lesson_menu_choice.lesson;
+						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
+						lesson->parse_dictionary_if_needed();
 						NewWordList words;
-						words.insert( words.end(), lesson_menu_choice.lesson->new_words.begin(), lesson_menu_choice.lesson->new_words.end() );
+						WordsDB::get_words_from_book_by_rating( words, lesson_menu_choice.book, RATING_ANY, 
+							lesson->number, lesson->number, false, true );
 						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
 						new_words->run_until_exit();
 						delete new_words;
+						for( NewWordList::iterator i=words.begin(); i!=words.end(); i++ )
+							if( *i ) delete *i;
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
 					{
-						if( !lesson_menu_choice.lesson )
+						Lesson* lesson = lesson_menu_choice.lesson;
+						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
 						TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
+						if( !texts.size() )
+						{
+							lesson->parse_text( ".grammar", lesson->grammar_texts );
+						}
 						if( texts.size() )
 						{
 							TextView text_view( *ft, config, *texts[0], dictionary );
@@ -151,9 +161,14 @@ int main()
 					}
 					case LessonMenuChoice::CONTENT_TYPE_TEXT:
 					{
-						if( !lesson_menu_choice.lesson )
+						Lesson* lesson = lesson_menu_choice.lesson;
+						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
 						TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
+						if( !texts.size() )
+						{
+							lesson->parse_text( ".text", lesson->lesson_texts );
+						}
 						if( texts.size() )
 						{
 							TextView text_view( *ft, config, *texts[0], dictionary );
@@ -163,9 +178,14 @@ int main()
 					}
 					case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
 					{
-						if( !lesson_menu_choice.lesson )
+						Lesson* lesson = lesson_menu_choice.lesson;
+						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
 						TextVector& texts = lesson_menu_choice.lesson->exercises;
+						if( !texts.size() )
+						{
+							lesson->parse_text( ".exercise", lesson->exercises );
+						}
 						if( texts.size() )
 						{
 							TextView text_view( *ft, config, *texts[0], dictionary );

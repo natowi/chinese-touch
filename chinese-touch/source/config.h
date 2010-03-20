@@ -7,6 +7,7 @@
 #define PROGRAM_VERSION "1.2"
 #define CONFIG_STRING_SIZE 50
 #define BASE_DIR "/" PROGRAM_NAME "/"
+#define BOOKS_DIR BASE_DIR "books/"
 #define CONFIG_FILE_NAME BASE_DIR PROGRAM_NAME ".conf"
 #define LOG_FILE_NAME BASE_DIR PROGRAM_NAME ".log"
 #define WORDS_DB_FILE_NAME BASE_DIR "words.db"

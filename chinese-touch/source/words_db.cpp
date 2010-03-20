@@ -37,7 +37,7 @@ void WordsDB::create()
 	WordsDB::open( true );
 	typedef std::list<std::string> StringList;
 	StringList create_statements;
-	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC, file_id NUMERIC)" );
+	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC, file_id NUMERIC, file_offset NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE books (id INTEGER PRIMARY KEY, path TEXT)" );
 	create_statements.push_back( "CREATE TABLE lessons (id INTEGER PRIMARY KEY, book_id NUMERIC, number NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)" );
@@ -87,7 +87,8 @@ static int map_list_callback( void *pv_map_list, int argc, char **argv, char **a
 void WordsDB::update()
 {
 	{
-		/*! Update from 1.1 to 1.2 requires creating of the files table and the file_id column in the words table */
+		/*! Update from 1.1 to 1.2 requires creating of the files table and 
+			the file_id and file_offset columns in the words table */
 		int rc;
 		std::string stmt = "select name from sqlite_master where name=\"files\"";
 		MapList result;
@@ -107,6 +108,13 @@ void WordsDB::update()
 				throw ERROR( msg.str() );
 			}
 			stmt = "alter table words add column file_id NUMERIC default 0";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			stmt = "alter table words add column file_offset NUMERIC default 0";
 			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
 			{
 				std::stringstream msg;
@@ -201,7 +209,7 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 	MapList map_list;
 	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
 	std::stringstream statement_stream;
-	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime from words"
+	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime, file_id, file_offset from words"
 		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
 		<< " and lesson_id=" << new_word.lesson->id
 		<< " and duplicate_id=" << new_word.duplicate_id;
@@ -217,7 +225,9 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 	if( !map_list.size() && new_word.lesson->id )
 	{
 		std::stringstream statement_stream;
-		statement_stream << "insert into words (word, pronunciation, type, definition, comment, rating, lesson_id, duplicate_id, atime) values (" 
+		statement_stream << "insert into words "
+				<< "(word, pronunciation, type, definition, comment, rating, lesson_id, duplicate_id, atime, file_id, file_offset)"
+			<< " values (" 
 			<< "\"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.pinyin,"\"","\"\"") << "\", "
 			<< "\"" << replace_pattern(new_word.definitions["de"]->word_type,"\"","\"\"") << "\", "
@@ -226,7 +236,9 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 			<< new_word.rating << ", "
 			<< new_word.lesson->id << ", "
 			<< new_word.duplicate_id << ", "
-			<< new_word.atime << ")";
+			<< new_word.atime << ", "
+			<< new_word.file_id << ", "
+			<< new_word.file_offset << ")";
 		std::string statement = statement_stream.str();
 		int rc;
 		if( (rc = sqlite3_exec(db, statement.c_str(), 0, 0, 0))!=SQLITE_OK )
@@ -244,7 +256,10 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 			|| row_map["definition"] != new_word.definitions["de"]->translation
 			|| row_map["comment"] != new_word.definitions["de"]->comment
 			|| atoi(row_map["rating"].c_str()) != new_word.rating
-			|| atol(row_map["atime"].c_str()) != new_word.atime )
+			|| atol(row_map["atime"].c_str()) != new_word.atime 
+			|| atoi(row_map["file_id"].c_str()) != new_word.file_id 
+			|| atoi(row_map["file_offset"].c_str()) != new_word.file_offset 
+		)
 		{
 			new_word.id = atoi( row_map["id"].c_str() );
 			WordsDB::write_word( new_word );
@@ -259,9 +274,14 @@ void WordsDB::write_word( NewWord& new_word )
 		<< " pronunciation=\"" << replace_pattern(new_word.pinyin,"\"","\"\"") << "\""
 		<< ", type=\"" << replace_pattern(new_word.definitions["de"]->word_type,"\"","\"\"") << "\""
 		<< ", definition=\"" << replace_pattern(new_word.definitions["de"]->translation,"\"","\"\"") << "\""
-		<< ", comment=\"" << replace_pattern(new_word.definitions["de"]->comment,"\"","\"\"") << "\""
-		<< ", rating=" << new_word.rating
-		<< ", atime=" << new_word.atime
+		<< ", comment=\"" << replace_pattern(new_word.definitions["de"]->comment,"\"","\"\"") << "\"";
+	if( new_word.rating!=RATING_ANY && new_word.rating!=RATING_NONE )
+		statement_stream << ", rating=" << new_word.rating;
+	statement_stream << ", atime=" << new_word.atime;
+	if( new_word.file_id )
+		statement_stream << ", file_id=" << new_word.file_id;
+	statement_stream << ", file_offset=" << new_word.file_offset;
+	statement_stream
 		<< " where id=" << new_word.id;
 	std::string statement = statement_stream.str();
 	int rc;
@@ -278,7 +298,7 @@ bool WordsDB::read_word( NewWord& new_word )
 	MapList map_list;
 	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
 	std::stringstream statement_stream;
-	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime from words"
+	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime, file_id, file_offset from words"
 		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
 		<< " and lesson_id=" << new_word.lesson->id 
 		<< " and duplicate_id=" << new_word.duplicate_id;
@@ -300,24 +320,31 @@ bool WordsDB::read_word( NewWord& new_word )
 		new_word.definitions["de"]->translation = row_map["definition"];
 		new_word.definitions["de"]->comment = row_map["comment"];
 		new_word.rating = (Rating) atoi( row_map["rating"].c_str() );
-		new_word.atime = (Rating) atol( row_map["atime"].c_str() );
+		new_word.atime = atol( row_map["atime"].c_str() );
+		new_word.file_id = atoi( row_map["file_id"].c_str() );
+		new_word.file_offset = atoi( row_map["file_offset"].c_str() );
 		return true;
 	}
 	return false;
 }
 
-void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number )
+void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number, int min_lesson_number, bool order_by_atime, bool order_by_file_offset )
 {
 	MapList map_list;
 	if( !book ) throw ERROR( "Book undefined" );
 	std::stringstream statement_stream;
 	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
 			<< ", rating, lesson_id, duplicate_id, atime, book_id, lessons.number as lesson_number"
+			<< ", file_id, file_offset"
 		<< " from words inner join lessons on lesson_id=lessons.id"
-		<< " where rating=" << selected_rating
-		<< " and book_id=" << book->id;
+		<< " where book_id=" << book->id;
+	if( selected_rating!=RATING_ANY ) statement_stream << " and rating=" << selected_rating;
 	if( max_lesson_number ) statement_stream << " and lesson_number<=" << max_lesson_number;
-	statement_stream << " order by atime,id";
+	if( min_lesson_number ) statement_stream << " and lesson_number>=" << min_lesson_number;
+	statement_stream << " order by ";
+	if( order_by_atime ) statement_stream << "atime,";
+	if( order_by_file_offset ) statement_stream << "file_offset,";
+	statement_stream << "id";
 	std::string statement = statement_stream.str();
 	int rc;
 	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
@@ -343,6 +370,8 @@ void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book,
 			word->atime = atol( (*i)["atime"].c_str() );
 			word->lesson = (*book)[lesson_number];
 			word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
+			word->file_id = atoi( (*i)["file_id"].c_str() );
+			word->file_offset = atoi( (*i)["file_offset"].c_str() );
 			word_list.push_back( word );
 		}
 		else 
@@ -350,5 +379,81 @@ void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book,
 			// FIXME: caller hast to catch and clean up words to prevent memory leak
 			throw ERROR( book->name+" has no lesson "+(*i)["lesson_number"] );
 		}		
+	}
+}
+
+int WordsDB::get_file_id( const std::string& file_path )
+{
+	std::string stmt = "select id from files where path='" + file_path + "'";
+	MapList map_list;
+	int rc;
+	if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+		throw ERROR( msg.str() );
+	}
+	if( map_list.size()>1 )
+	{
+		throw ERROR( "Multiple entries for file_path: " + file_path );
+	}
+	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
+	{
+		return atoi( (*i)["id"].c_str() );
+	}
+	return 0;
+}
+
+int WordsDB::get_file_mtime( const std::string& file_path )
+{
+	std::string stmt = "select mtime from files where path='" + file_path + "'";
+	MapList map_list;
+	int rc;
+	if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+		throw ERROR( msg.str() );
+	}
+	if( map_list.size()>1 )
+	{
+		throw ERROR( "Multiple entries for file_path: " + file_path );
+	}
+	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
+	{
+		return atol( (*i)["mtime"].c_str() );
+	}
+	return 0;
+}
+
+/*! Sets mtime entry of files with file_path to new_mtime */
+void WordsDB::set_file_mtime( const std::string& file_path, int new_mtime )
+{
+	int file_id = WordsDB::get_file_id( file_path );
+	if( !file_id )
+	{
+		std::stringstream stmt_stream;
+		stmt_stream << "insert into files (path, mtime) values ('" << file_path << "', " << new_mtime << ")";
+		std::string stmt = stmt_stream.str();
+		int rc;
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
+	}
+	else
+	{
+		std::stringstream stmt_stream;
+		stmt_stream << "update files set mtime=" << new_mtime << " where file_id=" << file_id;
+		std::string stmt = stmt_stream.str();
+		int rc;
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
 	}
 }

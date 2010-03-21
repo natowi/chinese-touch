@@ -4,7 +4,6 @@
 #include "freetype_renderer.h"
 #include "lesson.h"
 #include "config.h"
-#include "dictionary.h"
 #include "text_button.h"
 
 class BufferedLine : public RenderScreenBuffer
@@ -29,7 +28,6 @@ public:
 	FreetypeRenderer& freetype_renderer;
 	Config& config;
 	Text& text;
-	Dictionary& dict;
 	RenderScreen word_screen, text_screen;
 	int y_offset;
 	int v_y;
@@ -50,7 +48,7 @@ public:
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */
 	static int MAX_ACCELERATION_FACTOR;
 public:
-	TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Dictionary& _dict );
+	TextView( FreetypeRenderer& _ft, Config& _config, Text& _text );
 	~TextView();
 	void render( Screen screen, bool update_sprites=true );
 	void run_until_exit();

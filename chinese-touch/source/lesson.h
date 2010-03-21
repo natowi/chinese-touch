@@ -7,7 +7,6 @@
 #include <string>
 
 #include "freetype_renderer.h"
-#include "dictionary.h"
 
 
 /*! Stores which parts of dictionary entries shall be displayed on top screen. */
@@ -34,6 +33,7 @@ class NewWordRenderSettings
 		void restore_init_settings_if_needed() { if(this->restore_on_switch) this->restore_init_settings(); }
 };
 
+
 class Lesson;
 
 /*! Basically a string with an additional title field and knowledge about the lesson it belongs to. */
@@ -48,6 +48,7 @@ public:
 //! An array of texts. \see Text
 typedef std::vector<Text*> TextVector;
 
+
 /*! A definition for a foreign language word for a specific native language. */
 class Definition
 {
@@ -61,6 +62,7 @@ public:
 /*! A mapping of ISO language keys to Definition pointers. \see Definition */
 typedef std::map<std::string,Definition*> Definitions;
 
+
 /*! Difficulty rating levels. */
 typedef enum
 {
@@ -71,6 +73,7 @@ typedef enum
 	RATING_EASY, //!< easy to read and/or write.
 	RATING_ANY, //!< any rating, including none
 } Rating;
+
 
 /*! A foreign language word and several associated properties like translations and so on. */
 class NewWord
@@ -97,8 +100,14 @@ public:
 	int file_id; //!< Database identifier of the dictionary file this word was read from
 	int file_offset; //!< Number of the word entry within the dictionary file it was read from
 };
-/*! An array of pointers to NewWord instances. \see NewWord */
-typedef std::vector<NewWord*> NewWordVector;
+/*! A container for pointers to NewWord instances. \see NewWord */
+class NewWordList : public std::list<NewWord*>
+{
+public:
+	virtual ~NewWordList();
+	virtual void clear();
+};
+
 
 class Book;
 
@@ -126,6 +135,7 @@ public:
 		exercises_available; //!< True if this lesson has a .exercises-file
 };
 
+
 class Library;
 
 /*! A Book is a collection of numbered lessons. \see Lesson */
@@ -148,19 +158,19 @@ public:
 	int id; //!< This books unique id within the sqlite database (0 if unassociated).
 };
 
+
 //! A Library is a collection of books. \see Book
 class Library : public std::map<std::string,Book*>
 {
 public:
-    Library( bool _fat_initialized, Dictionary& _dictionary ) 
-		: fat_initialized(_fat_initialized), dictionary(_dictionary) {}
+    Library( bool _fat_initialized ) 
+		: fat_initialized(_fat_initialized) {}
     void rescan();
+	void find_words_by_characters( const std::string& characters, NewWordList& result );
+	void find_words_by_context( const std::string& text, const UCCharList& search_list, 
+		UCCharList::const_iterator pos, int max_range, NewWordList& result );
 protected:
     bool fat_initialized;
-	Dictionary& dictionary; //!< A dictionary containing all words found in this library.
 };
-
-extern Lesson all_words_lesson; //!< FIXME: Is this still used?
-void init_all_words_lesson(); //!< FIXME: Is this still used?
 
 #endif // LESSON_H

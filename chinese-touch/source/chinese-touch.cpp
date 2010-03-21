@@ -44,10 +44,8 @@ int main()
 		}
 		WordsDB::update();
 		
-		Dictionary dictionary;
-
 		LOG( "initializing library" );
-		Library library( global_fat_initialized, dictionary );
+		Library library( global_fat_initialized );
 		LOG( "scanning library..." );
 		library.rescan();
 		LOG( "scanning complete" );
@@ -115,15 +113,18 @@ int main()
 								break;
 						}
 						NewWordList words;
-						WordsDB::get_words_from_book_by_rating( words, lesson_menu_choice.book, selected_rating, 
-													  lesson_menu_choice.lesson ? lesson_menu_choice.lesson->number : 0 );
+						std::stringstream condition;
+						condition << "book_id=" << lesson_menu_choice.book->id;
+						if( selected_rating != RATING_ANY )
+							condition << " and rating=" << selected_rating;
+						if( lesson_menu_choice.lesson )
+							condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
+						WordsDB::query_words( library, condition.str(), words, "atime" );
 						NewWordsViewer* new_words = new NewWordsViewer( *ft, words );
 						if( lesson_menu_choice.lesson ) config.save_position( lesson_menu_choice.lesson, true );
 						else config.save_position( lesson_menu_choice.book, true );
 						new_words->run_until_exit();
 						delete new_words;
-						for( NewWordList::iterator i=words.begin(); i!=words.end(); i++ )
-							if( *i ) delete *i;
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
@@ -133,13 +134,12 @@ int main()
 							throw ERROR( "LessonMenu returned no lesson" );
 						lesson->parse_dictionary_if_needed();
 						NewWordList words;
-						WordsDB::get_words_from_book_by_rating( words, lesson_menu_choice.book, RATING_ANY, 
-							lesson->number, lesson->number, false, true );
+						std::stringstream condition;
+						condition << "lesson_id=" << lesson->id;
+						WordsDB::query_words( library, condition.str(), words, "file_offset" );
 						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
 						new_words->run_until_exit();
 						delete new_words;
-						for( NewWordList::iterator i=words.begin(); i!=words.end(); i++ )
-							if( *i ) delete *i;
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
@@ -154,7 +154,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, config, *texts[0], dictionary );
+							TextView text_view( *ft, config, *texts[0] );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Grammatik für diese Lektion vorhanden" );
 						break;
@@ -171,7 +171,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, config, *texts[0], dictionary );
+							TextView text_view( *ft, config, *texts[0] );
 							text_view.run_until_exit();
 						} else throw ERROR( "Kein Text für diese Lektion vorhanden" );
 						break;
@@ -188,7 +188,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, config, *texts[0], dictionary );
+							TextView text_view( *ft, config, *texts[0] );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
 						break;

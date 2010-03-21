@@ -9,11 +9,27 @@
 #include <errno.h>
 #include <sstream>
 #include <sys/stat.h>
+#include <set>
 
 #include "lesson.h"
 #include "config.h"
 #include "error_console.h"
 #include "words_db.h"
+
+
+void NewWordList::clear()
+{
+	for( NewWordList::iterator i = this->begin(); i != this->end(); i++ )
+	{
+		if( *i ) delete *i;
+	}
+	this->erase( this->begin(), this->end() );
+}
+
+NewWordList::~NewWordList()
+{
+	this->clear();
+}
 
 
 /*! Scans the directory structure "/chinese-touch/books/\<bookname\>/..." for book and lesson configuration files */
@@ -136,6 +152,93 @@ void Library::rescan()
         }
     }
     closedir( books_dir );
+}
+
+bool hanzi_min_length_sort_predicate( NewWord* left, NewWord* right )
+{
+	return left->hanzi.length() < right->hanzi.length();
+}
+
+bool hanzi_max_length_sort_predicate( NewWord* left, NewWord* right )
+{
+	return left->hanzi.length() > right->hanzi.length();
+}
+
+void Library::find_words_by_characters( const std::string& characters, NewWordList& result )
+{
+	result.clear();
+	WordsDB::query_words( *this, "word like '%"+characters+"%'", result );
+	result.sort( hanzi_min_length_sort_predicate );
+}
+
+void Library::find_words_by_context( const std::string& text, const UCCharList& search_list, 
+		UCCharList::const_iterator pos, int max_range, NewWordList& result )
+{
+	result.clear();
+	typedef std::list<UCCharList::const_iterator> PosList;
+	PosList starts, ends;
+	UCCharList::const_iterator start = pos;
+	std::string pos_character( text, pos->source_offset, pos->source_length );
+	UCCharList::const_iterator end = pos; end++;
+	bool first_start_inserted = false;
+	bool final_end_inserted = false;
+	for( int range=0; 
+		range<max_range && start!=search_list.end(); 
+		range++ )
+	{
+		if( start!=search_list.begin() )
+		{
+			starts.push_back( start );
+			start--;
+		}
+		else if( !first_start_inserted )
+		{
+			starts.push_back( start );
+			first_start_inserted = true;
+		}
+		if( end!=search_list.end() )
+		{
+			ends.push_back( end );
+			end++;
+		}
+		else if( !final_end_inserted )
+		{
+			ends.push_back( end );
+			final_end_inserted = true;
+		}
+	}
+	NewWordList pre_result;
+	this->find_words_by_characters( pos_character, pre_result );
+	typedef std::set<std::string> StringSet;
+	StringSet patterns;
+	for( PosList::iterator start_it = starts.begin();
+		start_it != starts.end();
+		start_it++ )
+	{
+		for( PosList::iterator end_it = ends.begin();
+			end_it != ends.end();
+			end_it++ )
+		{
+			std::string pattern;
+			for( UCCharList::const_iterator char_it = *start_it; char_it != *end_it; char_it++ )
+			{
+				pattern += text.substr( char_it->source_offset, char_it->source_length );
+			}
+			LOG( "pattern: \"" << pattern << "\"" );
+			patterns.insert( pattern );
+		}
+	}
+	for( NewWordList::iterator ri = pre_result.begin(); ri != pre_result.end(); ri++ )
+	{
+		if( patterns.find((*ri)->hanzi)!=patterns.end() )
+		{
+			result.push_back( *ri );
+		}
+		else if( *ri ) delete *ri;
+	}
+	pre_result.erase( pre_result.begin(), pre_result.end() );
+	
+	result.sort( hanzi_max_length_sort_predicate );
 }
 
 

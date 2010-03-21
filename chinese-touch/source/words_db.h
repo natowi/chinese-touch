@@ -5,7 +5,6 @@
 #include <string>
 
 #include "lesson.h"
-#include "dictionary.h"
 
 
 class WordsDB
@@ -19,14 +18,10 @@ public:
 	static void update();
 	static int get_book_id( Book& book, bool add_missing );
 	static int get_lesson_id( Lesson& lesson, bool add_missing );
-	static void find_words( const std::string& word, NewWordList& result_list, int book_id=0, int lesson_id=0 );
-	static void find_words_by_char_code( unsigned long char_code, NewWordList& result_list, int book_id=0, int lesson_id=0 );
-	static void find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordList& result, int book_id=0, int lesson_id=0 );
 	static void add_or_write_word( NewWord& );
 	static void write_word( NewWord& );
 	static bool read_word( NewWord& );
-	static void get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number = 0, int min_lesson_number = 0, bool order_by_atime = true, bool order_by_file_offset = false );
+	static void query_words( Library& library, const std::string& condition, NewWordList& result_list, const std::string& ordering="" );
 	static int get_file_id( const std::string& file_path );
 	static int get_file_mtime( const std::string& file_path );
 	static void set_file_mtime( const std::string& file_path, int new_mtime );

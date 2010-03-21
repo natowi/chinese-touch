@@ -31,8 +31,8 @@ int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
-TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text, Dictionary& _dict )
-	: freetype_renderer(_ft), config(_config), text(_text), dict(_dict), y_offset(5), v_y(0), sub_frame_count(0),
+TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text )
+	: freetype_renderer(_ft), config(_config), text(_text), y_offset(5), v_y(0), sub_frame_count(0),
 		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
@@ -593,7 +593,7 @@ void TextView::run_until_exit()
 									|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 								{
 									// first click (odd count) on a character: find words in current context:
-									this->dict.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list );
+									this->text.lesson->book->library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list );
 									this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
 									// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
 									this->text_screen.palette[0] = 16<<10|24<<5|31;
@@ -601,7 +601,8 @@ void TextView::run_until_exit()
 								else
 								{
 									// second click (even count) on a character: find words containing selected character:
-									this->dict.find_words_by_char_code( curr_char->uc_char.code_point, this->current_new_word_list );
+									std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
+									this->text.lesson->book->library->find_words_by_characters( character, this->current_new_word_list );
 									this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 									// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
 									this->text_screen.palette[0] = 31<<10|24<<5|24;

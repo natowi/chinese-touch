@@ -191,23 +191,14 @@ int WordsDB::get_lesson_id( Lesson& lesson, bool add_missing )
 	else return *int_list.begin();
 }
 
-void WordsDB::find_words( const std::string& word, NewWordList& result_list, int book_id, int lesson_id )
-{
-}
-
-void WordsDB::find_words_by_char_code( unsigned long char_code, NewWordList& result_list, int book_id, int lesson_id )
-{
-}
-
-void WordsDB::find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordList& result, int book_id, int lesson_id )
-{
-}
-
 void WordsDB::add_or_write_word( NewWord& new_word )
 {
 	MapList map_list;
-	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
+	if( !new_word.lesson )
+	{
+		WARN( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
+		return;
+	}
 	std::stringstream statement_stream;
 	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime, file_id, file_offset from words"
 		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
@@ -296,7 +287,11 @@ void WordsDB::write_word( NewWord& new_word )
 bool WordsDB::read_word( NewWord& new_word )
 {
 	MapList map_list;
-	if( !new_word.lesson ) throw ERROR( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
+	if( !new_word.lesson )
+	{
+		WARN( "Word has no lesson reference: \""+new_word.hanzi+"\"" );
+		return false;
+	}
 	std::stringstream statement_stream;
 	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime, file_id, file_offset from words"
 		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
@@ -328,23 +323,18 @@ bool WordsDB::read_word( NewWord& new_word )
 	return false;
 }
 
-void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book, Rating selected_rating, int max_lesson_number, int min_lesson_number, bool order_by_atime, bool order_by_file_offset )
+void WordsDB::query_words( Library& library, const std::string& condition, NewWordList& result_list, const std::string& ordering )
 {
 	MapList map_list;
-	if( !book ) throw ERROR( "Book undefined" );
 	std::stringstream statement_stream;
 	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
 			<< ", rating, lesson_id, duplicate_id, atime, book_id, lessons.number as lesson_number"
-			<< ", file_id, file_offset"
+			<< ", file_id, file_offset, books.path as book_path"
 		<< " from words inner join lessons on lesson_id=lessons.id"
-		<< " where book_id=" << book->id;
-	if( selected_rating!=RATING_ANY ) statement_stream << " and rating=" << selected_rating;
-	if( max_lesson_number ) statement_stream << " and lesson_number<=" << max_lesson_number;
-	if( min_lesson_number ) statement_stream << " and lesson_number>=" << min_lesson_number;
-	statement_stream << " order by ";
-	if( order_by_atime ) statement_stream << "atime,";
-	if( order_by_file_offset ) statement_stream << "file_offset,";
-	statement_stream << "id";
+					<< " inner join books on book_id=books.id"
+		<< " where " << condition;
+	if( ordering.length() )
+		statement_stream << " order by " << ordering;
 	std::string statement = statement_stream.str();
 	int rc;
 	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
@@ -355,30 +345,31 @@ void WordsDB::get_words_from_book_by_rating( NewWordList& word_list, Book* book,
 	}
 	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
 	{
+		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], 0 );
+		word->id = atoi( (*i)["id"].c_str() );
+		Definition* def = new Definition();
+		def->word_type = (*i)["type"];
+		def->translation = (*i)["definition"];
+		def->comment = (*i)["comment"];
+		def->lang = "de";
+		word->definitions[ def->lang ] = def;
+		word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+		word->atime = atol( (*i)["atime"].c_str() );
+		std::string book_path = (*i)["book_path"];
 		int lesson_number = atoi( (*i)["lesson_number"].c_str() );
-		if( book->count(lesson_number) && (*book)[lesson_number] )
+		if( library.count(book_path) )
 		{
-			NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], 0 );
-			word->id = atoi( (*i)["id"].c_str() );
-			Definition* def = new Definition();
-			def->word_type = (*i)["type"];
-			def->translation = (*i)["definition"];
-			def->comment = (*i)["comment"];
-			def->lang = "de";
-			word->definitions[ def->lang ] = def;
-			word->rating = (Rating) atoi( (*i)["rating"].c_str() );
-			word->atime = atol( (*i)["atime"].c_str() );
-			word->lesson = (*book)[lesson_number];
-			word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
-			word->file_id = atoi( (*i)["file_id"].c_str() );
-			word->file_offset = atoi( (*i)["file_offset"].c_str() );
-			word_list.push_back( word );
-		}
-		else 
-		{
-			// FIXME: caller hast to catch and clean up words to prevent memory leak
-			throw ERROR( book->name+" has no lesson "+(*i)["lesson_number"] );
-		}		
+			Book* book = library[book_path];
+			if( book && book->count(lesson_number) )
+			{
+				Lesson* lesson = (*book)[lesson_number];
+				word->lesson = lesson;
+			} else WARN( "invalid book pointer or unknown lesson number: " << lesson_number );
+		} else WARN( "unknown book path: " << book_path );
+		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
+		word->file_id = atoi( (*i)["file_id"].c_str() );
+		word->file_offset = atoi( (*i)["file_offset"].c_str() );
+		result_list.push_back( word );
 	}
 }
 

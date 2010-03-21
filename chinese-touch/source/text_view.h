@@ -26,7 +26,7 @@ class TextView : private std::list<BufferedLine*>, public NewWordRenderSettings
 {
 public:
 	FreetypeRenderer& freetype_renderer;
-	Config& config;
+	Config* config;
 	Text& text;
 	RenderScreen word_screen, text_screen;
 	int y_offset;
@@ -41,17 +41,19 @@ public:
 	RenderChar* context_render_char;
 	TextButton left_button, right_button, exit_button,
 			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
-			rating_easy, rating_medium, rating_hard, rating_impossible;
+			rating_easy, rating_medium, rating_hard, rating_impossible,
+			down_button, up_button;
 	TextButtonList text_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */
 	static int MAX_ACCELERATION_FACTOR;
 public:
-	TextView( FreetypeRenderer& _ft, Config& _config, Text& _text );
+	TextView( FreetypeRenderer& _ft, Config* _config, Text& _text );
 	~TextView();
 	void render( Screen screen, bool update_sprites=true );
 	void run_until_exit();
+	static void show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word );
 };
 
 #endif // TEXT_VIEW_H

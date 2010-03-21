@@ -25,13 +25,15 @@
 #include "bottom_rating_medium.h"
 #include "bottom_rating_hard.h"
 #include "bottom_rating_impossible.h"
+#include "small_top_button.h"
+#include "small_top_button_active.h"
 
 
 int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
-TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text )
+TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	: freetype_renderer(_ft), config(_config), text(_text), y_offset(5), v_y(0), sub_frame_count(0),
 		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
@@ -46,7 +48,9 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text )
 		rating_easy(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-32,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_medium(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_hard(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2+16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0)
+		rating_impossible(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2+16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,1,0), 
+		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,freetype_renderer.han_face,9,1,0)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -78,6 +82,8 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text )
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
+	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 
 	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
 	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
@@ -87,6 +93,10 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text )
 	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
 	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
 	this->latin_tab.owns_bg_vram = false;
+	this->up_button.bg_vram = this->down_button.bg_vram;
+	this->up_button.bg_active_vram = this->down_button.bg_active_vram;
+	this->up_button.owns_bg_vram = false;
+	this->up_button.inactive = true; // Up-Button is disabled by default (can be explicitly enabled by caller)
 
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -99,6 +109,8 @@ TextView::TextView( FreetypeRenderer& _ft, Config& _config, Text& _text )
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->down_button );
+	this->text_buttons.push_back( &this->up_button );
 
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
@@ -211,6 +223,7 @@ void TextView::render( Screen screen, bool update_sprites )
 			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(new_word ? (this->render_pronuciation ? 0 : 8) : 12) );
 			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(new_word ? (this->render_translation ? 0 : 8) : 12) );
 			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
+			this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
 			if( new_word )
 			{
 				if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
@@ -223,6 +236,7 @@ void TextView::render( Screen screen, bool update_sprites )
 				if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
 					this->rating_impossible.render_to( oam_entry );
 			}
+			if( !this->up_button.inactive ) this->up_button.render_to( oam_entry );
 			
 			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 			swiWaitForVBlank();
@@ -253,7 +267,8 @@ void TextView::render( Screen screen, bool update_sprites )
 
 void TextView::run_until_exit()
 {
-	this->config.save_position( this->text.lesson );
+	if( this->config) 
+		this->config->save_position( this->text.lesson );
 	this->render( SCREEN_SUB );
 	this->render( SCREEN_MAIN );
 	touchPosition old_touch;
@@ -417,6 +432,26 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
+            else if( this->down_button.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+			{
+				if( !this->down_button.active )
+				{
+					this->down_button.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
+            else if( !this->up_button.inactive 
+				&& this->up_button.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+			{
+				if( !this->up_button.active )
+				{
+					this->up_button.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
 			else
 			{
 				bool changed = false;
@@ -448,7 +483,8 @@ void TextView::run_until_exit()
             if( this->exit_button.active && this->exit_button.is_responsible(old_touch.px, old_touch.py) )
             {
 				this->exit_button.active = false;
-				this->config.save_position( this->text.lesson );
+				if( this->config )
+					this->config->save_position( this->text.lesson );
 				return;
             }
             else if( this->left_button.active && this->left_button.is_responsible(old_touch.px, old_touch.py) )
@@ -540,6 +576,21 @@ void TextView::run_until_exit()
 				WordsDB::add_or_write_word( **this->current_new_word_list_it );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
+            }
+            else if( this->down_button.is_responsible(old_touch.px, old_touch.py) 
+				&& this->down_button.active
+				&& this->current_new_word_list_it != this->current_new_word_list.end() )
+            {
+				this->down_button.active = false;
+				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_new_word_list_it );
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->up_button.is_responsible(old_touch.px, old_touch.py) 
+				&& this->up_button.active )
+            {
+				this->up_button.active = false;
+				return;
             }
 			else
 			{
@@ -647,4 +698,24 @@ void TextView::run_until_exit()
 			}
 		}
 	}
+}
+
+void TextView::show_word_as_text(FreetypeRenderer& ft, Config* config, NewWord* word)
+{
+	if( !word )
+		return;
+	Text new_text( "Word Entry", word->lesson );
+	new_text += word->hanzi+"\n";
+	new_text += word->pinyin+"\n";
+	for( Definitions::iterator di = word->definitions.begin(); di != word->definitions.end(); di++ )
+	{
+		new_text += "Definition (" + di->second->lang + "):\n";
+		new_text += di->second->word_type + "\n";
+		new_text += di->second->translation + "\n";
+		new_text += di->second->comment + "\n";
+		new_text += di->second->example + "\n";
+	}
+	TextView text_view( ft, config, new_text );
+	text_view.up_button.inactive = false;
+	text_view.run_until_exit();
 }

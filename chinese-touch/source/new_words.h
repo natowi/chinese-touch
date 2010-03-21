@@ -19,7 +19,7 @@ class NewWordsViewer : public NewWordRenderSettings
 		TextButton left_button, right_button, exit_button, clear_button, 
 			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
-			settings_button;
+			settings_button, down_button;
 		TextButtonList text_buttons;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;

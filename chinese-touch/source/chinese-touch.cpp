@@ -154,7 +154,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, config, *texts[0] );
+							TextView text_view( *ft, &config, *texts[0] );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Grammatik für diese Lektion vorhanden" );
 						break;
@@ -171,7 +171,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, config, *texts[0] );
+							TextView text_view( *ft, &config, *texts[0] );
 							text_view.run_until_exit();
 						} else throw ERROR( "Kein Text für diese Lektion vorhanden" );
 						break;
@@ -188,7 +188,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, config, *texts[0] );
+							TextView text_view( *ft, &config, *texts[0] );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
 						break;

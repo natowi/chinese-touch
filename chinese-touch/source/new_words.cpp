@@ -12,6 +12,7 @@
 #include "error_console.h"
 #include "sprite_helper.h"
 #include "words_db.h"
+#include "text_view.h"
 
 #include "greys256.h"
 #include "top_left_button.h"
@@ -34,6 +35,8 @@
 #include "settings_dialog.h"
 #include "right_center_button.h"
 #include "right_center_button_active.h"
+#include "small_top_button.h"
+#include "small_top_button_active.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings )
@@ -127,7 +130,8 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		rating_medium(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_hard(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_impossible(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1)
+		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
+		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,1,0)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -155,6 +159,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
+	this->text_buttons.push_back( &this->down_button );
 	
 	// Wortliste initialisieren und auf gespeicherten Index positionieren:
 	if( this->config ) 
@@ -205,6 +210,8 @@ void NewWordsViewer::init_subscreen()
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
+	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 
 	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
 	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
@@ -304,6 +311,7 @@ void NewWordsViewer::render( Screen screen )
 				this->rating_impossible.render_to( oam_entry );
 		}
 		this->settings_button.render_to( oam_entry );
+		this->down_button.render_to( oam_entry );
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );
@@ -479,6 +487,16 @@ void NewWordsViewer::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
+            else if( this->down_button.is_responsible(touch.px, touch.py) 
+				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT
+				&& this->current_word!=this->words.end() )
+			{
+				if( !this->down_button.active )
+				{
+					this->down_button.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
 			else
 			{
 				bool changed = false;
@@ -597,6 +615,17 @@ void NewWordsViewer::run_until_exit()
             {
 				this->settings_button.active = false;
 				this->show_settings();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
+            else if( this->down_button.is_responsible(old_touch.px, old_touch.py) 
+				&& this->down_button.active
+				&& this->current_word!=this->words.end() )
+            {
+				this->down_button.active = false;
+				this->text_buttons.free_all();
+				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_word );
+				this->init_subscreen();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }

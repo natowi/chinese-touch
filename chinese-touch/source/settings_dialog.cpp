@@ -111,8 +111,17 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 			if( render_info.height < 16 )
 				top += 16;
 			else top += render_info.height;
-			top += 5;
 		}
+		SettingsLabel* settings_label = dynamic_cast<SettingsLabel*>( s_it->second );
+		if( settings_label )
+		{
+			RenderInfo render_info = this->freetype_renderer.render( this->settings_screen, s_it->second->description, 
+																	freetype_renderer.latin_face, 11, 10, top );
+			if( render_info.height < 16 )
+				top += 16;
+			else top += render_info.height;
+		}
+		top += 5;
 	}
 
 	this->text_buttons.push_back( &this->ok_button );

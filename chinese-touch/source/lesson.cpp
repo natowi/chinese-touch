@@ -164,15 +164,18 @@ bool hanzi_max_length_sort_predicate( NewWord* left, NewWord* right )
 	return left->hanzi.length() > right->hanzi.length();
 }
 
-void Library::find_words_by_characters( const std::string& characters, NewWordList& result )
+void Library::find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond )
 {
 	result.clear();
-	WordsDB::query_words( *this, "word like '%"+characters+"%'", result );
+	std::string sql_cond = "word like '%"+characters+"%'";
+	if( extra_sql_cond.length() )
+		sql_cond += " and ("+extra_sql_cond+")";
+	WordsDB::query_words( *this, sql_cond, result );
 	result.sort( hanzi_min_length_sort_predicate );
 }
 
 void Library::find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordList& result )
+		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond )
 {
 	result.clear();
 	typedef std::list<UCCharList::const_iterator> PosList;
@@ -208,7 +211,7 @@ void Library::find_words_by_context( const std::string& text, const UCCharList& 
 		}
 	}
 	NewWordList pre_result;
-	this->find_words_by_characters( pos_character, pre_result );
+	this->find_words_by_characters( pos_character, pre_result, extra_sql_cond );
 	typedef std::set<std::string> StringSet;
 	StringSet patterns;
 	for( PosList::iterator start_it = starts.begin();

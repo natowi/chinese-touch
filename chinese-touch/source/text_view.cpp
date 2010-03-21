@@ -8,6 +8,7 @@
 #include "error_console.h"
 #include "sprite_helper.h"
 #include "words_db.h"
+#include "settings_dialog.h"
 
 #include "greys256.h"
 #include "top_left_button.h"
@@ -16,6 +17,8 @@
 #include "top_right_button_active.h"
 #include "bottom_left_button.h"
 #include "bottom_left_button_active.h"
+#include "bottom_right_button.h"
+#include "bottom_right_button_active.h"
 #include "bg_dragon.h"
 #include "top_paper_tab.h"
 #include "top_paper_tab_active.h"
@@ -49,8 +52,11 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 		rating_medium(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_hard(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_impossible(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2+16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
+		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
 		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,0,0), 
-		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,freetype_renderer.han_face,9,1,-1)
+		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,freetype_renderer.han_face,9,1,-1),
+		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
+		lookup_from_upcoming_lessons(true), lookup_from_other_books(true)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
@@ -58,6 +64,13 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 
+	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
+	this->settings.add_setting( new SettingsLabel("0_lookup_label","Lookup selected words...") );
+	this->settings.add_setting( new BooleanSetting("1_lookup_from_current_lesson","from current Lesson",this->lookup_from_current_lesson) );
+	this->settings.add_setting( new BooleanSetting("2_lookup_from_previous_lessons","from previous Lessons",this->lookup_from_previous_lessons) );
+	this->settings.add_setting( new BooleanSetting("3_lookup_from_upcoming_lessons","from upcoming Lessons",this->lookup_from_upcoming_lessons) );
+	this->settings.add_setting( new BooleanSetting("4_lookup_from_other_books","from other Books",this->lookup_from_other_books) );
+	
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
 	this->text_buttons.push_back( &this->exit_button );
@@ -69,6 +82,7 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->down_button );
 	this->text_buttons.push_back( &this->up_button );
 	
@@ -76,6 +90,8 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	this->up_button.inactive = true;
 	
 	this->init_subscreen();
+	
+	this->restore_init_settings();
 	
 	UCCharList char_list;
 	if( !utf8_to_ucs4((unsigned char*)text.c_str(), char_list) )
@@ -138,6 +154,8 @@ void TextView::init_subscreen()
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
+	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
 	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 
@@ -239,7 +257,6 @@ void TextView::render( Screen screen, bool update_sprites )
 			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(new_word ? (this->render_pronuciation ? 0 : 8) : 12) );
 			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(new_word ? (this->render_translation ? 0 : 8) : 12) );
 			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
-			this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
 			if( new_word )
 			{
 				if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
@@ -252,6 +269,8 @@ void TextView::render( Screen screen, bool update_sprites )
 				if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
 					this->rating_impossible.render_to( oam_entry );
 			}
+			if( this->text.lesson ) this->settings_button.render_to( oam_entry );
+			this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
 			if( !this->up_button.inactive ) this->up_button.render_to( oam_entry );
 			
 			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
@@ -448,6 +467,16 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
+            else if( this->settings_button.is_responsible(touch.px, touch.py) 
+				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
+				&& this->text.lesson )
+			{
+				if( !this->settings_button.active )
+				{
+					this->settings_button.active = true;
+					this->render( SCREEN_SUB );
+				}
+			}
             else if( this->down_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
 				&& this->current_new_word_list_it != this->current_new_word_list.end() )
@@ -593,6 +622,15 @@ void TextView::run_until_exit()
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
+            else if( this->settings_button.is_responsible(old_touch.px, old_touch.py) 
+				&& this->settings_button.active
+				&& this->text.lesson )
+            {
+				this->settings_button.active = false;
+				this->show_settings();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+            }
             else if( this->down_button.is_responsible(old_touch.px, old_touch.py) 
 				&& this->down_button.active
 				&& this->current_new_word_list_it != this->current_new_word_list.end() )
@@ -663,7 +701,7 @@ void TextView::run_until_exit()
 									|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 								{
 									// first click (odd count) on a character: find words in current context:
-									this->text.lesson->book->library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list );
+									this->text.lesson->book->library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list, this->lookup_sql_cond );
 									this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
 									// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
 									this->text_screen.palette[0] = 16<<10|24<<5|31;
@@ -672,7 +710,7 @@ void TextView::run_until_exit()
 								{
 									// second click (even count) on a character: find words containing selected character:
 									std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
-									this->text.lesson->book->library->find_words_by_characters( character, this->current_new_word_list );
+									this->text.lesson->book->library->find_words_by_characters( character, this->current_new_word_list, this->lookup_sql_cond );
 									this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 									// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
 									this->text_screen.palette[0] = 31<<10|24<<5|24;
@@ -736,4 +774,46 @@ void TextView::show_word_as_text(FreetypeRenderer& ft, Config* config, NewWord* 
 	text_view->up_button.inactive = false;
 	text_view->run_until_exit();
 	delete text_view;
+}
+
+void TextView::show_settings()
+{
+	this->text_buttons.free_all();
+	SettingsDialog* settings_dialog = new SettingsDialog( this->freetype_renderer, this->settings );
+	settings_dialog->run_until_exit();
+	delete settings_dialog;
+	this->init_subscreen();
+	this->restore_init_settings();
+}
+
+void TextView::restore_init_settings()
+{
+	bool and_needed = false;
+	std::stringstream extra_sql_cond;
+	if( !this->lookup_from_other_books && this->text.lesson && this->text.lesson->book )
+	{
+		if( and_needed ) extra_sql_cond << " and ";
+		extra_sql_cond << "book_id=" << this->text.lesson->book->id;
+		and_needed = true;
+	}
+	std::string eq_op = "";
+	if( this->lookup_from_previous_lessons )
+		eq_op += "<";
+	if( this->lookup_from_upcoming_lessons )
+		eq_op += ">";
+	if( this->lookup_from_current_lesson )
+		eq_op += "=";
+	if( this->text.lesson && eq_op.length() && (eq_op.length() < 3) )
+	{
+		if( and_needed ) extra_sql_cond << " and ";
+		extra_sql_cond << "lesson_number" << eq_op << this->text.lesson->number;
+		and_needed = true;
+	}
+	else if( this->text.lesson && this->text.lesson->book && !eq_op.length() )
+	{
+		if( and_needed ) extra_sql_cond << " and ";
+		extra_sql_cond << "book_id!=" << this->text.lesson->book->id;
+		and_needed = true;
+	}
+	this->lookup_sql_cond = extra_sql_cond.str();
 }

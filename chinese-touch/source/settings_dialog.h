@@ -26,6 +26,13 @@ class BooleanSetting : public Setting
 			: Setting( _name, _description ), value(_value) {}
 };
 
+class SettingsLabel : public Setting
+{
+	public:
+		SettingsLabel(std::string _name, std::string _description)
+			: Setting( _name, _description ) {}
+};
+
 class Settings : public std::map<std::string,Setting*>
 {
 	public:

@@ -166,9 +166,9 @@ public:
     Library( bool _fat_initialized ) 
 		: fat_initialized(_fat_initialized) {}
     void rescan();
-	void find_words_by_characters( const std::string& characters, NewWordList& result );
+	void find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond="" );
 	void find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordList& result );
+		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond="" );
 protected:
     bool fat_initialized;
 };

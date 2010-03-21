@@ -49,14 +49,70 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 		rating_medium(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_hard(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
 		rating_impossible(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2+16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,1,0), 
-		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,freetype_renderer.han_face,9,1,0)
+		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,0,0), 
+		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,freetype_renderer.han_face,9,1,-1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
 	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
+
+	this->text_buttons.push_back( &this->left_button );
+	this->text_buttons.push_back( &this->right_button );
+	this->text_buttons.push_back( &this->exit_button );
+	this->text_buttons.push_back( &this->hanzi_tab );
+	this->text_buttons.push_back( &this->pinyin_tab );
+	this->text_buttons.push_back( &this->latin_tab );
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->down_button );
+	this->text_buttons.push_back( &this->up_button );
+	
+	// Up-Button is disabled by default (can be explicitly enabled by caller)
+	this->up_button.inactive = true;
+	
+	this->init_subscreen();
+	
+	UCCharList char_list;
+	if( !utf8_to_ucs4((unsigned char*)text.c_str(), char_list) )
+    {
+        WARN( "error in utf-8 input (non fatal)" );
+    }
+	unsigned int prev_size = 0;
+	RenderInfo info( 0, 0, 0, 0 );
+	int org_size = char_list.size();
+	while( prev_size!=char_list.size() )
+	{
+		// break when no characters where consumed within two consecutive iterations
+		// 		to prevent endless loops
+		prev_size = char_list.size();
+		BufferedLine* buffered_line = new BufferedLine();
+		RenderStyle render_style;
+		render_style.multiline = false;
+		render_style.indentation_offset = info.indentation_offset;
+		info = this->freetype_renderer.render( *buffered_line, char_list, 
+			this->freetype_renderer.latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
+		this->push_back( buffered_line );
+		// render progress bar:
+		int progress_bar_pixels = (org_size-char_list.size())*this->word_screen.res_x/org_size;
+		for( int i=-4; i<=4; i++ )
+			for( int j=0; j<progress_bar_pixels; j++ )
+			{
+				u16* ptr = this->word_screen.bg_base_address+(this->word_screen.res_y/2+i)*this->word_screen.res_x+j;
+				*ptr |= 31<<10;
+				*ptr &= 0xffff^((1<<4)|(1<<9));
+			}
+	}
+	
+	bgHide( this->word_screen.bg_id );
+}
+
+void TextView::init_subscreen()
+{
 	this->freetype_renderer.init_screen( SCREEN_SUB, this->text_screen );
 	this->text_screen.clear();
 
@@ -96,21 +152,6 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	this->up_button.bg_vram = this->down_button.bg_vram;
 	this->up_button.bg_active_vram = this->down_button.bg_active_vram;
 	this->up_button.owns_bg_vram = false;
-	this->up_button.inactive = true; // Up-Button is disabled by default (can be explicitly enabled by caller)
-
-	this->text_buttons.push_back( &this->left_button );
-	this->text_buttons.push_back( &this->right_button );
-	this->text_buttons.push_back( &this->exit_button );
-	this->text_buttons.push_back( &this->hanzi_tab );
-	this->text_buttons.push_back( &this->pinyin_tab );
-	this->text_buttons.push_back( &this->latin_tab );
-	this->text_buttons.push_back( &this->rating_bar );
-	this->text_buttons.push_back( &this->rating_easy );
-	this->text_buttons.push_back( &this->rating_medium );
-	this->text_buttons.push_back( &this->rating_hard );
-	this->text_buttons.push_back( &this->rating_impossible );
-	this->text_buttons.push_back( &this->down_button );
-	this->text_buttons.push_back( &this->up_button );
 
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
@@ -139,49 +180,24 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	}
 	
 	// Palette für 8-Bit-Buttonbeschriftungen wie Hintergrundpalette initialisieren:
-	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
-	
-	UCCharList char_list;
-	if( !utf8_to_ucs4((unsigned char*)text.c_str(), char_list) )
-    {
-        WARN( "error in utf-8 input (non fatal)" );
-    }
-	unsigned int prev_size = 0;
-	RenderInfo info( 0, 0, 0, 0 );
-	int org_size = char_list.size();
-	while( prev_size!=char_list.size() )
-	{
-		// break when no characters where consumed within two consecutive iterations
-		// 		to prevent endless loops
-		prev_size = char_list.size();
-		BufferedLine* buffered_line = new BufferedLine();
-		RenderStyle render_style;
-		render_style.multiline = false;
-		render_style.indentation_offset = info.indentation_offset;
-		info = this->freetype_renderer.render( *buffered_line, char_list, 
-			this->freetype_renderer.latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
-		this->push_back( buffered_line );
-		// render progress bar:
-		int progress_bar_pixels = (org_size-char_list.size())*this->word_screen.res_x/org_size;
-		for( int i=-4; i<=4; i++ )
-			for( int j=0; j<progress_bar_pixels; j++ )
-			{
-				u16* ptr = this->word_screen.bg_base_address+(this->word_screen.res_y/2+i)*this->word_screen.res_x+j;
-				*ptr |= 31<<10;
-				*ptr &= 0xffff^((1<<4)|(1<<9));
-			}
-	}
-	bgHide( this->word_screen.bg_id );
+	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );	
+	// FIXME: restore current highlight color
 }
 
 TextView::~TextView()
 {
 	if( this->current_highlight ) delete this->current_highlight;
+	this->free_line_buffers();
+}
+
+void TextView::free_line_buffers()
+{
 	for( TextView::iterator tv_it = this->begin();
 		tv_it != this->end(); tv_it++ )
 	{
 		if( *tv_it ) delete *tv_it;
 	}
+	this->clear();
 }
 
 void TextView::render( Screen screen, bool update_sprites )
@@ -582,7 +598,10 @@ void TextView::run_until_exit()
 				&& this->current_new_word_list_it != this->current_new_word_list.end() )
             {
 				this->down_button.active = false;
+				this->text_buttons.free_all();
+				//this->free_line_buffers();
 				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_new_word_list_it );
+				this->init_subscreen();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -705,17 +724,16 @@ void TextView::show_word_as_text(FreetypeRenderer& ft, Config* config, NewWord* 
 	if( !word )
 		return;
 	Text new_text( "Word Entry", word->lesson );
-	new_text += word->hanzi+"\n";
-	new_text += word->pinyin+"\n";
+	new_text += word->hanzi+" \t(" + word->pinyin + ")\n\n";
 	for( Definitions::iterator di = word->definitions.begin(); di != word->definitions.end(); di++ )
 	{
-		new_text += "Definition (" + di->second->lang + "):\n";
-		new_text += di->second->word_type + "\n";
-		new_text += di->second->translation + "\n";
-		new_text += di->second->comment + "\n";
-		new_text += di->second->example + "\n";
+		//new_text += "\nDefinition (" + di->second->lang + "):\n";
+		new_text += "[" + di->second->word_type + "] \t" + di->second->translation + "\n\n";
+		new_text += di->second->comment + "\n\n";
+		new_text += di->second->example + "\n\n";
 	}
-	TextView text_view( ft, config, new_text );
-	text_view.up_button.inactive = false;
-	text_view.run_until_exit();
+	TextView* text_view = new TextView( ft, config, new_text );
+	text_view->up_button.inactive = false;
+	text_view->run_until_exit();
+	delete text_view;
 }

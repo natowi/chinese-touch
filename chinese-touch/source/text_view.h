@@ -50,7 +50,9 @@ public:
 	static int MAX_ACCELERATION_FACTOR;
 public:
 	TextView( FreetypeRenderer& _ft, Config* _config, Text& _text );
+	void init_subscreen();
 	~TextView();
+	void free_line_buffers();
 	void render( Screen screen, bool update_sprites=true );
 	void run_until_exit();
 	static void show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word );

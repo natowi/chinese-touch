@@ -788,32 +788,34 @@ void TextView::show_settings()
 
 void TextView::restore_init_settings()
 {
-	bool and_needed = false;
+	bool or_needed = false;
 	std::stringstream extra_sql_cond;
-	if( !this->lookup_from_other_books && this->text.lesson && this->text.lesson->book )
+	if( this->text.lesson && this->text.lesson->book )
 	{
-		if( and_needed ) extra_sql_cond << " and ";
-		extra_sql_cond << "book_id=" << this->text.lesson->book->id;
-		and_needed = true;
-	}
-	std::string eq_op = "";
-	if( this->lookup_from_previous_lessons )
-		eq_op += "<";
-	if( this->lookup_from_upcoming_lessons )
-		eq_op += ">";
-	if( this->lookup_from_current_lesson )
-		eq_op += "=";
-	if( this->text.lesson && eq_op.length() && (eq_op.length() < 3) )
-	{
-		if( and_needed ) extra_sql_cond << " and ";
-		extra_sql_cond << "lesson_number" << eq_op << this->text.lesson->number;
-		and_needed = true;
-	}
-	else if( this->text.lesson && this->text.lesson->book && !eq_op.length() )
-	{
-		if( and_needed ) extra_sql_cond << " and ";
-		extra_sql_cond << "book_id!=" << this->text.lesson->book->id;
-		and_needed = true;
+		if( this->lookup_from_current_lesson )
+		{
+			if( or_needed ) extra_sql_cond << " or ";
+			extra_sql_cond << "book_id=" << this->text.lesson->book->id << " and lesson_number=" << this->text.lesson->number;
+			or_needed = true;
+		}
+		if( this->lookup_from_previous_lessons )
+		{
+			if( or_needed ) extra_sql_cond << " or ";
+			extra_sql_cond << "book_id=" << this->text.lesson->book->id << " and lesson_number<" << this->text.lesson->number;
+			or_needed = true;
+		}
+		if( this->lookup_from_upcoming_lessons )
+		{
+			if( or_needed ) extra_sql_cond << " or ";
+			extra_sql_cond << "book_id=" << this->text.lesson->book->id << " and lesson_number>" << this->text.lesson->number;
+			or_needed = true;
+		}
+		if( this->lookup_from_other_books )
+		{
+			if( or_needed ) extra_sql_cond << " or ";
+			extra_sql_cond << "book_id!=" << this->text.lesson->book->id;
+			or_needed = true;
+		}
 	}
 	this->lookup_sql_cond = extra_sql_cond.str();
 }

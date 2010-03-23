@@ -94,29 +94,26 @@ int main()
 					{
 						if( !lesson_menu_choice.book )
 							throw ERROR( "LessonMenu returned no book" );
-						Rating selected_rating = RATING_NONE;
+						NewWordList words;
+						std::stringstream condition;
+						condition << "book_id=" << lesson_menu_choice.book->id;
 						switch( lesson_menu_choice.content_type )
 						{
 							case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-								selected_rating = RATING_EASY;
+								condition << " and rating=" << RATING_EASY;
 								break;
 							case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-								selected_rating = RATING_MEDIUM;
+								condition << " and rating=" << RATING_MEDIUM;
 								break;
 							case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-								selected_rating = RATING_HARD;
+								condition << " and rating=" << RATING_HARD;
 								break;
 							case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-								selected_rating = RATING_IMPOSSIBLE;
+								condition << " and (rating=" << RATING_IMPOSSIBLE << " or rating=" << RATING_NONE << ")";
 								break;
 							default:
 								break;
 						}
-						NewWordList words;
-						std::stringstream condition;
-						condition << "book_id=" << lesson_menu_choice.book->id;
-						if( selected_rating != RATING_ANY )
-							condition << " and rating=" << selected_rating;
 						if( lesson_menu_choice.lesson )
 							condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
 						WordsDB::query_words( library, condition.str(), words, "atime" );

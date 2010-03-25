@@ -80,12 +80,12 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 
 	std::string lang = "de";
 
-	// render word type
-	size = 7;
 	if( render_settings.render_translation && this->definitions.count(lang) )
 	{
 		if( this->definitions[lang]->word_type.length() )
 		{
+			// render word type
+			size = 7;
 			RenderInfo rect = ft.render( render_screen, this->definitions[lang]->word_type, ft.latin_face, size, 0, top, &render_style );
 			top += rect.height+5;
 		}
@@ -109,6 +109,21 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 			RenderInfo rect = ft.render( render_screen, text, ft.latin_face, size, 0, top, &render_style );
 			top += rect.height;
 		}
+	}
+	
+	/* render book title and lesson number for information, but only if there is enough space left and no
+		part of the word entry is hidden, as we do not want to disturb memorization by giving hints */
+	int booK_lesson_height = 12;
+	int book_lesson_top = render_screen.res_y-booK_lesson_height;
+	if( render_settings.render_foreign_word 
+		&& render_settings.render_pronuciation 
+		&& render_settings.render_translation 
+		&& this->lesson && this->lesson->book && (top <= book_lesson_top) )
+	{
+		size = 6;
+		std::stringstream text_stream;
+		text_stream << "(" << this->lesson->book->title << ": " << this->lesson->number << ")";
+		ft.render( render_screen, text_stream.str(), ft.latin_face, size, 0, book_lesson_top );
 	}
 }
 

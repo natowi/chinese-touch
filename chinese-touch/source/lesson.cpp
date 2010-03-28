@@ -17,6 +17,16 @@
 #include "words_db.h"
 
 
+NewWord::~NewWord()
+{
+	for( Definitions::iterator di = this->definitions.begin(); di != this->definitions.end(); di++ )
+	{
+		if( di->second ) delete di->second;
+	}
+	this->definitions.clear();
+}
+
+
 void NewWordList::clear()
 {
 	for( NewWordList::iterator i = this->begin(); i != this->end(); i++ )
@@ -367,19 +377,20 @@ std::string Lesson::find_config_file_by_extension( const std::string& extension 
 
 |}
 \endverbatim */
-void Lesson::parse_dictionary_if_needed()
+int Lesson::parse_dictionary_if_needed( bool count_only )
 {
 	std::string dict_file_name = this->find_config_file_by_extension( ".dict" );
 	if( !dict_file_name.length() )
-		return;
+		return 0;
 	struct stat dict_file_stats;
 	if( stat( dict_file_name.c_str(), &dict_file_stats)==-1 )
 	{
 		throw ERROR( strerror(errno) );
 	}
 	if( WordsDB::get_file_mtime(dict_file_name) == dict_file_stats.st_mtime )
-		return;
-	WordsDB::set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
+		return 0;
+	if( !count_only )
+		WordsDB::set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
 	int file_id = WordsDB::get_file_id( dict_file_name );
     std::ifstream dict_file( dict_file_name.c_str() );
     char line_buffer[1024];
@@ -400,14 +411,18 @@ void Lesson::parse_dictionary_if_needed()
         {
             if( word_count )
             {
-                NewWord* word = new NewWord( hanzi, pinyin, this );
-                word->definitions[ definition.lang ] = new Definition( definition );
-				word->duplicate_id = seen_words.count(word->hanzi) ? seen_words[word->hanzi] : 0;
-				word->atime = dict_file_stats.st_mtime;
-				word->file_id = file_id;
-				word->file_offset = word_count;
-				seen_words[word->hanzi] = word->duplicate_id+1;
-				WordsDB::add_or_write_word( *word );
+				if( !count_only )
+				{
+					NewWord* word = new NewWord( hanzi, pinyin, this );
+					word->definitions[ definition.lang ] = new Definition( definition );
+					word->duplicate_id = seen_words.count(word->hanzi) ? seen_words[word->hanzi] : 0;
+					word->atime = dict_file_stats.st_mtime;
+					word->file_id = file_id;
+					word->file_offset = word_count;
+					seen_words[word->hanzi] = word->duplicate_id+1;
+					WordsDB::add_or_write_word( *word );
+					delete word;
+				}
                 hanzi = "";
                 pinyin = "";
                 definition.translation = "";
@@ -446,6 +461,7 @@ void Lesson::parse_dictionary_if_needed()
         }
     }
     dict_file.close();
+	return word_count;
 }
 
 

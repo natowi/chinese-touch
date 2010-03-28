@@ -24,7 +24,7 @@ void Settings::add_setting( Setting* setting )
 	}
 }
 
-Setting* Settings::get_setting( std::string name )
+Setting* Settings::get_setting( const std::string& name )
 {
 	if( this->count(name) )
 	{
@@ -32,7 +32,7 @@ Setting* Settings::get_setting( std::string name )
 	} else return 0;
 }
 
-bool Settings::get_boolean_setting( std::string name )
+bool Settings::get_boolean_setting( const std::string& name )
 {
 	Setting* setting = this->get_setting(name);
 	if( !setting ) 
@@ -57,12 +57,16 @@ bool Settings::get_boolean_setting( std::string name )
 #include "big_bottom_right_button_active.h"
 #include "checkbox.h"
 #include "checkbox_active.h"
+#include "menu_button.h"
+#include "menu_button_active.h"
+#include "menu_button_inactive.h"
 
 
-SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings )
-	: freetype_renderer(_freetype_renderer), settings(_settings),
-		ok_button(&oamSub,"OK",SpriteSize_32x32,settings_screen.res_x-32,settings_screen.res_y-32,freetype_renderer.latin_face,12,0,4),
-		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.latin_face,10,1,1)
+SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title )
+	: freetype_renderer(_freetype_renderer), settings(_settings), title(_title),
+		ok_button(&oamSub,"OK",SpriteSize_32x32,settings_screen.res_x-32,settings_screen.res_y-32,freetype_renderer.latin_face,12,0,8),
+		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.latin_face,8,1,1),
+		dummy_start_button(&oamSub,"",SpriteSize_32x16,0,0,freetype_renderer.latin_face,8,1,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_SUB, this->settings_screen );
 	this->settings_screen.clear();
@@ -78,6 +82,8 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	this->ok_button.init_vram( big_bottom_right_button_activeBitmap, this->ok_button.bg_active_vram );
 	this->dummy_checkbox.init_vram( checkboxBitmap, this->dummy_checkbox.bg_vram );
 	this->dummy_checkbox.init_vram( checkbox_activeBitmap, this->dummy_checkbox.bg_active_vram );
+	this->dummy_start_button.init_vram( menu_buttonBitmap, this->dummy_start_button.bg_vram );
+	this->dummy_start_button.init_vram( menu_button_activeBitmap, this->dummy_start_button.bg_active_vram );
 	
 	/* Even if we create the menu dynamically, we will render the text just once on the background
 		and store the item positions for later sprite updates. The Dialog will not be scrollable 
@@ -86,7 +92,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	RenderStyle render_style;
 	render_style.center_x = true;
 	RenderInfo render_info = this->freetype_renderer.render( 
-		this->settings_screen, "Word List - Settings", 
+		this->settings_screen, this->title, 
 		this->freetype_renderer.latin_face, 14, 0, top, &render_style );
 	top += render_info.height + 5;
 	memset( this->settings_screen.base_address+this->settings_screen.res_x*(top++)/2, 
@@ -96,31 +102,38 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	top += 10;
 	for( Settings::iterator s_it = this->settings.begin(); s_it != this->settings.end(); s_it++ )
 	{
+		Setting* setting = s_it->second;
 		BooleanSetting* boolean_setting = dynamic_cast<BooleanSetting*>( s_it->second );
+		ActionButton* action_button = dynamic_cast<ActionButton*>( s_it->second );
+		int left = 10;
 		if( boolean_setting )
 		{
-			TextButton* new_checkbox = new TextButton( &oamSub, "", SpriteSize_16x16, 10, top, freetype_renderer.latin_face, 11 );
-			new_checkbox->owns_bg_vram = false;
-			new_checkbox->bg_vram = this->dummy_checkbox.bg_vram;
-			new_checkbox->bg_active_vram = this->dummy_checkbox.bg_active_vram;
-			this->checkboxes.add_text_button( boolean_setting->name, new_checkbox );
-			this->text_buttons.push_back( new_checkbox );
-			RenderInfo render_info = this->freetype_renderer.render( this->settings_screen, s_it->second->description, 
-																	new_checkbox->face, new_checkbox->font_size, 
-																	new_checkbox->x+21, top+1 );
-			if( render_info.height < 16 )
-				top += 16;
-			else top += render_info.height;
+			TextButton* new_button = new TextButton( &oamSub, "", SpriteSize_16x16, 
+													 left, top, freetype_renderer.latin_face, 9 );
+			new_button->owns_bg_vram = false;
+			new_button->bg_vram = this->dummy_checkbox.bg_vram;
+			new_button->bg_active_vram = this->dummy_checkbox.bg_active_vram;
+			this->checkboxes.add_text_button( boolean_setting->name, new_button );
+			this->text_buttons.push_back( new_button );
+			left += new_button->width + 5;
 		}
-		SettingsLabel* settings_label = dynamic_cast<SettingsLabel*>( s_it->second );
-		if( settings_label )
+		else if( action_button )
 		{
-			RenderInfo render_info = this->freetype_renderer.render( this->settings_screen, s_it->second->description, 
-																	freetype_renderer.latin_face, 11, 10, top );
-			if( render_info.height < 16 )
-				top += 16;
-			else top += render_info.height;
+			TextButton* new_button = new TextButton( &oamSub, action_button->button_label, SpriteSize_32x16, 
+													 left, top, freetype_renderer.latin_face, 9 );
+			new_button->owns_bg_vram = false;
+			new_button->bg_vram = this->dummy_start_button.bg_vram;
+			new_button->bg_active_vram = this->dummy_start_button.bg_active_vram;
+			this->start_buttons.add_text_button( action_button->name, new_button );
+			this->text_buttons.push_back( new_button );
+			left += new_button->width + 5;
 		}
+		RenderInfo render_info = this->freetype_renderer.render( this->settings_screen, setting->description, 
+																freetype_renderer.latin_face, 11,
+																left, top+1 );
+		if( render_info.height < 16 )
+			top += 16;
+		else top += render_info.height;
 		top += 5;
 	}
 
@@ -130,28 +143,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	init_list.push_back( &this->dummy_checkbox );
 	for( TextButtonList::iterator i=init_list.begin(); i!=init_list.end(); i++ )
 	{
-		if( (*i)->owns_bg_vram )
-		{
-			// Alpha-Bits bei definierten Spritepixeln auf "undurchsichtig" setzen:
-			if( (*i)->bg_vram ) set_16bpp_sprite_opague( (*i)->bg_vram, (*i)->width, (*i)->height, 0 );
-			if( (*i)->bg_active_vram ) set_16bpp_sprite_opague( (*i)->bg_active_vram, (*i)->width, (*i)->height, 0 );
-			if( (*i)->bg_inactive_vram ) set_16bpp_sprite_opague( (*i)->bg_inactive_vram, (*i)->width, (*i)->height, 0 );
-		}
-		if( (*i)->text.length() )
-		{
-			// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
-			(*i)->text_vram = oamAllocateGfx( &oamSub, (*i)->sprite_size, SpriteColorFormat_256Color );
-			RenderScreenBuffer button_text( (*i)->width, (*i)->height );
-			RenderStyle render_style;
-			render_style.center_x = true;
-			this->freetype_renderer.render( button_text, (*i)->text, 
-				(*i)->face, (*i)->font_size, (*i)->text_x_offset, (*i)->text_y_offset, &render_style );
-			// Spritekonvertierung:
-			// (Zwischenpufferung aus Bequemlichkeit, weil VRAM nur mit 16-bit-Wörtern beschreibbbar)
-			u8 conversion_buffer[(*i)->width * (*i)->height];
-			tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, (*i)->width, (*i)->height );
-			memcpy( (*i)->text_vram, conversion_buffer, (*i)->width * (*i)->height * 1 );
-		}
+		(*i)->init_text_layer( this->freetype_renderer );
 	}
 }
 
@@ -182,6 +174,11 @@ void SettingsDialog::render( Screen screen )
 					checkbox->bg_active_vram = this->dummy_checkbox.bg_active_vram;
 				}
 				checkbox->render_to( oam_entry );
+			}
+			TextButton* start_button = this->start_buttons.get_text_button( s_it->first );
+			if( start_button && s_it->second && s_it->second->description.length() )
+			{
+				start_button->render_to( oam_entry );
 			}
 		}
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
@@ -263,10 +260,16 @@ void SettingsDialog::run_until_exit()
 					}
 					else if( this->settings.count((*b_it)->name) )
 					{
-						BooleanSetting* boolean_setting = dynamic_cast<BooleanSetting*>( this->settings.get_setting((*b_it)->name) );
+						Setting* setting = this->settings.get_setting( (*b_it)->name );
+						BooleanSetting* boolean_setting = dynamic_cast<BooleanSetting*>( setting );
+						ActionButton* action_button = dynamic_cast<ActionButton*>( setting );
 						if( boolean_setting )
 						{
 							boolean_setting->value = !boolean_setting->value;
+						}
+						else if( action_button )
+						{
+							action_button->run_action();
 						}
 					}
 					this->render( SCREEN_SUB );

@@ -3,6 +3,7 @@
 
 #include "freetype_renderer.h"
 #include "text_button.h"
+#include "sprite_helper.h"
 
 TextButton::TextButton( OamState* _oam, const std::string& _text, 
 						SpriteSize _sprite_size, int _x, int _y,
@@ -71,7 +72,30 @@ void TextButton::free_all()
 void TextButton::init_vram( const void* source, u16*& vram_dest )
 {
 	vram_dest = oamAllocateGfx( this->oam, this->sprite_size, SpriteColorFormat_Bmp );
-	dmaCopy( source, vram_dest, this->width * this->height * 2 );
+	DC_FlushRange( source, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
+	dmaCopy( source, vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
+	set_16bpp_sprite_opague( vram_dest, this->width, this->height, 0 );
+}
+
+void TextButton::init_text_layer( FreetypeRenderer& freetype_renderer )
+{
+	if( this->text.length() )
+	{
+		// allocate VRAM for 8bpp text layer
+		this->text_vram = oamAllocateGfx( this->oam, this->sprite_size, SpriteColorFormat_256Color );
+		RenderScreenBuffer button_text( this->width, this->height );
+		RenderStyle render_style;
+		render_style.center_x = true;
+		freetype_renderer.render( button_text, this->text, 
+			this->face, this->font_size, 0, 1, &render_style );
+		// convert 8bpp sprite data for use in 16bpp mode
+		// FIXME: currently needs ram buffering, as vram supports 16bit operations only
+		u8 conversion_buffer[this->width * this->height];
+		tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, this->width, this->height );
+		//DC_FlushRange( conversion_buffer, SPRITE_SIZE_PIXELS(this->sprite_size)*1 );
+		//dmaCopy( conversion_buffer, this->text_vram, SPRITE_SIZE_PIXELS(this->sprite_size)*1 );
+		memcpy( this->text_vram, conversion_buffer, SPRITE_SIZE_PIXELS(this->sprite_size)*1 );
+	}
 }
 
 void TextButton::render_to( int& oam_entry )

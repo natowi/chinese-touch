@@ -26,6 +26,9 @@
 #include "small_menu_button.h"
 #include "small_menu_button_active.h"
 #include "small_menu_button_inactive.h"
+#include "bottom_right_button.h"
+#include "bottom_right_button_active.h"
+#include "settings_dialog.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -160,6 +163,55 @@ LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
 }
 
 
+class DictionarySynchronizer : public ActionButton
+{
+	public:
+		FreetypeRenderer& freetype_renderer;
+		Library& library;
+		RenderScreen& info_screen;
+	public:
+		DictionarySynchronizer( const std::string& _name, const std::string& _description, 
+								const std::string& _button_label, FreetypeRenderer& _freetype_renderer,
+								Library& _library, RenderScreen& _screen )
+			: ActionButton( _name, _description, _button_label ), 
+			freetype_renderer(_freetype_renderer), library(_library), info_screen(_screen) {}
+		virtual void run_action()
+		{
+			RenderStyle style;
+			style.center_x = true;
+			int prev_run_count = 0;
+			std::string prev_progress;
+			for( int run=1; run<=2; run++ )
+			{
+				int run_count = 0;
+				for( Library::iterator book_it = this->library.begin(); book_it != this->library.end(); book_it++ )
+				{
+					for( Book::iterator lesson_it = book_it->second->begin(); lesson_it != book_it->second->end(); lesson_it++ )
+					{
+						run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1) );
+						std::stringstream progress;
+						progress << ((run==1) ? "scanning" : "syncing") << "\n" 
+								<< ((run==1) ? 0 : run_count) << " / "
+								<< ((run==1) ? run_count : prev_run_count);
+						if( prev_run_count )
+						{
+							progress << " (" << (run_count*100)/prev_run_count << "%)";
+						}
+						std::string new_progress = progress.str();
+						if( new_progress != prev_progress )
+						{
+							prev_progress = new_progress;
+							info_screen.clear();
+							this->freetype_renderer.render( this->info_screen, progress.str(), this->freetype_renderer.latin_face, 14, 0, info_screen.res_y/2-30, &style );
+						}
+					}
+				}
+				prev_run_count = run_count;
+			}
+			this->freetype_renderer.render( this->info_screen, "\n\n\ndone", this->freetype_renderer.latin_face, 14, 0, info_screen.res_y-30, &style );
+		}
+};
+
 LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config )
 	: freetype_renderer(_freetype_renderer), library(_library), config(_config), 
 		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
@@ -177,7 +229,8 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 		rating_hard(&oamSub,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
 		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
 		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1)
+		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
+		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,freetype_renderer.latin_face,10,1,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->info_screen );
 	//ErrorConsole::init_screen( SCREEN_MAIN );
@@ -185,6 +238,93 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	set_16bpp_sprite_opague( this->info_screen.bg_base_address, 256, 192 );
 	bgShow( this->info_screen.bg_id );
 	this->info_screen.clear();
+	
+	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
+	this->settings.add_setting( new DictionarySynchronizer("0_synchronize_dictionary", "Synchronize Word Database", "sync",
+														   this->freetype_renderer, this->library, this->info_screen) );
+	
+	// store list of interactive buttons in instance:
+	this->lesson_buttons.push_back( &this->new_words_button );
+	this->lesson_buttons.push_back( &this->grammar_button );
+	this->lesson_buttons.push_back( &this->text_button );
+	this->lesson_buttons.push_back( &this->exercises_button );
+	this->lesson_buttons.push_back( &this->jump_down_button );
+	this->lesson_buttons.push_back( &this->jump_up_button );
+
+	this->book_buttons.push_back( &this->explode_button );
+	this->book_buttons.push_back( &this->implode_button );
+	
+	this->text_buttons.insert( this->text_buttons.end(), this->lesson_buttons.begin(), this->lesson_buttons.end() );
+	this->text_buttons.insert( this->text_buttons.end(), this->book_buttons.begin(), this->book_buttons.end() );
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->settings_button );
+
+	this->init_button_list.insert( this->init_button_list.end(), this->text_buttons.begin(), this->text_buttons.end() );
+	init_button_list.push_back( &this->book_icon );
+	init_button_list.push_back( &this->lesson_icon );
+	this->init_subscreen();
+	
+	// Menü zur gespeicherten Position bewegen:
+	std::string config_book_name = this->config.get_current_book_name();
+	int config_lesson_number = this->config.get_current_lesson_number();
+	if( config_book_name.length() )
+	{
+		bool found = false;
+		// tatsächlichen Wert nur verändern, wenn wir auch was finden:
+		int _y_offset = 0;
+		for( Library::iterator book_it=this->library.begin();
+			book_it!=this->library.end(); 
+			book_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
+		{
+			// geht davon aus, dass nur das selektierte Buch ausgeklappt ist:
+			if( book_it->first == config_book_name )
+			{
+				if( config_lesson_number )
+				{
+					for( Book::iterator lesson_it=book_it->second->begin();
+						lesson_it!=book_it->second->end(); 
+						lesson_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
+					{
+						if( lesson_it->first == config_lesson_number )
+						{
+							_y_offset -= MenuEntry::BASE_HEIGHT;
+							found = true;
+							this->active_list_id = static_cast<void*>( lesson_it->second );
+							break;
+						}
+					}
+				} else
+				{
+					found = true;
+					this->active_list_id = static_cast<void*>( book_it->second );
+				}
+			}
+			if( found )
+			{
+				this->y_offset = _y_offset;
+				// Stück zurück und leichten Impuls setzen um das Vorspulen zu verdeutlichen:
+				this->y_offset+=20;
+				this->v_y=-5;
+				/* Menüeintrag für das enthaltende Buch anlegen und ausklappen 
+					(den Rest macht die Rendermethode...) */
+				MenuEntry* entry = new MenuEntry();
+				entry->book = book_it->second;
+				if( config_lesson_number ) entry->exploded = true;
+				this->menu_list[ static_cast<void*>(entry->book) ] = entry;
+				entry->render_text( this->freetype_renderer, entry->book->title );
+				break;
+			}
+		}
+	}
+	bgHide( this->info_screen.bg_id );
+}
+
+void LessonMenu::init_subscreen()
+{
 	this->freetype_renderer.init_screen( SCREEN_SUB, this->menu_screen );
 	this->menu_screen.clear();
 	// Farbindex 0 der Hintergrundpalette auf hellblau für's Highlight setzen:
@@ -240,112 +380,17 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
-
-	// store list of interactive buttons in instance:
-	this->lesson_buttons.push_back( &this->new_words_button );
-	this->lesson_buttons.push_back( &this->grammar_button );
-	this->lesson_buttons.push_back( &this->text_button );
-	this->lesson_buttons.push_back( &this->exercises_button );
-	this->lesson_buttons.push_back( &this->jump_down_button );
-	this->lesson_buttons.push_back( &this->jump_up_button );
-
-	this->book_buttons.push_back( &this->explode_button );
-	this->book_buttons.push_back( &this->implode_button );
 	
-	this->text_buttons.insert( this->text_buttons.end(), this->lesson_buttons.begin(), this->lesson_buttons.end() );
-	this->text_buttons.insert( this->text_buttons.end(), this->book_buttons.begin(), this->book_buttons.end() );
-	this->text_buttons.push_back( &this->rating_bar );
-	this->text_buttons.push_back( &this->rating_easy );
-	this->text_buttons.push_back( &this->rating_medium );
-	this->text_buttons.push_back( &this->rating_hard );
-	this->text_buttons.push_back( &this->rating_impossible );
-	
-	// create temporary superset for initialization:
-	TextButtonList init_button_list( this->text_buttons );
-	init_button_list.push_back( &this->book_icon );
-	init_button_list.push_back( &this->lesson_icon );
-	for( TextButtonList::iterator i=init_button_list.begin(); i!=init_button_list.end(); i++ )
+	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
+	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+
+	for( TextButtonList::iterator i=this->init_button_list.begin(); i!=this->init_button_list.end(); i++ )
 	{
-		if( (*i)->owns_bg_vram )
-		{
-			// Alpha-Bits bei definierten Spritepixeln auf "undurchsichtig" setzen:
-			if( (*i)->bg_vram ) set_16bpp_sprite_opague( (*i)->bg_vram, (*i)->width, (*i)->height, 0 );
-			if( (*i)->bg_active_vram ) set_16bpp_sprite_opague( (*i)->bg_active_vram, (*i)->width, (*i)->height, 0 );
-			if( (*i)->bg_inactive_vram ) set_16bpp_sprite_opague( (*i)->bg_inactive_vram, (*i)->width, (*i)->height, 0 );
-		}
-		if( (*i)->text.length() )
-		{
-			// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
-			(*i)->text_vram = oamAllocateGfx( &oamSub, SpriteSize_32x16, SpriteColorFormat_256Color );
-			RenderScreenBuffer button_text( (*i)->width, (*i)->height );
-			RenderStyle render_style;
-			render_style.center_x = true;
-			this->freetype_renderer.render( button_text, (*i)->text, 
-				(*i)->face, (*i)->font_size, 0, 1, &render_style );
-			// Spritekonvertierung:
-			// (Zwischenpufferung aus Bequemlichkeit, weil VRAM nur mit 16-bit-Wörtern beschreibbbar)
-			u8 conversion_buffer[(*i)->width * (*i)->height];
-			tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, (*i)->width, (*i)->height );
-			memcpy( (*i)->text_vram, conversion_buffer, (*i)->width * (*i)->height * 1 );
-		}
+		(*i)->init_text_layer( this->freetype_renderer );
 	}
 
 	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
 	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
-	
-	// Menü zur gespeicherten Position bewegen:
-	std::string config_book_name = this->config.get_current_book_name();
-	int config_lesson_number = this->config.get_current_lesson_number();
-	if( config_book_name.length() )
-	{
-		bool found = false;
-		// tatsächlichen Wert nur verändern, wenn wir auch was finden:
-		int _y_offset = 0;
-		for( Library::iterator book_it=this->library.begin();
-			book_it!=this->library.end(); 
-			book_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
-		{
-			// geht davon aus, dass nur das selektierte Buch ausgeklappt ist:
-			if( book_it->first == config_book_name )
-			{
-				if( config_lesson_number )
-				{
-					for( Book::iterator lesson_it=book_it->second->begin();
-						lesson_it!=book_it->second->end(); 
-						lesson_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
-					{
-						if( lesson_it->first == config_lesson_number )
-						{
-							_y_offset -= MenuEntry::BASE_HEIGHT;
-							found = true;
-							this->active_list_id = static_cast<void*>( lesson_it->second );
-							break;
-						}
-					}
-				} else
-				{
-					found = true;
-					this->active_list_id = static_cast<void*>( book_it->second );
-				}
-			}
-			if( found )
-			{
-				this->y_offset = _y_offset;
-				// Stück zurück und leichten Impuls setzen um das Vorspulen zu verdeutlichen:
-				this->y_offset+=20;
-				this->v_y=-5;
-				/* Menüeintrag für das enthaltende Buch anlegen und ausklappen 
-					(den Rest macht die Rendermethode...) */
-				MenuEntry* entry = new MenuEntry();
-				entry->book = book_it->second;
-				if( config_lesson_number ) entry->exploded = true;
-				this->menu_list[ static_cast<void*>(entry->book) ] = entry;
-				entry->render_text( this->freetype_renderer, entry->book->title );
-				break;
-			}
-		}
-	}
-	bgHide( this->info_screen.bg_id );
 }
 
 LessonMenu::~LessonMenu()
@@ -557,6 +602,9 @@ void LessonMenu::render( Screen screen )
 				}
 			}
 		}
+		
+		this->settings_button.render_to( oam_entry );
+		
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
 		oamUpdate( &oamSub );
@@ -649,37 +697,49 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 				old_y_offset = this->y_offset;
 				old_touch = touch;
 			}
-			MenuList::iterator entry_it = this->get_entry_by_pos( touch.px, touch.py );
-			if( entry_it!=this->menu_list.end() )
+			if( this->settings_button.is_responsible(touch.px, touch.py) )
 			{
-				void* entry_id = entry_it->first;
-				MenuEntry* entry = entry_it->second;
-				if( entry_id == this->active_list_id )
+				if( !this->settings_button.active )
 				{
-					LessonMenuChoice::ContentType content_type = entry->get_content_type_by_pos(touch.px, touch.py);
-					prev_activated_button = activated_button;
-					activated_button = this->get_button_by_content_type( content_type );
-					if( activated_button!=prev_activated_button )
+					this->settings_button.active = true;
+					activated_button = &this->settings_button;
+					changed = true;
+				}
+			}
+			else
+			{
+				MenuList::iterator entry_it = this->get_entry_by_pos( touch.px, touch.py );
+				if( entry_it!=this->menu_list.end() )
+				{
+					void* entry_id = entry_it->first;
+					MenuEntry* entry = entry_it->second;
+					if( entry_id == this->active_list_id )
 					{
-						//std::cout << "button released/changed ";
-						for( TextButtonList::iterator i=this->text_buttons.begin(); 
-							i!=this->text_buttons.end(); i++ )
+						LessonMenuChoice::ContentType content_type = entry->get_content_type_by_pos(touch.px, touch.py);
+						prev_activated_button = activated_button;
+						activated_button = this->get_button_by_content_type( content_type );
+						if( activated_button!=prev_activated_button )
 						{
-							if( (*i)->active )
+							//std::cout << "button released/changed ";
+							for( TextButtonList::iterator i=this->text_buttons.begin(); 
+								i!=this->text_buttons.end(); i++ )
 							{
-								(*i)->active = false;
-								changed = true;
+								if( (*i)->active )
+								{
+									(*i)->active = false;
+									changed = true;
+								}
 							}
+							changed = true;
 						}
-						changed = true;
-					}
-					if( !activated_button->active && this->activate_button_by_content_type(content_type) )
-					{
-						//std::cout << "button activated ";
-						changed = true;
-					}
+						if( !activated_button->active && this->activate_button_by_content_type(content_type) )
+						{
+							//std::cout << "button activated ";
+							changed = true;
+						}
+					} else activated_button = 0;
 				} else activated_button = 0;
-			} else activated_button = 0;
+			}
 			if( !activated_button )
 			{
 				int y_diff = touch.py - old_touch.py;
@@ -704,107 +764,117 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 		else if( touched && pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
 		{
 			touched = false;
-			MenuList::iterator entry_it = this->get_entry_by_pos( old_touch.px, old_touch.py );
-			if( entry_it!=this->menu_list.end() )
+			if( this->settings_button.active )
 			{
-				void* entry_id = entry_it->first;
-				MenuEntry* entry = entry_it->second;
-				if( entry_id == this->active_list_id )
+				this->settings_button.active = false;
+				this->show_settings();
+				this->render( SCREEN_MAIN );
+				this->render( SCREEN_SUB );
+			}
+			else
+			{
+				MenuList::iterator entry_it = this->get_entry_by_pos( old_touch.px, old_touch.py );
+				if( entry_it!=this->menu_list.end() )
 				{
-					if( entry->book )
+					void* entry_id = entry_it->first;
+					MenuEntry* entry = entry_it->second;
+					if( entry_id == this->active_list_id )
 					{
-						//std::cout << "book ";
-						choice.book = entry->book;
-						choice.lesson = 0;
-						choice.content_type = entry->get_content_type_by_pos( old_touch.px, old_touch.py );
-						//std::cout << choice.content_type << " ";
-						if( this->get_activation_by_content_type(choice.content_type) )
+						if( entry->book )
 						{
-							//std::cout << "button active ";
-							switch( choice.content_type )
+							//std::cout << "book ";
+							choice.book = entry->book;
+							choice.lesson = 0;
+							choice.content_type = entry->get_content_type_by_pos( old_touch.px, old_touch.py );
+							//std::cout << choice.content_type << " ";
+							if( this->get_activation_by_content_type(choice.content_type) )
 							{
-								case LessonMenuChoice::CONTENT_TYPE_EXPLODE:
-									//std::cout << "explode ";
-									entry->exploded = true;
-									this->render( SCREEN_SUB );
-									break;
-								case LessonMenuChoice::CONTENT_TYPE_IMPLODE:
-									//std::cout << "implode ";
-									entry->exploded = false;
-									this->render( SCREEN_SUB );
-									break;
-								case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-									return;
-								default:
-									//std::cout << "unknown menu event ";
-									break;
+								//std::cout << "button active ";
+								switch( choice.content_type )
+								{
+									case LessonMenuChoice::CONTENT_TYPE_EXPLODE:
+										//std::cout << "explode ";
+										entry->exploded = true;
+										this->render( SCREEN_SUB );
+										break;
+									case LessonMenuChoice::CONTENT_TYPE_IMPLODE:
+										//std::cout << "implode ";
+										entry->exploded = false;
+										this->render( SCREEN_SUB );
+										break;
+									case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
+										return;
+									default:
+										//std::cout << "unknown menu event ";
+										break;
+								}
+							}
+						}
+						else if( entry->lesson )
+						{
+							//std::cout << "lesson ";
+							choice.book = entry->lesson->book;
+							choice.lesson = entry->lesson;
+							choice.content_type = entry->get_content_type_by_pos( old_touch.px, old_touch.py );
+							//std::cout << choice.content_type << " ";
+							if( this->get_activation_by_content_type(choice.content_type) )
+							{
+								switch( choice.content_type )
+								{
+									case LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN:
+										for( Book::iterator i=choice.book->find(choice.lesson->number); i!=choice.book->end(); i++ )
+										{
+											void* list_id = static_cast<void*>( i->second );
+											MenuList::iterator test_it = this->menu_list.find( list_id );
+											if( test_it!=this->menu_list.end() )
+											{
+												this->active_list_id = list_id;
+												test_it->second->top;
+												this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
+												this->render( SCREEN_SUB );
+											}
+										}
+										break;
+									case LessonMenuChoice::CONTENT_TYPE_JUMP_UP:
+										for( Book::iterator i=choice.book->find(choice.lesson->number); ; i-- )
+										{
+											void* list_id = static_cast<void*>( i->second );
+											MenuList::iterator test_it = this->menu_list.find( list_id );
+											if( test_it!=this->menu_list.end() )
+											{
+												this->active_list_id = list_id;
+												test_it->second->top;
+												this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
+												this->render( SCREEN_SUB );
+											}
+											if( i==choice.book->begin() ) break;
+										}
+										break;
+									case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
+									case LessonMenuChoice::CONTENT_TYPE_TEXT:
+									case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
+									case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+									case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
+										return;
+									default:
+										break;
+								}
 							}
 						}
 					}
-					else if( entry->lesson )
+					else
 					{
-						//std::cout << "lesson ";
-						choice.book = entry->lesson->book;
-						choice.lesson = entry->lesson;
-						choice.content_type = entry->get_content_type_by_pos( old_touch.px, old_touch.py );
-						//std::cout << choice.content_type << " ";
-						if( this->get_activation_by_content_type(choice.content_type) )
-						{
-							switch( choice.content_type )
-							{
-								case LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN:
-									for( Book::iterator i=choice.book->find(choice.lesson->number); i!=choice.book->end(); i++ )
-									{
-										void* list_id = static_cast<void*>( i->second );
-										MenuList::iterator test_it = this->menu_list.find( list_id );
-										if( test_it!=this->menu_list.end() )
-										{
-											this->active_list_id = list_id;
-											test_it->second->top;
-											this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
-											this->render( SCREEN_SUB );
-										}
-									}
-									break;
-								case LessonMenuChoice::CONTENT_TYPE_JUMP_UP:
-									for( Book::iterator i=choice.book->find(choice.lesson->number); ; i-- )
-									{
-										void* list_id = static_cast<void*>( i->second );
-										MenuList::iterator test_it = this->menu_list.find( list_id );
-										if( test_it!=this->menu_list.end() )
-										{
-											this->active_list_id = list_id;
-											test_it->second->top;
-											this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
-											this->render( SCREEN_SUB );
-										}
-										if( i==choice.book->begin() ) break;
-									}
-									break;
-								case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
-								case LessonMenuChoice::CONTENT_TYPE_TEXT:
-								case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
-								case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-								case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-									return;
-								default:
-									break;
-							}
-						}
+						//std::cout << "entry activated ";
+						this->active_list_id = entry_id;
+						this->render( SCREEN_SUB );
+						this->render( SCREEN_MAIN );
 					}
-				}
-				else
-				{
-					//std::cout << "entry activated ";
-					this->active_list_id = entry_id;
-					this->render( SCREEN_SUB );
-					this->render( SCREEN_MAIN );
 				}
 			}
 		}
@@ -949,4 +1019,13 @@ bool LessonMenu::get_activation_by_content_type( LessonMenuChoice::ContentType c
 {
 	TextButton* button = this->get_button_by_content_type( content_type );
 	return button && !button->inactive && button->active;
+}
+
+void LessonMenu::show_settings()
+{
+	this->init_button_list.free_all();
+	SettingsDialog* settings_dialog = new SettingsDialog( this->freetype_renderer, this->settings, "Program Settings" );
+	settings_dialog->run_until_exit();
+	delete settings_dialog;
+	this->init_subscreen();
 }

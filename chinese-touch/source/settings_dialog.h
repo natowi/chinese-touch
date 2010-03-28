@@ -12,7 +12,7 @@ class Setting
 	public:
 		std::string name, description;
 	public:
-		Setting( std::string _name, std::string _description ) 
+		Setting( const std::string& _name, const std::string& _description ) 
 			: name(_name), description(_description) {}
 		virtual ~Setting() {}
 };
@@ -22,15 +22,25 @@ class BooleanSetting : public Setting
 	public:
 		bool& value;
 	public:
-		BooleanSetting( std::string _name, std::string _description, bool& _value )
+		BooleanSetting( const std::string& _name, const std::string& _description, bool& _value )
 			: Setting( _name, _description ), value(_value) {}
 };
 
 class SettingsLabel : public Setting
 {
 	public:
-		SettingsLabel(std::string _name, std::string _description)
+		SettingsLabel( const std::string& _name, const std::string& _description )
 			: Setting( _name, _description ) {}
+};
+
+class ActionButton : public Setting
+{
+	public:
+		std::string button_label;
+	public:
+		ActionButton( const std::string& _name, const std::string& _description, const std::string& _button_label )
+			: Setting( _name, _description ), button_label(_button_label) {}
+		virtual void run_action()=0;
 };
 
 class Settings : public std::map<std::string,Setting*>
@@ -38,8 +48,8 @@ class Settings : public std::map<std::string,Setting*>
 	public:
 		~Settings();
 		void add_setting( Setting* setting );
-		Setting* get_setting( std::string name );
-		bool get_boolean_setting( std::string name );
+		Setting* get_setting( const std::string& name );
+		bool get_boolean_setting( const std::string& name );
 };
 
 class SettingsDialog
@@ -48,11 +58,12 @@ class SettingsDialog
 		FreetypeRenderer& freetype_renderer;
 		Settings& settings;
 		RenderScreen settings_screen;
-		TextButton ok_button, dummy_checkbox;
+		std::string title;
+		TextButton ok_button, dummy_checkbox, dummy_start_button;
 		TextButtonList text_buttons;
-		TextButtonMapStorage checkboxes;
+		TextButtonMapStorage checkboxes, start_buttons;
 	public:
-		SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings );
+		SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title );
 		void render( Screen screen );
 		void run_until_exit();
 };

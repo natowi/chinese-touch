@@ -239,28 +239,7 @@ void NewWordsViewer::init_subscreen()
 	
 	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
 	{
-		if( (*i)->owns_bg_vram )
-		{
-			// Alpha-Bits bei definierten Spritepixeln auf "undurchsichtig" setzen:
-			if( (*i)->bg_vram ) set_16bpp_sprite_opague( (*i)->bg_vram, (*i)->width, (*i)->height, 0 );
-			if( (*i)->bg_active_vram ) set_16bpp_sprite_opague( (*i)->bg_active_vram, (*i)->width, (*i)->height, 0 );
-			if( (*i)->bg_inactive_vram ) set_16bpp_sprite_opague( (*i)->bg_inactive_vram, (*i)->width, (*i)->height, 0 );
-		}
-		if( (*i)->text.length() )
-		{
-			// VRAM für 8-Bit-Buttonbeschriftungs-Sprites reservieren:
-			(*i)->text_vram = oamAllocateGfx( &oamSub, (*i)->sprite_size, SpriteColorFormat_256Color );
-			RenderScreenBuffer button_text( (*i)->width, (*i)->height );
-			RenderStyle render_style;
-			render_style.center_x = true;
-			this->freetype_renderer.render( button_text, (*i)->text, 
-				(*i)->face, (*i)->font_size, 0, 1, &render_style );
-			// Spritekonvertierung:
-			// (Zwischenpufferung aus Bequemlichkeit, weil VRAM nur mit 16-bit-Wörtern beschreibbbar)
-			u8 conversion_buffer[(*i)->width * (*i)->height];
-			tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, (*i)->width, (*i)->height );
-			memcpy( (*i)->text_vram, conversion_buffer, (*i)->width * (*i)->height * 1 );
-		}
+		(*i)->init_text_layer( this->freetype_renderer );
 	}
 	
 	// Palette für 8-Bit-Buttonbeschriftungen wie Hintergrundpalette initialisieren:
@@ -270,7 +249,7 @@ void NewWordsViewer::init_subscreen()
 void NewWordsViewer::show_settings()
 {
 	this->text_buttons.free_all();
-	SettingsDialog settings_dialog( this->freetype_renderer, this->settings );
+	SettingsDialog settings_dialog( this->freetype_renderer, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
 	this->init_subscreen();
 	this->restore_init_settings();

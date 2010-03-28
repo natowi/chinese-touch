@@ -28,6 +28,7 @@ public:
 				int _text_x_offset=0, int _text_y_offset=0 );
 	~TextButton();
 	void init_vram( const void* source, u16*& vram_dest );
+	void init_text_layer(FreetypeRenderer& freetype_renderer);
 	void render_to( int& oam_entry );
 	void render_to( int& oam_entry, int _x, int _y );
 	bool is_responsible( int ref_x, int ref_y );

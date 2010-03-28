@@ -7,6 +7,7 @@
 #include "lesson.h"
 #include "config.h"
 #include "text_button.h"
+#include "settings_dialog.h"
 
 class LessonMenuChoice
 {
@@ -95,14 +96,16 @@ public:
 	int frame_count;
 	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button,
 		explode_button, implode_button, rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
-		jump_down_button, jump_up_button;
-	TextButtonList text_buttons, lesson_buttons, book_buttons;
+		jump_down_button, jump_up_button, settings_button;
+	TextButtonList text_buttons, lesson_buttons, book_buttons, init_button_list;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */
 	static int MAX_ACCELERATION_FACTOR;
+	Settings settings;
 public:
 	LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config );
+	void init_subscreen();
 	~LessonMenu();
 	void render( Screen screen );
 	void run_for_user_choice( LessonMenuChoice& choice );
@@ -110,6 +113,7 @@ public:
 	TextButton* get_button_by_content_type( LessonMenuChoice::ContentType content_type );
 	bool activate_button_by_content_type( LessonMenuChoice::ContentType content_type );
 	bool get_activation_by_content_type( LessonMenuChoice::ContentType content_type );
+	void show_settings();
 };
 
 

@@ -83,6 +83,7 @@ public:
             Lesson* _lesson ) 
         : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson),
         rating(RATING_NONE), id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0) {};
+	~NewWord();
     void render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings );
 public:
     std::string hanzi, //!< Foreign language word.
@@ -118,7 +119,7 @@ public:
     Lesson( int _number, Book* _book ) : number(_number), book(_book) {};
 	std::string find_config_file_by_extension( const std::string& extension );
     void parse_config( const std::string& lesson_file_name );
-    void parse_dictionary_if_needed();
+    int parse_dictionary_if_needed( bool count_only=false );
 	void parse_text( const std::string& extension, TextVector& container );
 public:
 	TextVector lesson_texts; //!< An array of lesson texts. \see Text

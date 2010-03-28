@@ -9,6 +9,7 @@
 #include "text_button.h"
 #include "settings_dialog.h"
 
+
 class LessonMenuChoice
 {
 	public:
@@ -34,6 +35,7 @@ class LessonMenuChoice
 		LessonMenuChoice() : book(0), lesson(0), 
 			content_type(CONTENT_TYPE_NONE) {}
 };
+
 
 class MenuEntry
 {
@@ -76,11 +78,30 @@ class MenuEntry
 		void render_text( FreetypeRenderer& ft, const std::string& text );
 		LessonMenuChoice::ContentType get_content_type_by_pos( int x, int y );
 };
+
 class MenuList : public std::map<void*,MenuEntry*>
 {
 	public:
 		~MenuList();
 };
+
+
+class DictionarySynchronizer : public ActionButton
+{
+	public:
+		FreetypeRenderer& freetype_renderer;
+		Library& library;
+		RenderScreen& info_screen;
+	public:
+		DictionarySynchronizer( const std::string& _name, const std::string& _description, 
+								const std::string& _button_label, FreetypeRenderer& _freetype_renderer,
+								Library& _library, RenderScreen& _screen )
+			: ActionButton( _name, _description, _button_label ), 
+			freetype_renderer(_freetype_renderer), library(_library), info_screen(_screen)
+		{}
+		virtual void run_action();
+};
+
 
 class LessonMenu
 {

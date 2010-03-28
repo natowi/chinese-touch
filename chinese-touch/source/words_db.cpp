@@ -38,6 +38,7 @@ void WordsDB::create()
 	typedef std::list<std::string> StringList;
 	StringList create_statements;
 	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC, file_id NUMERIC, file_offset NUMERIC)" );
+	create_statements.push_back( "CREATE INDEX i_words_word ON words (word)" );
 	create_statements.push_back( "CREATE TABLE books (id INTEGER PRIMARY KEY, path TEXT)" );
 	create_statements.push_back( "CREATE TABLE lessons (id INTEGER PRIMARY KEY, book_id NUMERIC, number NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)" );

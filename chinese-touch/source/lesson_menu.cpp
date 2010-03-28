@@ -163,54 +163,42 @@ LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
 }
 
 
-class DictionarySynchronizer : public ActionButton
+void DictionarySynchronizer::run_action()
 {
-	public:
-		FreetypeRenderer& freetype_renderer;
-		Library& library;
-		RenderScreen& info_screen;
-	public:
-		DictionarySynchronizer( const std::string& _name, const std::string& _description, 
-								const std::string& _button_label, FreetypeRenderer& _freetype_renderer,
-								Library& _library, RenderScreen& _screen )
-			: ActionButton( _name, _description, _button_label ), 
-			freetype_renderer(_freetype_renderer), library(_library), info_screen(_screen) {}
-		virtual void run_action()
+	RenderStyle style;
+	style.center_x = true;
+	int prev_run_count = 0;
+	std::string prev_progress;
+	for( int run=1; run<=2; run++ )
+	{
+		int run_count = 0;
+		for( Library::iterator book_it = this->library.begin(); book_it != this->library.end(); book_it++ )
 		{
-			RenderStyle style;
-			style.center_x = true;
-			int prev_run_count = 0;
-			std::string prev_progress;
-			for( int run=1; run<=2; run++ )
+			for( Book::iterator lesson_it = book_it->second->begin(); lesson_it != book_it->second->end(); lesson_it++ )
 			{
-				int run_count = 0;
-				for( Library::iterator book_it = this->library.begin(); book_it != this->library.end(); book_it++ )
+				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1) );
+				std::stringstream progress;
+				progress << ((run==1) ? "scanning" : "syncing") << "\n" 
+						<< ((run==1) ? 0 : run_count) << " / "
+						<< ((run==1) ? run_count : prev_run_count);
+				if( prev_run_count )
 				{
-					for( Book::iterator lesson_it = book_it->second->begin(); lesson_it != book_it->second->end(); lesson_it++ )
-					{
-						run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1) );
-						std::stringstream progress;
-						progress << ((run==1) ? "scanning" : "syncing") << "\n" 
-								<< ((run==1) ? 0 : run_count) << " / "
-								<< ((run==1) ? run_count : prev_run_count);
-						if( prev_run_count )
-						{
-							progress << " (" << (run_count*100)/prev_run_count << "%)";
-						}
-						std::string new_progress = progress.str();
-						if( new_progress != prev_progress )
-						{
-							prev_progress = new_progress;
-							info_screen.clear();
-							this->freetype_renderer.render( this->info_screen, progress.str(), this->freetype_renderer.latin_face, 14, 0, info_screen.res_y/2-30, &style );
-						}
-					}
+					progress << " (" << (run_count*100)/prev_run_count << "%)";
 				}
-				prev_run_count = run_count;
+				std::string new_progress = progress.str();
+				if( new_progress != prev_progress )
+				{
+					prev_progress = new_progress;
+					info_screen.clear();
+					this->freetype_renderer.render( this->info_screen, progress.str(), this->freetype_renderer.latin_face, 14, 0, info_screen.res_y/2-30, &style );
+				}
 			}
-			this->freetype_renderer.render( this->info_screen, "\n\n\ndone", this->freetype_renderer.latin_face, 14, 0, info_screen.res_y-30, &style );
 		}
-};
+		prev_run_count = run_count;
+	}
+	this->freetype_renderer.render( this->info_screen, "\n\n\ndone", this->freetype_renderer.latin_face, 14, 0, info_screen.res_y-30, &style );
+}
+
 
 LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config )
 	: freetype_renderer(_freetype_renderer), library(_library), config(_config), 
@@ -241,7 +229,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new DictionarySynchronizer("0_synchronize_dictionary", "Synchronize Word Database", "sync",
-														   this->freetype_renderer, this->library, this->info_screen) );
+		this->freetype_renderer, this->library, this->info_screen) );
 	
 	// store list of interactive buttons in instance:
 	this->lesson_buttons.push_back( &this->new_words_button );

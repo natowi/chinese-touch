@@ -23,6 +23,7 @@
 int main()
 {
 	defaultExceptionHandler();
+	bool first_run = false;
 	try
 	{
 		LOG( "initializing fat driver" );
@@ -41,6 +42,7 @@ int main()
 		{
 			WARN( e.full_msg );
 			WordsDB::create();
+			first_run = true;
 		}
 		WordsDB::update();
 		
@@ -75,12 +77,20 @@ int main()
 	while( true ) swiWaitForVBlank();
 #endif
 		
+		bool sync_done = false;
 		while( true )
 		{
 			try
 			{
 				LOG( "initializing lesson menu" );
 				LessonMenu* lesson_menu = new LessonMenu( *ft, library, config );
+				if( first_run && !sync_done )
+				{
+					DictionarySynchronizer* dict_sync = new DictionarySynchronizer( "","","", *ft, library, lesson_menu->menu_screen );
+					dict_sync->run_action();
+					delete dict_sync;
+					sync_done = true;
+				}
 				LessonMenuChoice lesson_menu_choice;
 				lesson_menu->run_for_user_choice( lesson_menu_choice );
 				delete lesson_menu;

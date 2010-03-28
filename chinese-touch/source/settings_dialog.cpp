@@ -109,7 +109,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 		if( boolean_setting )
 		{
 			TextButton* new_button = new TextButton( &oamSub, "", SpriteSize_16x16, 
-													 left, top, freetype_renderer.latin_face, 9 );
+													 left, top, freetype_renderer.latin_face, 8,1,1 );
 			new_button->owns_bg_vram = false;
 			new_button->bg_vram = this->dummy_checkbox.bg_vram;
 			new_button->bg_active_vram = this->dummy_checkbox.bg_active_vram;
@@ -120,7 +120,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 		else if( action_button )
 		{
 			TextButton* new_button = new TextButton( &oamSub, action_button->button_label, SpriteSize_32x16, 
-													 left, top, freetype_renderer.latin_face, 9 );
+													 left, top, freetype_renderer.latin_face, 8,1,1 );
 			new_button->owns_bg_vram = false;
 			new_button->bg_vram = this->dummy_start_button.bg_vram;
 			new_button->bg_active_vram = this->dummy_start_button.bg_active_vram;

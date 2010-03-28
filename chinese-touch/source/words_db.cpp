@@ -122,13 +122,20 @@ void WordsDB::update()
 				throw ERROR( msg.str() );
 			}
 		}
+		stmt = "CREATE INDEX IF NOT EXISTS i_words_word ON words (word)";
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}	
 	}
 }
 
 int WordsDB::get_book_id( Book& book, bool add_missing )
 {
 	IntList int_list;
-	std::string statement = "select id from books where path like \""+book.name+"\"";
+	std::string statement = "select id from books where path = \""+book.name+"\"";
 	int rc;
 	if( (rc = sqlite3_exec(db, statement.c_str(), int_list_callback, &int_list, 0))!=SQLITE_OK )
 	{
@@ -201,7 +208,7 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 	}
 	std::stringstream statement_stream;
 	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime, file_id, file_offset from words"
-		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
+		<< " where word=\"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
 		<< " and lesson_id=" << new_word.lesson->id
 		<< " and duplicate_id=" << new_word.duplicate_id;
 	std::string statement = statement_stream.str();
@@ -294,7 +301,7 @@ bool WordsDB::read_word( NewWord& new_word )
 	}
 	std::stringstream statement_stream;
 	statement_stream << "select id, pronunciation, type, definition, comment, rating, atime, file_id, file_offset from words"
-		<< " where word like \"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
+		<< " where word=\"" << replace_pattern(new_word.hanzi,"\"","\"\"") << "\""
 		<< " and lesson_id=" << new_word.lesson->id 
 		<< " and duplicate_id=" << new_word.duplicate_id;
 	std::string statement = statement_stream.str();

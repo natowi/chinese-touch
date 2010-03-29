@@ -40,7 +40,7 @@ TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
 	: freetype_renderer(_ft), config(_config), text(_text), y_offset(5), v_y(0), sub_frame_count(0),
 		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
-		context_render_char(0),
+		context_render_char(0), recursion_depth(0),
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,text_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
@@ -249,7 +249,7 @@ void TextView::render( Screen screen, bool update_sprites )
 					this->rating_impossible.render_to( oam_entry );
 			}
 			if( this->text.lesson ) this->settings_button.render_to( oam_entry );
-			this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
+			if( !this->down_button.inactive ) this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
 			if( !this->up_button.inactive ) this->up_button.render_to( oam_entry );
 			
 			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
@@ -456,7 +456,8 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
-            else if( this->down_button.is_responsible(touch.px, touch.py) 
+            else if( !this->down_button.inactive
+				&& this->down_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
 				&& this->current_new_word_list_it != this->current_new_word_list.end() )
 			{
@@ -617,7 +618,7 @@ void TextView::run_until_exit()
 				this->down_button.active = false;
 				this->text_buttons.free_all();
 				//this->free_line_buffers();
-				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_new_word_list_it );
+				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_new_word_list_it, this->recursion_depth );
 				this->init_subscreen();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
@@ -736,7 +737,7 @@ void TextView::run_until_exit()
 	}
 }
 
-void TextView::show_word_as_text(FreetypeRenderer& ft, Config* config, NewWord* word)
+void TextView::show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word, int recursion_depth )
 {
 	if( !word )
 		return;
@@ -750,6 +751,9 @@ void TextView::show_word_as_text(FreetypeRenderer& ft, Config* config, NewWord* 
 		new_text += di->second->example + "\n\n";
 	}
 	TextView* text_view = new TextView( ft, config, new_text );
+	text_view->recursion_depth = recursion_depth+1;
+	if( text_view->recursion_depth>=10 )
+		text_view->down_button.inactive = true;
 	text_view->up_button.inactive = false;
 	text_view->run_until_exit();
 	delete text_view;

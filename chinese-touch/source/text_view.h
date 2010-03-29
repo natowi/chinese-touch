@@ -40,6 +40,7 @@ public:
 	static int LINE_HEIGHT;
 	ContextMode context_mode;
 	RenderChar* context_render_char;
+	int recursion_depth;
 	TextButton left_button, right_button, exit_button,
 			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
@@ -60,7 +61,7 @@ public:
 	void free_line_buffers();
 	void render( Screen screen, bool update_sprites=true );
 	void run_until_exit();
-	static void show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word );
+	static void show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word, int recursion_depth=0 );
 	void show_settings();
 	void restore_init_settings();
 };

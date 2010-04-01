@@ -93,14 +93,19 @@ col_names = [
 	"file_offset"
 ]
 
-for i in xrange(len(col_names)):
-	if( i ): sys.stdout.write( "\t" )
-	sys.stdout.write( col_names[i] )
-print("")
+if "--inserts" in sys.argv[1:]:
+	col_names.remove("id")
+	print "BEGIN TRANSACTION;"
+	print "CREATE TABLE words (atime NUMERIC, id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, file_id NUMERIC default 0, file_offset NUMERIC default 0);"
+else:
+	for i in xrange(len(col_names)):
+		if( i ): sys.stdout.write( "\t" )
+		sys.stdout.write( col_names[i] )
+	print("")
 
 sys.stdin.readline()
 atime=int(time.time())
-id=0
+id=1
 word="-"
 lesson_id=0
 duplicate_id=0
@@ -126,9 +131,23 @@ for line in sys.stdin:
 			result = result[0]
 			definition = result[0]
 			type = result[1]
-		for i in xrange(len(col_names)):
-			if( i ): sys.stdout.write( "\t" )
-			sys.stdout.write( ("%("+col_names[i]+")s") % locals() )
-		print("")
+		if "--inserts" in sys.argv[1:]:
+			insert = "insert into words ("+",".join(col_names)+") values ("
+			for i in xrange(len(col_names)):
+				if( i ): insert+=","
+				value = ("%("+col_names[i]+")s") % locals()
+				value = value.replace( "'", "''" ).strip()
+				insert += "'"+value+"'"
+			insert += ");"
+			print insert
+		else:
+			for i in xrange(len(col_names)):
+				if( i ): sys.stdout.write( "\t" )
+				sys.stdout.write( ("%("+col_names[i]+")s") % locals() )
+			print("")
 		id+=1
+
+if "--inserts" in sys.argv[1:]:
+	print "CREATE INDEX i_words_word ON words (word);"
+	print "COMMIT;"
 

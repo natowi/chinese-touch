@@ -68,7 +68,7 @@ static int int_list_callback( void *pv_int_list, int argc, char **argv, char **a
 {
 	IntList* int_list = static_cast<IntList*>(pv_int_list);
 	if( int_list->size()>=MAX_RESULT_SIZE )
-		return 1;
+		return 0;
 	if( argc >= 1 ) int_list->push_back( atoi(argv[0]) );
 	return 0;
 }
@@ -79,7 +79,7 @@ static int map_list_callback( void *pv_map_list, int argc, char **argv, char **a
 {
 	MapList* map_list = static_cast<MapList*>(pv_map_list);
 	if( map_list->size()>=MAX_RESULT_SIZE )
-		return 1;
+		return 0;
 	StringMap row_map;
 	for( int i=0; i<argc; i++ )
 	{

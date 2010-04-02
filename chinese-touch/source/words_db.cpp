@@ -61,10 +61,14 @@ void WordsDB::close()
 	db = 0;
 }
 
+#define MAX_RESULT_SIZE 100
+
 typedef std::list<int> IntList;
 static int int_list_callback( void *pv_int_list, int argc, char **argv, char **azColName )
 {
 	IntList* int_list = static_cast<IntList*>(pv_int_list);
+	if( int_list->size()>=MAX_RESULT_SIZE )
+		return 1;
 	if( argc >= 1 ) int_list->push_back( atoi(argv[0]) );
 	return 0;
 }
@@ -74,6 +78,8 @@ typedef std::list<StringMap> MapList;
 static int map_list_callback( void *pv_map_list, int argc, char **argv, char **azColName )
 {
 	MapList* map_list = static_cast<MapList*>(pv_map_list);
+	if( map_list->size()>=MAX_RESULT_SIZE )
+		return 1;
 	StringMap row_map;
 	for( int i=0; i<argc; i++ )
 	{
@@ -338,8 +344,8 @@ void WordsDB::query_words( Library& library, const std::string& condition, NewWo
 	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
 			<< ", rating, lesson_id, duplicate_id, atime, book_id, lessons.number as lesson_number"
 			<< ", file_id, file_offset, books.path as book_path"
-		<< " from words inner join lessons on lesson_id=lessons.id"
-					<< " inner join books on book_id=books.id"
+		<< " from words left join lessons on lesson_id=lessons.id"
+					<< " left join books on book_id=books.id"
 		<< " where " << condition;
 	if( ordering.length() )
 		statement_stream << " order by " << ordering;

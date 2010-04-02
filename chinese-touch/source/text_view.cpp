@@ -796,7 +796,7 @@ void TextView::restore_init_settings()
 		if( this->lookup_from_other_books )
 		{
 			if( or_needed ) extra_sql_cond << " or ";
-			extra_sql_cond << "book_id!=" << this->text.lesson->book->id;
+			extra_sql_cond << "book_id!=" << this->text.lesson->book->id << " or book_id is Null";
 			or_needed = true;
 		}
 	}

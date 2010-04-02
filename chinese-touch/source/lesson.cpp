@@ -220,10 +220,8 @@ void Library::find_words_by_context( const std::string& text, const UCCharList& 
 			final_end_inserted = true;
 		}
 	}
-	NewWordList pre_result;
-	this->find_words_by_characters( pos_character, pre_result, extra_sql_cond );
-	typedef std::set<std::string> StringSet;
-	StringSet patterns;
+	
+	std::string sql_cond;
 	for( PosList::iterator start_it = starts.begin();
 		start_it != starts.end();
 		start_it++ )
@@ -238,19 +236,14 @@ void Library::find_words_by_context( const std::string& text, const UCCharList& 
 				pattern += text.substr( char_it->source_offset, char_it->source_length );
 			}
 			LOG( "pattern: \"" << pattern << "\"" );
-			patterns.insert( pattern );
+			if( sql_cond.size() ) 
+				sql_cond += " or ";
+			sql_cond += "word=\""+pattern+"\"";
 		}
 	}
-	for( NewWordList::iterator ri = pre_result.begin(); ri != pre_result.end(); ri++ )
-	{
-		if( patterns.find((*ri)->hanzi)!=patterns.end() )
-		{
-			result.push_back( *ri );
-		}
-		else if( *ri ) delete *ri;
-	}
-	pre_result.erase( pre_result.begin(), pre_result.end() );
-	
+	if( extra_sql_cond.length() )
+		sql_cond = "(" + sql_cond + ") and ("+extra_sql_cond+")";
+	WordsDB::query_words( *this, sql_cond, result );
 	result.sort( hanzi_max_length_sort_predicate );
 }
 

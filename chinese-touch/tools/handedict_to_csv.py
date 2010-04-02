@@ -108,29 +108,31 @@ atime=int(time.time())
 id=1
 word="-"
 lesson_id=0
-duplicate_id=0
 type="-"
 pronunciation="-"
 definition="-"
 comment=""
 rating="0"
 file_id="0"
-file_offset="0"
+file_offset=0
 for line in sys.stdin:
 	line = line.replace( "\t", " " );
 	line = line.replace( "(u.E.)", "" );
-	result = re.findall( "^([^ ]*) ([^ ]*) \[([^\]]*)\] /(.*)/", line )
-	result = result[0]
+	line = line.replace( "&gt", ">" );
+	results = re.findall( "^([^ ]*) ([^ ]*) \[([^\]]*)\] /(.*/)", line )
+	result = results[0]
 	traditional = result[0]
 	word = result[1]
 	pronunciation = translate_pinyin( result[2] )
-	definitions = result[3].split("/")
-	for definition in definitions:
-		result = re.findall( "^(.*)\((.*)\)", definition )
-		if( len(result) ):
-			result = result[0]
-			definition = result[0]
-			type = result[1]
+	raw_definition = result[3]
+	results = re.findall( "(.*?) *(?:<(.*?)>)? *(?:\(([^\(]*)\))? *[/]", raw_definition )
+	test=False
+	for duplicate_id in xrange(len(results)):
+		test=True
+		result = results[ duplicate_id ]
+		definition = result[0]
+		comment = result[1]
+		type = result[2]
 		if "--inserts" in sys.argv[1:]:
 			insert = "insert into words ("+",".join(col_names)+") values ("
 			for i in xrange(len(col_names)):
@@ -146,6 +148,10 @@ for line in sys.stdin:
 				sys.stdout.write( ("%("+col_names[i]+")s") % locals() )
 			print("")
 		id+=1
+	if( not test ):
+		print line
+		raise Exception("Parse error")
+	file_offset+=1
 
 if "--inserts" in sys.argv[1:]:
 	print "CREATE INDEX i_words_word ON words (word);"

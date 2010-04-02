@@ -36,8 +36,8 @@ int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
-TextView::TextView( FreetypeRenderer& _ft, Config* _config, Text& _text )
-	: freetype_renderer(_ft), config(_config), text(_text), y_offset(5), v_y(0), sub_frame_count(0),
+TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config )
+	: freetype_renderer(_ft), library(_library), text(_text), config(_config), y_offset(5), v_y(0), sub_frame_count(0),
 		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0), recursion_depth(0),
@@ -209,7 +209,7 @@ void TextView::render( Screen screen, bool update_sprites )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( this->freetype_renderer, this->word_screen, *this );
+			new_word->render( this->freetype_renderer, this->word_screen, *this, this->library );
 		}
 	}
 	else if( screen == SCREEN_SUB )
@@ -238,7 +238,8 @@ void TextView::render( Screen screen, bool update_sprites )
 			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
 			if( new_word )
 			{
-				if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
+				if( !this->library.words_db.read_word(*new_word) ) 
+					this->library.words_db.add_or_write_word( *new_word );
 				if( this->rating_easy.active || new_word->rating==RATING_EASY )
 					this->rating_easy.render_to( oam_entry );
 				if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
@@ -281,7 +282,7 @@ void TextView::render( Screen screen, bool update_sprites )
 
 void TextView::run_until_exit()
 {
-	if( this->config) 
+	if( this->config ) 
 		this->config->save_position( this->text.lesson );
 	this->render( SCREEN_SUB );
 	this->render( SCREEN_MAIN );
@@ -568,7 +569,7 @@ void TextView::run_until_exit()
             {
 				this->rating_easy.active = false;
 				(*this->current_new_word_list_it)->rating = RATING_EASY;
-				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -578,7 +579,7 @@ void TextView::run_until_exit()
             {
 				this->rating_medium.active = false;
 				(*this->current_new_word_list_it)->rating = RATING_MEDIUM;
-				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -588,7 +589,7 @@ void TextView::run_until_exit()
             {
 				this->rating_hard.active = false;
 				(*this->current_new_word_list_it)->rating = RATING_HARD;
-				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -598,7 +599,7 @@ void TextView::run_until_exit()
             {
 				this->rating_impossible.active = false;
 				(*this->current_new_word_list_it)->rating = RATING_IMPOSSIBLE;
-				WordsDB::add_or_write_word( **this->current_new_word_list_it );
+				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -618,7 +619,7 @@ void TextView::run_until_exit()
 				this->down_button.active = false;
 				this->text_buttons.free_all();
 				//this->free_line_buffers();
-				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_new_word_list_it, this->recursion_depth );
+				TextView::show_word_as_text( this->freetype_renderer, this->library, *this->current_new_word_list_it, 0, this->recursion_depth );
 				this->init_subscreen();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
@@ -681,7 +682,7 @@ void TextView::run_until_exit()
 									|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 								{
 									// first click (odd count) on a character: find words in current context:
-									this->text.lesson->book->library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list, this->lookup_sql_cond );
+									this->library.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list, this->lookup_sql_cond );
 									this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
 									// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
 									this->text_screen.palette[0] = 16<<10|24<<5|31;
@@ -690,7 +691,7 @@ void TextView::run_until_exit()
 								{
 									// second click (even count) on a character: find words containing selected character:
 									std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
-									this->text.lesson->book->library->find_words_by_characters( character, this->current_new_word_list, this->lookup_sql_cond );
+									this->library.find_words_by_characters( character, this->current_new_word_list, this->lookup_sql_cond );
 									this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 									// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
 									this->text_screen.palette[0] = 31<<10|24<<5|24;
@@ -737,7 +738,7 @@ void TextView::run_until_exit()
 	}
 }
 
-void TextView::show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word, int recursion_depth )
+void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth )
 {
 	if( !word )
 		return;
@@ -750,7 +751,7 @@ void TextView::show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord*
 		new_text += di->second->comment + "\n\n";
 		new_text += di->second->example + "\n\n";
 	}
-	TextView* text_view = new TextView( ft, config, new_text );
+	TextView* text_view = new TextView( ft, library, new_text, config );
 	text_view->recursion_depth = recursion_depth+1;
 	if( text_view->recursion_depth>=10 )
 		text_view->down_button.inactive = true;

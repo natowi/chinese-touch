@@ -4,8 +4,6 @@
 #include "config.h"
 #include "error_console.h"
 
-bool global_fat_initialized = false;
-
 Config::Config()
  : previous_word(0), changed(false)
 {
@@ -94,11 +92,6 @@ void Config::save()
 void Config::save_really()
 {
     LOG( "Config::save_really()" );
-    if( !global_fat_initialized )
-    {
-        WARN( "cannot save without fat" );
-        return;
-    }
     FILE* f = fopen( CONFIG_FILE_NAME, "w" );
     if( f )
     {
@@ -113,7 +106,6 @@ void Config::save_really()
 
 void Config::load()
 {
-    if( !global_fat_initialized ) return;
     FILE* f = fopen( CONFIG_FILE_NAME, "r" );
     if( f )
     {

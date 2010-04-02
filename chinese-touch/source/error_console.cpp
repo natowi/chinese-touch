@@ -18,7 +18,7 @@ const char* Error::what()
 	{
 		_file = this->file.substr( right_slash_pos+1 );
 	}
-	_full_msg << "Error: " << *this << " (" << _file << ":" << this->line << ") [" << this->timestamp << "]";
+	_full_msg << "Error: " << *this << " (" << _file << ":" << this->line << " in " << this->function << ") [" << this->timestamp << "]";
 	this->full_msg = _full_msg.str();
 	return this->full_msg.c_str();
 }

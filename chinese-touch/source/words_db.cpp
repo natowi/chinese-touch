@@ -15,26 +15,25 @@ std::string replace_pattern( std::string src, const std::string& pattern, const 
 }
 
 
-sqlite3* WordsDB::db = 0;
-
-void WordsDB::open( bool create_db )
+void WordsDB::open( const std::string& file_name, bool create_db )
 {
-	if( WordsDB::db ) throw ERROR( "WordsDB already opened" );
+	if( this->db ) throw ERROR( "WordsDB already opened" );
 	int rc;
 	int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX;
 	if( create_db ) flags |= SQLITE_OPEN_CREATE;
-	if( (rc = sqlite3_open_v2( WORDS_DB_FILE_NAME, &db, flags, 0))!=SQLITE_OK )
+	LOG( "opening: " << file_name );
+	if( (rc = sqlite3_open_v2( file_name.c_str(), &db, flags, 0))!=SQLITE_OK )
 	{
 		std::stringstream msg;
 		msg << sqlite3_errmsg(db) << ": " << rc;
-		WordsDB::close();
+		this->close();
 		throw ERROR( msg.str() );
 	}
 }
 
-void WordsDB::create()
+void WordsDB::create( const std::string& file_name )
 {
-	WordsDB::open( true );
+	this->open( file_name, true );
 	typedef std::list<std::string> StringList;
 	StringList create_statements;
 	create_statements.push_back( "CREATE TABLE words (id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, atime NUMERIC, file_id NUMERIC, file_offset NUMERIC)" );
@@ -163,7 +162,7 @@ int WordsDB::get_book_id( Book& book, bool add_missing )
 				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
 				throw ERROR( msg.str() );
 			}
-			return WordsDB::get_book_id( book, false );
+			return this->get_book_id( book, false );
 		}
 		else return 0;
 	}
@@ -198,7 +197,7 @@ int WordsDB::get_lesson_id( Lesson& lesson, bool add_missing )
 				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
 				throw ERROR( msg.str() );
 			}
-			return WordsDB::get_lesson_id( lesson, false );
+			return this->get_lesson_id( lesson, false );
 		}
 		else return 0;
 	}
@@ -267,7 +266,7 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 		)
 		{
 			new_word.id = atoi( row_map["id"].c_str() );
-			WordsDB::write_word( new_word );
+			this->write_word( new_word );
 		}
 	}
 }
@@ -387,6 +386,43 @@ void WordsDB::query_words( Library& library, const std::string& condition, NewWo
 	}
 }
 
+void WordsDB::query_static_words( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering )
+{
+	MapList map_list;
+	std::stringstream statement_stream;
+	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
+			<< ", rating, lesson_id, duplicate_id, atime, file_id, file_offset"
+		<< " from words"
+		<< " where " << condition;
+	if( ordering.length() )
+		statement_stream << " order by " << ordering;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
+	}
+	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
+	{
+		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], owner_lesson );
+		word->id = atoi( (*i)["id"].c_str() );
+		Definition* def = new Definition();
+		def->word_type = (*i)["type"];
+		def->translation = (*i)["definition"];
+		def->comment = (*i)["comment"];
+		def->lang = "de";
+		word->definitions[ def->lang ] = def;
+		word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+		word->atime = atol( (*i)["atime"].c_str() );
+		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
+		word->file_id = atoi( (*i)["file_id"].c_str() );
+		word->file_offset = atoi( (*i)["file_offset"].c_str() );
+		result_list.push_back( word );
+	}
+}
+
 int WordsDB::get_file_id( const std::string& file_path )
 {
 	std::string stmt = "select id from files where path='" + file_path + "'";
@@ -434,7 +470,7 @@ int WordsDB::get_file_mtime( const std::string& file_path )
 /*! Sets mtime entry of files with file_path to new_mtime */
 void WordsDB::set_file_mtime( const std::string& file_path, int new_mtime )
 {
-	int file_id = WordsDB::get_file_id( file_path );
+	int file_id = this->get_file_id( file_path );
 	if( !file_id )
 	{
 		std::stringstream stmt_stream;

@@ -27,27 +27,26 @@ int main()
 	try
 	{
 		LOG( "initializing fat driver" );
-		global_fat_initialized = fatInitDefault();
-		if( !global_fat_initialized )
+		if( !fatInitDefault() )
 		{
 			throw ERROR( "error initializing fat driver" );
 		}
 		
-		
+		WordsDB words_db;
 		try
 		{
-			WordsDB::open();
+			words_db.open( WORDS_DB_FILE_NAME );
 		}
 		catch( Error& e )
 		{
-			WARN( e.full_msg );
-			WordsDB::create();
+			WARN( e.what() );
+			words_db.create( WORDS_DB_FILE_NAME );
 			first_run = true;
 		}
-		WordsDB::update();
+		words_db.update();
 		
 		LOG( "initializing library" );
-		Library library( global_fat_initialized );
+		Library library( words_db );
 		LOG( "scanning library..." );
 		library.rescan();
 		LOG( "scanning complete" );
@@ -126,8 +125,8 @@ int main()
 						}
 						if( lesson_menu_choice.lesson )
 							condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
-						WordsDB::query_words( library, condition.str(), words, "atime" );
-						NewWordsViewer* new_words = new NewWordsViewer( *ft, words );
+						library.words_db.query_words( library, condition.str(), words, "atime" );
+						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library );
 						if( lesson_menu_choice.lesson ) config.save_position( lesson_menu_choice.lesson, true );
 						else config.save_position( lesson_menu_choice.book, true );
 						new_words->run_until_exit();
@@ -143,8 +142,8 @@ int main()
 						NewWordList words;
 						std::stringstream condition;
 						condition << "lesson_id=" << lesson->id;
-						WordsDB::query_words( library, condition.str(), words, "file_offset" );
-						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
+						library.words_db.query_words( library, condition.str(), words, "file_offset" );
+						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library, &config );
 						new_words->run_until_exit();
 						delete new_words;
 						break;
@@ -161,7 +160,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, &config, *texts[0] );
+							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Grammatik für diese Lektion vorhanden" );
 						break;
@@ -178,7 +177,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, &config, *texts[0] );
+							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "Kein Text für diese Lektion vorhanden" );
 						break;
@@ -195,7 +194,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, &config, *texts[0] );
+							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
 						break;

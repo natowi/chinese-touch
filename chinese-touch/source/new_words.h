@@ -15,6 +15,7 @@ class NewWordsViewer : public NewWordRenderSettings
 		RenderScreen word_screen, drawing_screen;
 		NewWordList& words;
 		NewWordList::iterator current_word;
+		Library& library;
 		Config* config;
 		TextButton left_button, right_button, exit_button, clear_button, 
 			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
@@ -24,7 +25,7 @@ class NewWordsViewer : public NewWordRenderSettings
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;
 	public:
-		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config* _config=0 );
+		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config=0 );
 		void init_subscreen();
 		void show_settings();
 		void render( Screen screen );

@@ -27,8 +27,9 @@ class TextView : private std::list<BufferedLine*>, public NewWordRenderSettings
 {
 public:
 	FreetypeRenderer& freetype_renderer;
-	Config* config;
+	Library& library;
 	Text& text;
+	Config* config;
 	RenderScreen word_screen, text_screen;
 	int y_offset;
 	int v_y;
@@ -55,13 +56,13 @@ public:
 		lookup_from_upcoming_lessons, lookup_from_other_books;
 	std::string lookup_sql_cond;
 public:
-	TextView( FreetypeRenderer& _ft, Config* _config, Text& _text );
+	TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config );
 	void init_subscreen();
 	~TextView();
 	void free_line_buffers();
 	void render( Screen screen, bool update_sprites=true );
 	void run_until_exit();
-	static void show_word_as_text( FreetypeRenderer& ft, Config* config, NewWord* word, int recursion_depth=0 );
+	static void show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth = 0 );
 	void show_settings();
 	void restore_init_settings();
 };

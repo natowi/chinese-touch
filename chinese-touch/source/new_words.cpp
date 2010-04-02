@@ -39,14 +39,17 @@
 #include "small_top_button_active.h"
 
 
-void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings )
+void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings, Library& library )
 {
 	// try to read the corresponding entry from the database:
-	WordsDB::read_word(*this);
-	// update words access time:
-	this->atime = time(0);
-	// write updated word to database:
-	WordsDB::add_or_write_word( *this );
+	if( this->lesson && this->lesson->book && this->lesson->book->library )
+	{
+		this->lesson->book->library->words_db.read_word(*this);
+		// update words access time:
+		this->atime = time(0);
+		// write updated word to database:
+		this->lesson->book->library->words_db.add_or_write_word( *this );
+	}
 	render_screen.clear();
 
 	// render hanzi centered
@@ -130,9 +133,9 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Config* _config )
+NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config )
 	: freetype_renderer(_freetype_renderer), drawing_pad(drawing_screen), words(_words), 
-		current_word(words.begin()), config(_config), 
+		current_word(words.begin()), library(_library), config(_config), 
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,drawing_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
@@ -267,7 +270,7 @@ void NewWordsViewer::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( this->freetype_renderer, this->word_screen, *this );
+			new_word->render( this->freetype_renderer, this->word_screen, *this, this->library );
 		}
 	}
 	else if( screen == SCREEN_SUB )
@@ -294,7 +297,8 @@ void NewWordsViewer::render( Screen screen )
 		this->rating_bar.render_to( oam_entry );
 		if( new_word )
 		{
-			if( !WordsDB::read_word(*new_word) ) WordsDB::add_or_write_word( *new_word );
+			if( !this->library.words_db.read_word(*new_word) ) 
+				this->library.words_db.add_or_write_word( *new_word );
 			if( this->rating_easy.active || new_word->rating==RATING_EASY )
 				this->rating_easy.render_to( oam_entry );
 			if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
@@ -573,7 +577,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_easy.active = false;
 				(*this->current_word)->rating = RATING_EASY;
-				WordsDB::add_or_write_word( **this->current_word );
+				this->library.words_db.add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -582,7 +586,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_medium.active = false;
 				(*this->current_word)->rating = RATING_MEDIUM;
-				WordsDB::add_or_write_word( **this->current_word );
+				this->library.words_db.add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -591,7 +595,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_hard.active = false;
 				(*this->current_word)->rating = RATING_HARD;
-				WordsDB::add_or_write_word( **this->current_word );
+				this->library.words_db.add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -600,7 +604,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->rating_impossible.active = false;
 				(*this->current_word)->rating = RATING_IMPOSSIBLE;
-				WordsDB::add_or_write_word( **this->current_word );
+				this->library.words_db.add_or_write_word( **this->current_word );
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
             }
@@ -618,7 +622,7 @@ void NewWordsViewer::run_until_exit()
             {
 				this->down_button.active = false;
 				this->text_buttons.free_all();
-				TextView::show_word_as_text( this->freetype_renderer, 0, *this->current_word );
+				TextView::show_word_as_text( this->freetype_renderer, this->library, *this->current_word, 0 );
 				this->init_subscreen();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );

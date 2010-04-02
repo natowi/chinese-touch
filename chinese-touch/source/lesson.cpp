@@ -80,7 +80,16 @@ void Library::rescan()
             }
             Book* book = new Book( book_name, this );
             book->parse_config( book_conf_path ); //! \see Book::parse_config
-			book->id = WordsDB::get_book_id( *book, true );
+			book->id = this->words_db.get_book_id( *book, true );
+			 /*! each book can have one static dictionary called \<bookdir\>.db */
+            std::string book_db_path = lessons_path + "/" + book_name + ".db";
+            struct stat book_db_stat;
+            if( stat(book_db_path.c_str(), &book_db_stat)==0 )
+            {
+				book->static_words_db_path = book_db_path;
+				book->dictionary_lesson = new Lesson( 0, book );
+				book->dictionary_lesson->id = this->words_db.get_lesson_id( *book->dictionary_lesson, true );
+            }
             (*this)[ book_name ] = book;
             LOG( "book: " << book_path );
             DIR* lessons_dir = opendir( lessons_path.c_str() );
@@ -125,7 +134,7 @@ void Library::rescan()
 						else
 						{
 							lesson = new Lesson( lesson_number, book );
-							lesson->id = WordsDB::get_lesson_id( *lesson, true );
+							lesson->id = this->words_db.get_lesson_id( *lesson, true );
 							(*book)[ lesson_number ] = lesson;
 						}
 						/*! The following lesson specific configuration files may appear multiple times 
@@ -180,7 +189,7 @@ void Library::find_words_by_characters( const std::string& characters, NewWordLi
 	std::string sql_cond = "word like '%"+characters+"%'";
 	if( extra_sql_cond.length() )
 		sql_cond += " and ("+extra_sql_cond+")";
-	WordsDB::query_words( *this, sql_cond, result );
+	this->words_db.query_words( *this, sql_cond, result );
 	result.sort( hanzi_min_length_sort_predicate );
 }
 
@@ -235,15 +244,47 @@ void Library::find_words_by_context( const std::string& text, const UCCharList& 
 			{
 				pattern += text.substr( char_it->source_offset, char_it->source_length );
 			}
+			pattern = replace_pattern( pattern, "\"", "\"\"" );
+			pattern = replace_pattern( pattern, "\n", "\\n" );
 			LOG( "pattern: \"" << pattern << "\"" );
 			if( sql_cond.size() ) 
 				sql_cond += " or ";
 			sql_cond += "word=\""+pattern+"\"";
 		}
 	}
+	std::string final_sql_cond = sql_cond;
 	if( extra_sql_cond.length() )
-		sql_cond = "(" + sql_cond + ") and ("+extra_sql_cond+")";
-	WordsDB::query_words( *this, sql_cond, result );
+		final_sql_cond = "(" + final_sql_cond + ") and ("+extra_sql_cond+")";
+	// query main word database:
+	this->words_db.query_words( *this, final_sql_cond, result );
+	// query available static book databases
+	for( Library::iterator book_it = this->begin(); book_it != this->end(); book_it++ )
+	{
+		if( book_it->second 
+			&& book_it->second->dictionary_lesson
+			&& book_it->second->static_words_db_path.length() )
+		{
+			WordsDB* static_db = new WordsDB();
+			try
+			{
+				static_db->open( book_it->second->static_words_db_path );
+				try
+				{
+					static_db->query_static_words( *this, sql_cond, result, book_it->second->dictionary_lesson );
+				}
+				catch( Error& e )
+				{
+					WARN( e.what() );
+				}
+				static_db->close();
+			}
+			catch( Error& e )
+			{
+				WARN( e.what() );
+			}
+			delete static_db;
+		}
+	}
 	result.sort( hanzi_max_length_sort_predicate );
 }
 
@@ -380,11 +421,11 @@ int Lesson::parse_dictionary_if_needed( bool count_only )
 	{
 		throw ERROR( strerror(errno) );
 	}
-	if( WordsDB::get_file_mtime(dict_file_name) == dict_file_stats.st_mtime )
+	if( this->book->library->words_db.get_file_mtime(dict_file_name) == dict_file_stats.st_mtime )
 		return 0;
 	if( !count_only )
-		WordsDB::set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
-	int file_id = WordsDB::get_file_id( dict_file_name );
+		this->book->library->words_db.set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
+	int file_id = this->book->library->words_db.get_file_id( dict_file_name );
     std::ifstream dict_file( dict_file_name.c_str() );
     char line_buffer[1024];
     std::string hanzi, pinyin;
@@ -413,7 +454,7 @@ int Lesson::parse_dictionary_if_needed( bool count_only )
 					word->file_id = file_id;
 					word->file_offset = word_count;
 					seen_words[word->hanzi] = word->duplicate_id+1;
-					WordsDB::add_or_write_word( *word );
+					this->book->library->words_db.add_or_write_word( *word );
 					delete word;
 				}
                 hanzi = "";

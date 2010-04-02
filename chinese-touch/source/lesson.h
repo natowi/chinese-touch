@@ -7,6 +7,7 @@
 #include <string>
 
 #include "freetype_renderer.h"
+#include "words_db.h"
 
 
 /*! Stores which parts of dictionary entries shall be displayed on top screen. */
@@ -84,7 +85,7 @@ public:
         : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson),
         rating(RATING_NONE), id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0) {};
 	~NewWord();
-    void render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings );
+    void render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings, Library& library );
 public:
     std::string hanzi, //!< Foreign language word.
 				pinyin; //!< Foreign language pronunciation.
@@ -143,35 +144,38 @@ class Library;
 class Book : public std::map<int,Lesson*>
 {
 public:
-    Book( const std::string& _name, Library* _library ) : name(_name),
-        library(_library) {}
-    void parse_config( const std::string& book_conf_file_name );
+	Book( const std::string& _name, Library* _library ) : name(_name),
+		library(_library), dictionary_lesson(0) {}
+	void parse_config( const std::string& book_conf_file_name );
 	std::string get_full_path();
 public:
-    std::string name, //!< The name of the book is equal to its subdirectory name below /chinese-touch/books/.
+	std::string name, //!< The name of the book is equal to its subdirectory name below /chinese-touch/books/.
 		title, //!< The books title.
 		description, //!< The books short description.
 		author, //!< The books authors name.
 		publisher, //!< The name of the books publisher.
 		isbn; //!< The books ISBN code.
-    int year; //!< The publication year of the book.
-    Library* library; //!< A pointer to the library this book belongs to.
+	int year; //!< The publication year of the book.
+	Library* library; //!< A pointer to the library this book belongs to.
 	int id; //!< This books unique id within the sqlite database (0 if unassociated).
+	std::string static_words_db_path; //!< Full path to the books static dictionary database file, if any or empty
+	Lesson* dictionary_lesson; //!< Pointer to the virtual owner lesson of NewWords queried from the static dictionary, or 0
 };
 
+
+typedef std::list<std::string> StringList;
 
 //! A Library is a collection of books. \see Book
 class Library : public std::map<std::string,Book*>
 {
 public:
-    Library( bool _fat_initialized ) 
-		: fat_initialized(_fat_initialized) {}
-    void rescan();
+	Library( WordsDB& _words_db ) : words_db(_words_db) {}
+	void rescan();
 	void find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond="" );
 	void find_words_by_context( const std::string& text, const UCCharList& search_list, 
 		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond="" );
-protected:
-    bool fat_initialized;
+public:
+	WordsDB& words_db;
 };
 
 #endif // LESSON_H

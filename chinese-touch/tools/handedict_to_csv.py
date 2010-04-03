@@ -119,13 +119,31 @@ for line in sys.stdin:
 	line = line.replace( "\t", " " );
 	line = line.replace( "(u.E.)", "" );
 	line = line.replace( "&gt", ">" );
+	#                       trad.   simpl.    pinyin      definition
 	results = re.findall( "^([^ ]*) ([^ ]*) \[([^\]]*)\] /(.*/)", line )
 	result = results[0]
 	traditional = result[0]
 	word = result[1]
 	pronunciation = translate_pinyin( result[2] )
 	raw_definition = result[3]
-	results = re.findall( "(.*?) *(?:<(.*?)>)? *(?:\(([^\(]*)\))? *(?:; *(Bsp\.:.*))? *[/]", raw_definition )
+	fixed_definition = ""
+	parenthesis_level=0
+	# try to fix slashes in parenthesis:
+	for c in raw_definition:
+		if c in "(<[{":
+			parenthesis_level+=1
+		elif c in ")>]}":
+			parenthesis_level-=1
+		
+		if c in "/" and parenthesis_level>0:
+			fixed_definition += ","
+		else:
+			fixed_definition += c
+	# ignore slash-fix on irregular parenthesis expressions:
+	if parenthesis_level!=0:
+		fixed_definition = raw_definition
+	#                      transl.    comment        type                example
+	results = re.findall( "(.*?) *(?:<(.*?)>)? *(?:\(([^\(]*)\))? *(?:; *(Bsp\.:[^/]*))? *[/]", fixed_definition )
 	test=False
 	for duplicate_id in xrange(len(results)):
 		test=True

@@ -125,7 +125,7 @@ for line in sys.stdin:
 	word = result[1]
 	pronunciation = translate_pinyin( result[2] )
 	raw_definition = result[3]
-	results = re.findall( "(.*?) *(?:<(.*?)>)? *(?:\(([^\(]*)\))? *[/]", raw_definition )
+	results = re.findall( "(.*?) *(?:<(.*?)>)? *(?:\(([^\(]*)\))? *(?:; *(Bsp\.:.*))? *[/]", raw_definition )
 	test=False
 	for duplicate_id in xrange(len(results)):
 		test=True
@@ -133,6 +133,9 @@ for line in sys.stdin:
 		definition = result[0]
 		comment = result[1]
 		type = result[2]
+		if( len(comment) and len(result[3]) ):
+			comment += "; "
+		comment += result[3]
 		if "--inserts" in sys.argv[1:]:
 			insert = "insert into words ("+",".join(col_names)+") values ("
 			for i in xrange(len(col_names)):

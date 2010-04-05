@@ -41,6 +41,12 @@ public:
 	void free_all();
 };
 
+class TextButtonListStorage : public TextButtonList
+{
+public:
+	~TextButtonListStorage();
+};
+
 class TextButtonMapStorage : public std::map<std::string,TextButton*>
 {
 public:

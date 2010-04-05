@@ -60,6 +60,7 @@ bool Settings::get_boolean_setting( const std::string& name )
 #include "menu_button.h"
 #include "menu_button_active.h"
 #include "menu_button_inactive.h"
+#include "greys256.h"
 
 
 SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title )
@@ -145,6 +146,8 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	{
 		(*i)->init_text_layer( this->freetype_renderer );
 	}
+	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
+	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
 }
 
 void SettingsDialog::render( Screen screen )

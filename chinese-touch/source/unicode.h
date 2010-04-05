@@ -2,6 +2,7 @@
 #define UNICODE_H
 
 #include <list>
+#include <string>
 
 class UCChar
 {
@@ -12,7 +13,10 @@ public:
 };
 typedef std::list<UCChar> UCCharList;
 
+typedef std::list<std::string> StringList;
+
 bool utf8_to_ucs4( const unsigned char* src, UCCharList& result_list );
+bool utf8_to_utf8_char_list( const unsigned char* src, StringList& result_list );
 
 #endif // UNICODE_H
 

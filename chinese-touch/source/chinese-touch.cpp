@@ -18,6 +18,8 @@
 #include "new_words.h"
 #include "text_view.h"
 #include "words_db.h"
+#include "ui_language.h"
+#include "touch_keyboard.h"
 
 
 int main()
@@ -57,23 +59,28 @@ int main()
 		Config config;
 		LOG( "loading config" );
 		config.load();
-
+	
+		UILanguage ui_language( "en" );
 #if 0
-	NewWordList words;
-	words.insert( words.end(), 
-				  library.begin()->second->begin()->second->new_words.begin(), 
-				  library.begin()->second->begin()->second->new_words.end() );
-	NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
-	new_words->run_until_exit();
-	delete new_words;
+		TouchKeyboard keyboard( ui_language, *ft );
+		keyboard.run_until_exit();
 #endif
 #if 0
-	ErrorConsole::init_screen();
-	RenderScreen r;
-	ft->init_screen( SCREEN_MAIN, r );
-	ft->render( r, "vvvvvvvaaaaaaaaaaaaavvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiii我的中文老师很好！", ft->latin_face, 10, 0, 0 );
-	//ft->render( r, "Ich schreib hier mal einen längeren Text hin um auszuprobieren wie gut das mit den horizontalen Buchstabenabständen nun eigentlich funktioniert. 我的中文老师很好！", ft->latin_face, 10, 0, 0 );
-	while( true ) swiWaitForVBlank();
+		NewWordList words;
+		words.insert( words.end(), 
+					library.begin()->second->begin()->second->new_words.begin(), 
+					library.begin()->second->begin()->second->new_words.end() );
+		NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
+		new_words->run_until_exit();
+		delete new_words;
+#endif
+#if 0
+		ErrorConsole::init_screen();
+		RenderScreen r;
+		ft->init_screen( SCREEN_MAIN, r );
+		ft->render( r, "vvvvvvvaaaaaaaaaaaaavvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiii我的中文老师很好！", ft->latin_face, 10, 0, 0 );
+		//ft->render( r, "Ich schreib hier mal einen längeren Text hin um auszuprobieren wie gut das mit den horizontalen Buchstabenabständen nun eigentlich funktioniert. 我的中文老师很好！", ft->latin_face, 10, 0, 0 );
+		while( true ) swiWaitForVBlank();
 #endif
 		
 		bool sync_done = false;

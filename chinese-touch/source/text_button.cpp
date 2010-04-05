@@ -142,6 +142,16 @@ void TextButtonList::free_all()
 }
 
 
+TextButtonListStorage::~TextButtonListStorage()
+{
+	for( TextButtonListStorage::iterator i=this->begin(); i!=this->end(); i++ )
+	{
+		if( *i ) delete *i;
+	}
+	this->clear();
+}
+
+
 TextButtonMapStorage::~TextButtonMapStorage()
 {
 	for( TextButtonMapStorage::iterator i=this->begin(); i!=this->end(); i++ )

@@ -47,3 +47,14 @@ bool utf8_to_ucs4( const unsigned char* src, UCCharList& result_list )
     return true;
 }
 
+bool utf8_to_utf8_char_list( const unsigned char* src, StringList& result_list )
+{
+	std::string src_str = (const char*)src;
+	UCCharList pre_result;
+	bool return_value = utf8_to_ucs4( src, pre_result );
+	for( UCCharList::iterator ci = pre_result.begin(); ci != pre_result.end(); ci++ )
+	{
+		result_list.push_back( src_str.substr(ci->source_offset,ci->source_length) );
+	}
+	return return_value;
+}

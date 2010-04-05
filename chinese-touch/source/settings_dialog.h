@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 
+#include "mode.h"
 #include "freetype_renderer.h"
 #include "text_button.h"
 
@@ -52,7 +53,7 @@ class Settings : public std::map<std::string,Setting*>
 		bool get_boolean_setting( const std::string& name );
 };
 
-class SettingsDialog
+class SettingsDialog : public Mode
 {
 	public:
 		FreetypeRenderer& freetype_renderer;

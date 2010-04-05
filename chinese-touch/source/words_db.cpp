@@ -324,9 +324,18 @@ bool WordsDB::read_word( NewWord& new_word )
 		StringMap& row_map = *map_list.begin();
 		new_word.id = atoi( row_map["id"].c_str() );
 		new_word.pinyin = row_map["pronunciation"];
-		new_word.definitions["de"]->word_type = row_map["type"];
-		new_word.definitions["de"]->translation = row_map["definition"];
-		new_word.definitions["de"]->comment = row_map["comment"];
+		// FIXME: support multiple languages
+		std::string def_lang = "de";
+		if( !new_word.definitions.count(def_lang) )
+		{
+			Definition* def = new Definition();
+			def->lang = def_lang;
+			new_word.definitions[ def->lang ] = def;
+
+		}
+		new_word.definitions[def_lang]->word_type = row_map["type"];
+		new_word.definitions[def_lang]->translation = row_map["definition"];
+		new_word.definitions[def_lang]->comment = row_map["comment"];
 		new_word.rating = (Rating) atoi( row_map["rating"].c_str() );
 		new_word.atime = atol( row_map["atime"].c_str() );
 		new_word.file_id = atoi( row_map["file_id"].c_str() );
@@ -377,7 +386,12 @@ void WordsDB::query_words( Library& library, const std::string& condition, NewWo
 			{
 				Lesson* lesson = (*book)[lesson_number];
 				word->lesson = lesson;
-			} else WARN( "invalid book pointer or unknown lesson number: " << lesson_number );
+			} 
+			else if( lesson_number==0 and book->dictionary_lesson )
+			{
+				word->lesson = book->dictionary_lesson;
+			} 
+			else WARN( "invalid book pointer or unknown lesson number: " << lesson_number );
 		} else WARN( "unknown book path: " << book_path );
 		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
 		word->file_id = atoi( (*i)["file_id"].c_str() );
@@ -407,18 +421,53 @@ void WordsDB::query_static_words( Library& library, const std::string& condition
 	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
 	{
 		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], owner_lesson );
-		word->id = atoi( (*i)["id"].c_str() );
-		Definition* def = new Definition();
-		def->word_type = (*i)["type"];
-		def->translation = (*i)["definition"];
-		def->comment = (*i)["comment"];
-		def->lang = "de";
-		word->definitions[ def->lang ] = def;
-		word->rating = (Rating) atoi( (*i)["rating"].c_str() );
-		word->atime = atol( (*i)["atime"].c_str() );
+		word->from_static_db = true;
 		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
+		bool need_to_synchronize = library.words_db.read_word( *word );
+		if( !need_to_synchronize )
+		{
+			// We do not want to clobber id, rating and atime of words already in the user db:
+			word->id = atoi( (*i)["id"].c_str() );
+			word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+			word->atime = atol( (*i)["atime"].c_str() );
+		}
+		// FIXME: support multiple languages
+		std::string def_lang = "de";
+		if( !word->definitions.count(def_lang) )
+		{
+			Definition* def = new Definition();
+			def->lang = def_lang;
+			word->definitions[ def_lang ] = def;
+		}
+		word->definitions[def_lang]->word_type = (*i)["type"];
+		word->definitions[def_lang]->translation = (*i)["definition"];
+		word->definitions[def_lang]->comment = (*i)["comment"];
 		word->file_id = atoi( (*i)["file_id"].c_str() );
 		word->file_offset = atoi( (*i)["file_offset"].c_str() );
+		
+		if( need_to_synchronize )
+		{
+			// synchronize potentially updated entry from static dictionary to user db:
+			library.words_db.write_word( *word );
+			// fix an already existing entry of the user db copy in the current result list:
+			bool found_previous_result = false;
+			for( NewWordList::iterator ri=result_list.begin(); ri!=result_list.end(); ri++ )
+			{
+				if( (*ri)->id == word->id )
+				{
+					found_previous_result = true;
+					library.words_db.read_word( **ri );
+					break;
+				}
+			}
+			if( found_previous_result )
+			{
+				// prevent duplicates in result lists:
+				delete word;
+				continue;
+			}
+		}
+		
 		result_list.push_back( word );
 	}
 }

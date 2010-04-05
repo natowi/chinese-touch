@@ -238,8 +238,7 @@ void TextView::render( Screen screen, bool update_sprites )
 			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
 			if( new_word )
 			{
-				if( !this->library.words_db.read_word(*new_word) ) 
-					this->library.words_db.add_or_write_word( *new_word );
+				this->library.words_db.read_word(*new_word); 
 				if( this->rating_easy.active || new_word->rating==RATING_EASY )
 					this->rating_easy.render_to( oam_entry );
 				if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )

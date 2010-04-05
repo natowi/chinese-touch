@@ -44,11 +44,15 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 	// try to read the corresponding entry from the database:
 	if( this->lesson && this->lesson->book && this->lesson->book->library )
 	{
-		this->lesson->book->library->words_db.read_word(*this);
+		bool in_user_db = this->lesson->book->library->words_db.read_word(*this);
 		// update words access time:
 		this->atime = time(0);
-		// write updated word to database:
-		this->lesson->book->library->words_db.add_or_write_word( *this );
+		// write updated word to the users database, but prevent unrated words from static 
+		// dictionaries from being copied to the user db automatically:
+		if( !this->from_static_db || in_user_db )
+		{
+			this->lesson->book->library->words_db.add_or_write_word( *this );
+		}
 	}
 	render_screen.clear();
 
@@ -297,8 +301,7 @@ void NewWordsViewer::render( Screen screen )
 		this->rating_bar.render_to( oam_entry );
 		if( new_word )
 		{
-			if( !this->library.words_db.read_word(*new_word) ) 
-				this->library.words_db.add_or_write_word( *new_word );
+			this->library.words_db.read_word(*new_word);
 			if( this->rating_easy.active || new_word->rating==RATING_EASY )
 				this->rating_easy.render_to( oam_entry );
 			if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )

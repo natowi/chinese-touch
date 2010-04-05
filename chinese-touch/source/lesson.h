@@ -82,8 +82,9 @@ class NewWord
 public:
     NewWord( const std::string& _hanzi, const std::string& _pinyin, 
             Lesson* _lesson ) 
-        : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson),
-        rating(RATING_NONE), id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0) {};
+        : hanzi(_hanzi), pinyin(_pinyin), lesson(_lesson), rating(RATING_NONE), 
+			id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0),
+			from_static_db(false) {};
 	~NewWord();
     void render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings, Library& library );
 public:
@@ -101,6 +102,7 @@ public:
 	time_t atime; //!< Last time this words dictionary entry was shown to the user.
 	int file_id; //!< Database identifier of the dictionary file this word was read from
 	int file_offset; //!< Number of the word entry within the dictionary file it was read from
+	bool from_static_db;
 };
 /*! A container for pointers to NewWord instances. \see NewWord */
 class NewWordList : public std::list<NewWord*>

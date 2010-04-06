@@ -19,7 +19,7 @@
 #include "text_view.h"
 #include "words_db.h"
 #include "ui_language.h"
-#include "touch_keyboard.h"
+#include "fulltext_search.h"
 
 
 int main()
@@ -61,10 +61,6 @@ int main()
 		config.load();
 	
 		UILanguage ui_language( "en" );
-#if 0
-		TouchKeyboard keyboard( ui_language, *ft );
-		keyboard.run_until_exit();
-#endif
 #if 0
 		NewWordList words;
 		words.insert( words.end(), 
@@ -204,6 +200,12 @@ int main()
 							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
+						break;
+					}
+					case LessonMenuChoice::CONTENT_TYPE_SEARCH:
+					{
+						FulltextSearch fulltext_search( ui_language, *ft );
+						fulltext_search.run_until_exit();
 						break;
 					}
 					default: throw ERROR( "LessonMenu returned invalid content type" );

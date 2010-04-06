@@ -29,6 +29,8 @@
 #include "bottom_right_button.h"
 #include "bottom_right_button_active.h"
 #include "settings_dialog.h"
+#include "bottom_center_button.h"
+#include "bottom_center_button_active.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -218,7 +220,8 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
 		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
 		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,freetype_renderer.latin_face,10,1,1)
+		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
+		search_button(&oamSub,"找",SpriteSize_32x16,menu_screen.res_x-16-80/2-16,menu_screen.res_y-16,freetype_renderer.han_face,8,1,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->info_screen );
 	//ErrorConsole::init_screen( SCREEN_MAIN );
@@ -250,6 +253,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
+	this->text_buttons.push_back( &this->search_button );
 
 	this->init_button_list.insert( this->init_button_list.end(), this->text_buttons.begin(), this->text_buttons.end() );
 	init_button_list.push_back( &this->book_icon );
@@ -371,7 +375,10 @@ void LessonMenu::init_subscreen()
 	
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
-
+	
+	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
+	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
+	
 	for( TextButtonList::iterator i=this->init_button_list.begin(); i!=this->init_button_list.end(); i++ )
 	{
 		(*i)->init_text_layer( this->freetype_renderer );
@@ -491,6 +498,10 @@ void LessonMenu::render( Screen screen )
 		oamClear( &oamSub, 0, 0 );
 		int top = this->y_offset;
 		int oam_entry = 0;
+		
+		this->settings_button.render_to( oam_entry );
+		this->search_button.render_to( oam_entry );
+		
 		for( Library::iterator book_it = this->library.begin(); 
 			book_it != this->library.end() && top < this->menu_screen.res_y; 
 			book_it++ )
@@ -590,8 +601,6 @@ void LessonMenu::render( Screen screen )
 				}
 			}
 		}
-		
-		this->settings_button.render_to( oam_entry );
 		
 		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 		swiWaitForVBlank();
@@ -694,6 +703,15 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 					changed = true;
 				}
 			}
+			else if( this->search_button.is_responsible(touch.px, touch.py) )
+			{
+				if( !this->search_button.active )
+				{
+					this->search_button.active = true;
+					activated_button = &this->search_button;
+					changed = true;
+				}
+			}
 			else
 			{
 				MenuList::iterator entry_it = this->get_entry_by_pos( touch.px, touch.py );
@@ -758,6 +776,14 @@ void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
 				this->show_settings();
 				this->render( SCREEN_MAIN );
 				this->render( SCREEN_SUB );
+			}
+			else if( this->search_button.active )
+			{
+				this->search_button.active = false;
+				choice.content_type = LessonMenuChoice::CONTENT_TYPE_SEARCH;
+				choice.book = 0;
+				choice.lesson = 0;
+				return;
 			}
 			else
 			{

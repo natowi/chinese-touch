@@ -29,7 +29,8 @@ class LessonMenuChoice
 			CONTENT_TYPE_EASY_WORDS,
 			CONTENT_TYPE_MEDIUM_WORDS,
 			CONTENT_TYPE_HARD_WORDS,
-			CONTENT_TYPE_IMPOSSIBLE_WORDS
+			CONTENT_TYPE_IMPOSSIBLE_WORDS,
+			CONTENT_TYPE_SEARCH
 		} content_type;
 	public:
 		LessonMenuChoice() : book(0), lesson(0), 
@@ -117,7 +118,7 @@ public:
 	int frame_count;
 	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button,
 		explode_button, implode_button, rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
-		jump_down_button, jump_up_button, settings_button;
+		jump_down_button, jump_up_button, settings_button, search_button;
 	TextButtonList text_buttons, lesson_buttons, book_buttons, init_button_list;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 

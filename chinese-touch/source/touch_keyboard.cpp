@@ -202,7 +202,7 @@ void TouchKeyboard::run_until_exit()
 					}
 					else
 					{
-						std::string button_text = (*b_it)->text;
+						std::string button_text = this->handle_key_pressed( (*b_it)->text );
 						if( button_text == "¯" || button_text == "´" 
 							|| button_text == "ˇ" || button_text == "`" )
 						{
@@ -213,6 +213,7 @@ void TouchKeyboard::run_until_exit()
 							if( this->written_text.length() )
 							{
 								this->written_text = this->written_text.substr( 0, this->written_text.length()-1 );
+								this->handle_text_changed( this->written_text );
 							}
 							this->modifier = "";
 						}
@@ -230,6 +231,7 @@ void TouchKeyboard::run_until_exit()
 							}
 							this->written_text += button_text;
 							this->modifier = "";
+							this->handle_text_changed( this->written_text );
 						}
 					}
 					this->render( SCREEN_SUB );

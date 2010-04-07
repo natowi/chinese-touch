@@ -472,6 +472,80 @@ void WordsDB::query_static_words( Library& library, const std::string& condition
 	}
 }
 
+void WordsDB::query_static_fulltext( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering )
+{
+	MapList map_list;
+	std::stringstream statement_stream;
+	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
+			<< ", rating, lesson_id, duplicate_id, atime, file_id, file_offset"
+		<< " from words"
+		<< " inner join ft_matches on words.id=word_id"
+		<< " inner join ft_patterns on ft_patterns.id=pattern_id"
+		<< " where " << condition;
+	if( ordering.length() )
+		statement_stream << " order by " << ordering;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
+	}
+	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
+	{
+		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], owner_lesson );
+		word->from_static_db = true;
+		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
+		bool need_to_synchronize = library.words_db.read_word( *word );
+		if( !need_to_synchronize )
+		{
+			// We do not want to clobber id, rating and atime of words already in the user db:
+			word->id = atoi( (*i)["id"].c_str() );
+			word->rating = (Rating) atoi( (*i)["rating"].c_str() );
+			word->atime = atol( (*i)["atime"].c_str() );
+		}
+		// FIXME: support multiple languages
+		std::string def_lang = "de";
+		if( !word->definitions.count(def_lang) )
+		{
+			Definition* def = new Definition();
+			def->lang = def_lang;
+			word->definitions[ def_lang ] = def;
+		}
+		word->definitions[def_lang]->word_type = (*i)["type"];
+		word->definitions[def_lang]->translation = (*i)["definition"];
+		word->definitions[def_lang]->comment = (*i)["comment"];
+		word->file_id = atoi( (*i)["file_id"].c_str() );
+		word->file_offset = atoi( (*i)["file_offset"].c_str() );
+		
+		if( need_to_synchronize )
+		{
+			// synchronize potentially updated entry from static dictionary to user db:
+			library.words_db.write_word( *word );
+			// fix an already existing entry of the user db copy in the current result list:
+			bool found_previous_result = false;
+			for( NewWordList::iterator ri=result_list.begin(); ri!=result_list.end(); ri++ )
+			{
+				if( (*ri)->id == word->id )
+				{
+					found_previous_result = true;
+					library.words_db.read_word( **ri );
+					break;
+				}
+			}
+			if( found_previous_result )
+			{
+				// prevent duplicates in result lists:
+				delete word;
+				continue;
+			}
+		}
+		
+		result_list.push_back( word );
+	}
+}
+
 int WordsDB::get_file_id( const std::string& file_path )
 {
 	std::string stmt = "select id from files where path='" + file_path + "'";

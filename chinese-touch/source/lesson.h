@@ -167,6 +167,9 @@ public:
 
 typedef std::list<std::string> StringList;
 
+bool hanzi_min_length_sort_predicate( NewWord* left, NewWord* right );
+bool hanzi_max_length_sort_predicate( NewWord* left, NewWord* right );
+
 //! A Library is a collection of books. \see Book
 class Library : public std::map<std::string,Book*>
 {

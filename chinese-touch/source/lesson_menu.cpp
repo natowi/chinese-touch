@@ -1014,6 +1014,11 @@ TextButton* LessonMenu::get_button_by_content_type( LessonMenuChoice::ContentTyp
 			button = &this->rating_impossible;
 			break;
 		}
+		case LessonMenuChoice::CONTENT_TYPE_SEARCH:
+		{
+			button = &this->search_button;
+			break;
+		}
 	}
 	return button;
 }

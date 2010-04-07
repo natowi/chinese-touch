@@ -204,7 +204,7 @@ int main()
 					}
 					case LessonMenuChoice::CONTENT_TYPE_SEARCH:
 					{
-						FulltextSearch fulltext_search( ui_language, *ft );
+						FulltextSearch fulltext_search( ui_language, *ft, library );
 						fulltext_search.run_until_exit();
 						break;
 					}

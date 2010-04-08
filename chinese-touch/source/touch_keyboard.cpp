@@ -1,9 +1,9 @@
-#include <sprite.h>
+#include <nds/arm9/sprite.h>
 
 #include "touch_keyboard.h"
 #include "freetype_renderer.h"
-#include "big_bottom_right_button.h"
-#include "big_bottom_right_button_active.h"
+#include "bottom_left_button.h"
+#include "bottom_left_button_active.h"
 #include "checkbox.h"
 #include "checkbox_active.h"
 #include "error_console.h"
@@ -13,58 +13,10 @@
 TouchKeyboard::TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer )  
 //SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title )
 	: ui_lang(_ui_lang), freetype_renderer(_freetype_renderer),
-		ok_button(&oamSub,"OK",SpriteSize_32x32,keyboard_screen.res_x-32,keyboard_screen.res_y-32,freetype_renderer.latin_face,12,0,8),
-		reference_key(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.han_face,9,0,1)
+		reference_key(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.han_face,9,0,1),
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,freetype_renderer.latin_face,10,-1,1)
 {
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->keyboard_screen );
-	this->keyboard_screen.clear();
-
-	// unteren Bildschirm für Spritenutzung initialisieren:
-	vramSetBankD( VRAM_D_SUB_SPRITE );
-	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	oamAllocReset( &oamSub );
-	oamEnable( &oamSub );
-
-	// vorgerenderte Spritegrafiken laden:
-	this->ok_button.init_vram( big_bottom_right_buttonBitmap, this->ok_button.bg_vram );
-	this->ok_button.init_vram( big_bottom_right_button_activeBitmap, this->ok_button.bg_active_vram );
-	this->reference_key.init_vram( checkboxBitmap, this->reference_key.bg_vram );
-	this->reference_key.init_vram( checkbox_activeBitmap, this->reference_key.bg_active_vram );
-	
-	int key_count = 0;
-	int keys_per_line = 10;
-	int key_x_start = 5;
-	int key_x_offset = (this->keyboard_screen.res_x-key_x_start*2) / keys_per_line;
-	int key_y_start = 50;
-	int key_y_offset = 16+4;
-	for( StringList::iterator kci = this->ui_lang.keyboard_characters.begin();
-		kci != this->ui_lang.keyboard_characters.end(); kci++, key_count++ )
-	{
-		TextButton* new_key = new TextButton( this->reference_key );
-		new_key->owns_bg_vram = false;
-		new_key->text = *kci;
-		if( new_key->text == "¯" || new_key->text == "´"
-			/*|| new_key->text == "ˇ"*/ || new_key->text == "`" )
-		{
-			new_key->text_y_offset += 3;
-			new_key->font_size += 2;
-		}
-		new_key->x = key_x_start + ( key_count % keys_per_line ) * key_x_offset;
-		new_key->y = key_y_start + ( key_count / keys_per_line ) * key_y_offset;
-		this->text_buttons.push_back( new_key );
-		this->keys.push_back( new_key );
-	}
-	
-	this->text_buttons.push_back( &this->ok_button );
-	TextButtonList init_list;
-	init_list.insert( init_list.end(), this->text_buttons.begin(), this->text_buttons.end() );
-	init_list.push_back( &this->reference_key );
-	for( TextButtonList::iterator i=init_list.begin(); i!=init_list.end(); i++ )
-	{
-		(*i)->init_text_layer( this->freetype_renderer );
-	}
-	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
-	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
+	this->text_buttons.push_back( &this->exit_button );
 	
 	this->modifier_map["¯a"] = "ā";
 	this->modifier_map["¯e"] = "ē";
@@ -96,8 +48,64 @@ TouchKeyboard::TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_
 	this->modifier_map["`v"] = "ǜ";
 }
 
+void TouchKeyboard::init_screens()
+{
+	this->freetype_renderer.init_screen( SCREEN_SUB, this->keyboard_screen );
+	this->keyboard_screen.clear();
+
+	// unteren Bildschirm für Spritenutzung initialisieren:
+	vramSetBankD( VRAM_D_SUB_SPRITE );
+	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
+	oamAllocReset( &oamSub );
+	oamEnable( &oamSub );
+
+	// vorgerenderte Spritegrafiken laden:
+	this->reference_key.init_vram( checkboxBitmap, this->reference_key.bg_vram );
+	this->reference_key.init_vram( checkbox_activeBitmap, this->reference_key.bg_active_vram );
+	
+	int key_count = 0;
+	int keys_per_line = 10;
+	int key_x_start = 5;
+	int key_x_offset = (this->keyboard_screen.res_x-key_x_start*2) / keys_per_line;
+	int key_y_start = 50;
+	int key_y_offset = 16+4;
+	for( StringList::iterator kci = this->ui_lang.keyboard_characters.begin();
+		kci != this->ui_lang.keyboard_characters.end(); kci++, key_count++ )
+	{
+		TextButton* new_key = new TextButton( this->reference_key );
+		new_key->owns_bg_vram = false;
+		new_key->text = *kci;
+		if( new_key->text == "¯" || new_key->text == "´"
+			/*|| new_key->text == "ˇ"*/ || new_key->text == "`" )
+		{
+			new_key->text_y_offset += 3;
+			new_key->font_size += 2;
+		}
+		new_key->x = key_x_start + ( key_count % keys_per_line ) * key_x_offset;
+		new_key->y = key_y_start + ( key_count / keys_per_line ) * key_y_offset;
+		this->text_buttons.push_back( new_key );
+		this->keys.push_back( new_key );
+	}
+	
+	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
+	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
+	
+	this->handle_init_screens();
+	
+	TextButtonList init_list;
+	init_list.insert( init_list.end(), this->text_buttons.begin(), this->text_buttons.end() );
+	init_list.push_back( &this->reference_key );
+	for( TextButtonList::iterator i=init_list.begin(); i!=init_list.end(); i++ )
+	{
+		(*i)->init_text_layer( this->freetype_renderer );
+	}
+	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
+	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );	
+}
+
 void TouchKeyboard::render( Screen screen )
 {
+	this->render_prepare();
 	if( screen == SCREEN_MAIN )
 	{
 	}
@@ -112,7 +120,7 @@ void TouchKeyboard::render( Screen screen )
 		}
 		
 		this->keyboard_screen.clear();
-		int top = 4;
+		int top = 20;
 		RenderStyle render_style;
 		render_style.center_x = true;
 		RenderInfo render_info = this->freetype_renderer.render( 
@@ -196,11 +204,11 @@ void TouchKeyboard::run_until_exit()
 					&& (*b_it)->active )
 				{
 					(*b_it)->active = false;
-					if( (*b_it) == &(this->ok_button) )
+					if( (*b_it) == &this->exit_button )
 					{
 						return;
 					}
-					else
+					else if( !this->handle_button_pressed(*b_it) )
 					{
 						std::string button_text = this->handle_key_pressed( (*b_it)->text );
 						if( button_text == "¯" || button_text == "´" 

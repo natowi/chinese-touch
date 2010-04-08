@@ -18,7 +18,7 @@ public:
 	SpriteSize sprite_size;
 	int width, height, x, y, text_x_offset, text_y_offset, bg_prio, text_prio;
 	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram;
-	bool active, inactive, owns_bg_vram;
+	bool active, inactive, owns_bg_vram, invisible;
 	FT_Face face;
 	int font_size;
 public:

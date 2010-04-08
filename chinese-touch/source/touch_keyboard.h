@@ -14,17 +14,21 @@ protected:
 	UILanguage& ui_lang;
 	FreetypeRenderer& freetype_renderer;
 	RenderScreen keyboard_screen;
-	TextButton ok_button, reference_key;
+	TextButton reference_key, exit_button;
 	TextButtonList text_buttons;
 	TextButtonListStorage keys;
 	std::string written_text, modifier;
 	StringMap modifier_map;
 public:
 	TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer );
+	void init_screens();
+	virtual void handle_init_screens() {};
+	virtual void render_prepare() {}
 	void render( Screen screen );
 	void run_until_exit();
-	virtual std::string handle_key_pressed( const std::string& input )=0;
-	virtual void handle_text_changed( std::string& written_text )=0;
+	virtual bool handle_button_pressed( TextButton* text_button ) { return false; }
+	virtual std::string handle_key_pressed( const std::string& input ) { return input; }
+	virtual void handle_text_changed( std::string& written_text ) {}
 };
 
 #endif // TOUCH_KEYBOARD_H

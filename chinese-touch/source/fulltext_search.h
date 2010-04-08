@@ -3,17 +3,26 @@
 
 #include "touch_keyboard.h"
 #include "lesson.h"
+#include "settings_dialog.h"
 
 
 class FulltextSearch : public TouchKeyboard
 {
 public:
 	FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library );
-	virtual std::string handle_key_pressed( const std::string& input );
-	virtual void handle_text_changed( std::string& written_text );
+	virtual void handle_init_screens();
+	virtual void render_prepare();
+	virtual bool handle_button_pressed( TextButton* text_button );
 public:
 	RenderScreen word_screen;
 	Library& library;
+	NewWordList words;
+	NewWordList::iterator current_word;
+	TextButton left_button, right_button,
+		hanzi_tab, pinyin_tab, latin_tab, rating_bar,
+		rating_easy, rating_medium, rating_hard, rating_impossible,
+		settings_button, down_button, search_button;
+	Settings settings;
 };
 
 #endif // FULLTEXT_SEARCH_H

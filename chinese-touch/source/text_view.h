@@ -6,6 +6,8 @@
 #include "config.h"
 #include "text_button.h"
 #include "settings_dialog.h"
+#include "new_words.h"
+
 
 class BufferedLine : public RenderScreenBuffer
 {

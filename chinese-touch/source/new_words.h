@@ -7,6 +7,32 @@
 #include "config.h"
 #include "settings_dialog.h"
 
+
+/*! Stores which parts of dictionary entries shall be displayed on top screen. */
+class NewWordRenderSettings
+{
+	public:
+		bool render_foreign_word, render_pronuciation, render_translation;
+		bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
+		bool restore_on_switch, clear_on_switch;
+	public:
+		NewWordRenderSettings() 
+			: render_foreign_word(true), render_pronuciation(true), render_translation(true),
+				init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
+				restore_on_switch(true), clear_on_switch(true) {}
+		void toggle_foreign_word() { this->render_foreign_word = !this->render_foreign_word; }
+		void toggle_pronunciation() { this->render_pronuciation = !this->render_pronuciation; }
+		void toggle_translation() { this->render_translation = !this->render_translation; }
+		void restore_init_settings()
+		{
+			this->render_foreign_word = this->init_render_foreign_word;
+			this->render_pronuciation = this->init_render_pronuciation;
+			this->render_translation = this->init_render_translation;
+		}
+		void restore_init_settings_if_needed() { if(this->restore_on_switch) this->restore_init_settings(); }
+};
+
+
 class NewWordsViewer : public NewWordRenderSettings
 {
 	public:

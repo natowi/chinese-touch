@@ -4,6 +4,7 @@
 #include "touch_keyboard.h"
 #include "lesson.h"
 #include "settings_dialog.h"
+#include "new_words.h"
 
 
 class FulltextSearch : public TouchKeyboard, public NewWordRenderSettings

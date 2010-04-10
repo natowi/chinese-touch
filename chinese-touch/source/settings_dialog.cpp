@@ -60,7 +60,6 @@ bool Settings::get_boolean_setting( const std::string& name )
 #include "menu_button.h"
 #include "menu_button_active.h"
 #include "menu_button_inactive.h"
-#include "greys256.h"
 
 
 SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title )
@@ -69,22 +68,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.latin_face,8,1,1),
 		dummy_start_button(&oamSub,"",SpriteSize_32x16,0,0,freetype_renderer.latin_face,8,1,1)
 {
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->settings_screen );
-	this->settings_screen.clear();
-
-	// unteren Bildschirm für Spritenutzung initialisieren:
-	vramSetBankD( VRAM_D_SUB_SPRITE );
-	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	//oamAllocReset( &oamSub );
-	oamEnable( &oamSub );
-
-	// vorgerenderte Spritegrafiken laden:
-	this->ok_button.init_vram( big_bottom_right_buttonBitmap, this->ok_button.bg_vram );
-	this->ok_button.init_vram( big_bottom_right_button_activeBitmap, this->ok_button.bg_active_vram );
-	this->dummy_checkbox.init_vram( checkboxBitmap, this->dummy_checkbox.bg_vram );
-	this->dummy_checkbox.init_vram( checkbox_activeBitmap, this->dummy_checkbox.bg_active_vram );
-	this->dummy_start_button.init_vram( menu_buttonBitmap, this->dummy_start_button.bg_vram );
-	this->dummy_start_button.init_vram( menu_button_activeBitmap, this->dummy_start_button.bg_active_vram );
+	this->init_mode();
 	
 	/* Even if we create the menu dynamically, we will render the text just once on the background
 		and store the item positions for later sprite updates. The Dialog will not be scrollable 
@@ -107,25 +91,23 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 		BooleanSetting* boolean_setting = dynamic_cast<BooleanSetting*>( s_it->second );
 		ActionButton* action_button = dynamic_cast<ActionButton*>( s_it->second );
 		int left = 10;
+		TextButton* new_button = 0;
 		if( boolean_setting )
 		{
-			TextButton* new_button = new TextButton( &oamSub, "", SpriteSize_16x16, 
-													 left, top, freetype_renderer.latin_face, 8,1,1 );
-			new_button->owns_bg_vram = false;
-			new_button->bg_vram = this->dummy_checkbox.bg_vram;
-			new_button->bg_active_vram = this->dummy_checkbox.bg_active_vram;
+			new_button = new TextButton( this->dummy_checkbox );
 			this->checkboxes.add_text_button( boolean_setting->name, new_button );
-			this->text_buttons.push_back( new_button );
-			left += new_button->width + 5;
 		}
 		else if( action_button )
 		{
-			TextButton* new_button = new TextButton( &oamSub, action_button->button_label, SpriteSize_32x16, 
-													 left, top, freetype_renderer.latin_face, 8,1,1 );
-			new_button->owns_bg_vram = false;
-			new_button->bg_vram = this->dummy_start_button.bg_vram;
-			new_button->bg_active_vram = this->dummy_start_button.bg_active_vram;
+			new_button = new TextButton( this->dummy_start_button );
+			new_button->text = action_button->button_label;
 			this->start_buttons.add_text_button( action_button->name, new_button );
+		}
+		if( new_button )
+		{
+			new_button->owns_bg_vram = false;
+			new_button->x = left;
+			new_button->y = top;
 			this->text_buttons.push_back( new_button );
 			left += new_button->width + 5;
 		}
@@ -139,15 +121,44 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	}
 
 	this->text_buttons.push_back( &this->ok_button );
-	TextButtonList init_list;
-	init_list.insert( init_list.end(), this->text_buttons.begin(), this->text_buttons.end() );
-	init_list.push_back( &this->dummy_checkbox );
-	for( TextButtonList::iterator i=init_list.begin(); i!=init_list.end(); i++ )
+	this->text_buttons.push_back( &this->dummy_checkbox );
+	this->text_buttons.push_back( &this->dummy_start_button );
+	
+	this->dummy_checkbox.invisible = true;
+	this->dummy_start_button.invisible = true;
+	
+	this->init_vram();
+}
+
+void SettingsDialog::init_mode()
+{
+	this->freetype_renderer.init_screen( SCREEN_SUB, this->settings_screen );
+	this->settings_screen.clear();
+	
+	Mode::init_mode();
+}
+
+void SettingsDialog::init_vram()
+{
+	// load sprite graphics into vram:
+	this->ok_button.init_vram( big_bottom_right_buttonBitmap, this->ok_button.bg_vram );
+	this->ok_button.init_vram( big_bottom_right_button_activeBitmap, this->ok_button.bg_active_vram );
+	this->dummy_checkbox.init_vram( checkboxBitmap, this->dummy_checkbox.bg_vram );
+	this->dummy_checkbox.init_vram( checkbox_activeBitmap, this->dummy_checkbox.bg_active_vram );
+	for( TextButtonMapStorage::iterator bi = this->checkboxes.begin(); bi != this->checkboxes.end(); bi++ )
 	{
-		(*i)->init_text_layer( this->freetype_renderer );
+		bi->second->bg_vram = this->dummy_checkbox.bg_vram;
+		bi->second->bg_active_vram = this->dummy_checkbox.bg_active_vram;
 	}
-	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
-	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
+	this->dummy_start_button.init_vram( menu_buttonBitmap, this->dummy_start_button.bg_vram );
+	this->dummy_start_button.init_vram( menu_button_activeBitmap, this->dummy_start_button.bg_active_vram );
+	for( TextButtonMapStorage::iterator bi = this->start_buttons.begin(); bi != this->start_buttons.end(); bi++ )
+	{
+		bi->second->bg_vram = this->dummy_start_button.bg_vram;
+		bi->second->bg_active_vram = this->dummy_start_button.bg_active_vram;
+	}
+	
+	Mode::init_vram();
 }
 
 void SettingsDialog::render( Screen screen )
@@ -157,10 +168,6 @@ void SettingsDialog::render( Screen screen )
 	}
 	else if( screen == SCREEN_SUB )
 	{
-		oamClear( &oamSub, 0, 0 );
-		int oam_entry = 0;
-		this->ok_button.render_to( oam_entry );
-		
 		for( Settings::iterator s_it = this->settings.begin(); s_it != this->settings.end(); s_it++ )
 		{
 			TextButton* checkbox = this->checkboxes.get_text_button( s_it->first );
@@ -176,122 +183,35 @@ void SettingsDialog::render( Screen screen )
 					checkbox->bg_vram = this->dummy_checkbox.bg_vram;
 					checkbox->bg_active_vram = this->dummy_checkbox.bg_active_vram;
 				}
-				checkbox->render_to( oam_entry );
-			}
-			TextButton* start_button = this->start_buttons.get_text_button( s_it->first );
-			if( start_button && s_it->second && s_it->second->description.length() )
-			{
-				start_button->render_to( oam_entry );
 			}
 		}
-		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
-		swiWaitForVBlank();
-		oamUpdate( &oamSub );
 	}
+	
+	Mode::render( screen );
 }
 
-void SettingsDialog::run_until_exit()
+ButtonAction SettingsDialog::handle_button_pressed(TextButton* text_button)
 {
-	this->render( SCREEN_SUB );
-	touchPosition old_touch;
-    touchRead( &old_touch );
-	bool touched = false;
-    while( true )
-    {
-        scanKeys();
-		int pressed = keysDown();
-		int released = keysUp();
-		int held = keysHeld();
-		if( held & KEY_SELECT && pressed & KEY_UP )
+	if( text_button == &(this->ok_button) )
+	{
+		return BUTTON_ACTION_EXIT_MODE;
+	}
+	else if( this->settings.count(text_button->name) )
+	{
+		Setting* setting = this->settings.get_setting( text_button->name );
+		BooleanSetting* boolean_setting = dynamic_cast<BooleanSetting*>( setting );
+		ActionButton* action_button = dynamic_cast<ActionButton*>( setting );
+		if( boolean_setting )
 		{
-			ErrorConsole::init_screen( SCREEN_MAIN );
+			boolean_setting->value = !boolean_setting->value;
+			return BUTTON_ACTION_HANDLED;
 		}
-		if( held & KEY_SELECT && pressed & KEY_DOWN )
+		else if( action_button )
 		{
-			ErrorConsole::init_screen( SCREEN_SUB );
+			action_button->run_action();
+			return BUTTON_ACTION_HANDLED;
 		}
-		if( held & KEY_SELECT && pressed & KEY_LEFT )
-		{
-			ErrorConsole::clear();
-		}
-		if( held & KEY_SELECT && pressed & KEY_RIGHT )
-		{
-			ErrorConsole::dump();
-		}
-		
-		touchPosition touch;
-        touchRead( &touch );
-        if( keysCurrent() & KEY_TOUCH )
-        {
-			if( !touched ) 
-			{
-				touched = true;
-				old_touch = touch;
-			}
-			bool changed = false;
-			for( TextButtonList::iterator b_it = this->text_buttons.begin(); 
-					b_it != this->text_buttons.end(); b_it++ )
-			{
-				if( (*b_it)->is_responsible(touch.px, touch.py) )
-				{
-					changed |= !(*b_it)->active;
-					(*b_it)->active = true;
-				}
-				else
-				{
-					changed |= (*b_it)->active;
-					(*b_it)->active = false;
-				}
-			}
-			if( changed ) 
-				this->render( SCREEN_SUB );
-			old_touch = touch;
-		}
-		else if( touched )
-		{
-			touched = false;
-			for( TextButtonList::iterator b_it = this->text_buttons.begin(); 
-					b_it != this->text_buttons.end(); b_it++ )
-			{
-				if( (*b_it)->is_responsible(old_touch.px, old_touch.py)
-					&& (*b_it)->active )
-				{
-					(*b_it)->active = false;
-					if( (*b_it) == &(this->ok_button) )
-					{
-						return;
-					}
-					else if( this->settings.count((*b_it)->name) )
-					{
-						Setting* setting = this->settings.get_setting( (*b_it)->name );
-						BooleanSetting* boolean_setting = dynamic_cast<BooleanSetting*>( setting );
-						ActionButton* action_button = dynamic_cast<ActionButton*>( setting );
-						if( boolean_setting )
-						{
-							boolean_setting->value = !boolean_setting->value;
-						}
-						else if( action_button )
-						{
-							action_button->run_action();
-						}
-					}
-					this->render( SCREEN_SUB );
-				}
-			}
-		}
-		else
-		{
-			swiWaitForVBlank();
-			touched = false;
-			bool changed = false;
-			for( TextButtonList::iterator i=this->text_buttons.begin(); 
-				i!=this->text_buttons.end(); i++ )
-			{
-				changed |= (*i)->active;
-				(*i)->active = false;
-			}
-			if( changed )
-				this->render( SCREEN_SUB );
-		}
-    }
+	}
+	
+	return Mode::handle_button_pressed(text_button);
 }

@@ -60,12 +60,13 @@ class SettingsDialog : public Mode
 		RenderScreen settings_screen;
 		std::string title;
 		TextButton ok_button, dummy_checkbox, dummy_start_button;
-		TextButtonList text_buttons;
 		TextButtonMapStorage checkboxes, start_buttons;
 	public:
 		SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title );
-		void render( Screen screen );
-		void run_until_exit();
+		virtual void init_mode();
+		virtual void init_vram();
+		virtual void render( Screen screen );
+		virtual ButtonAction handle_button_pressed( TextButton* text_button );
 };
 
 #endif // SETTINGS_DIALOG_H

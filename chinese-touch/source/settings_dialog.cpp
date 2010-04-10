@@ -64,7 +64,7 @@ bool Settings::get_boolean_setting( const std::string& name )
 
 
 SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title )
-	: freetype_renderer(_freetype_renderer), settings(_settings), title(_title),
+	: Mode(_freetype_renderer), settings(_settings), title(_title),
 		ok_button(&oamSub,"OK",SpriteSize_32x32,settings_screen.res_x-32,settings_screen.res_y-32,freetype_renderer.latin_face,12,0,8),
 		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.latin_face,8,1,1),
 		dummy_start_button(&oamSub,"",SpriteSize_32x16,0,0,freetype_renderer.latin_face,8,1,1)
@@ -75,7 +75,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	// unteren Bildschirm für Spritenutzung initialisieren:
 	vramSetBankD( VRAM_D_SUB_SPRITE );
 	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	oamAllocReset( &oamSub );
+	//oamAllocReset( &oamSub );
 	oamEnable( &oamSub );
 
 	// vorgerenderte Spritegrafiken laden:

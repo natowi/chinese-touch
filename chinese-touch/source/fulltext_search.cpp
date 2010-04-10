@@ -26,6 +26,7 @@
 #include "small_top_button_active.h"
 #include "menu_button.h"
 #include "menu_button_active.h"
+#include "text_view.h"
 
 
 FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library )
@@ -58,17 +59,23 @@ FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetyp
 	this->text_buttons.push_back( &this->down_button );
 	this->text_buttons.push_back( &this->search_button );
 	
-	this->init_screens();
+	this->init_mode();
+	this->init_vram();
 }
 
-void FulltextSearch::handle_init_screens()
+void FulltextSearch::init_mode()
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 	bgHide( this->word_screen.bg_id );
 	
-	// vorgerenderte Spritegrafiken laden:
+	this->TouchKeyboard::init_mode();	
+}
+
+void FulltextSearch::init_vram()
+{
+	// load sprite graphics into vram:
 	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
 	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
 	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
@@ -97,30 +104,45 @@ void FulltextSearch::handle_init_screens()
 	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
 	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
 	this->latin_tab.owns_bg_vram = false;
+	
+	this->TouchKeyboard::init_vram();
 }
 
-void FulltextSearch::render_prepare()
+void FulltextSearch::render( Screen screen )
 {
-	if( this->current_word == this->words.begin() )
-		this->left_button.invisible = true;
-	else this->left_button.invisible = false;
-	NewWordList::iterator test_it = this->current_word;
-	if( this->current_word != this->words.end() )
-		test_it++;
-	if( test_it == this->words.end() )
-		this->right_button.invisible = true;
-	else this->right_button.invisible = false;
+	if( screen == SCREEN_MAIN )
+	{
+		this->word_screen.clear();
+		if( this->words.size() && this->current_word != this->words.end() )
+		{
+			(*this->current_word)->render( this->freetype_renderer, this->word_screen, *this, this->library );
+		}
+	}
+	else if( screen == SCREEN_SUB )
+	{
+		if( this->current_word == this->words.begin() )
+			this->left_button.invisible = true;
+		else this->left_button.invisible = false;
+		NewWordList::iterator test_it = this->current_word;
+		if( this->current_word != this->words.end() )
+			test_it++;
+		if( test_it == this->words.end() )
+			this->right_button.invisible = true;
+		else this->right_button.invisible = false;
+	}
+	
+	this->TouchKeyboard::render( screen );
 }
 
-bool FulltextSearch::handle_button_pressed( TextButton* text_button )
+ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 {
 	if( text_button == &this->left_button )
 	{
 		if( this->current_word!=this->words.begin() )
 		{
 			this->current_word--;
-			NewWordRenderSettings render_settings;
-			(*this->current_word)->render( this->freetype_renderer, this->word_screen, render_settings, this->library );
+			this->render( SCREEN_MAIN );
+			return BUTTON_ACTION_HANDLED;
 		}
 	}
 	else if( text_button == &this->right_button )
@@ -131,9 +153,40 @@ bool FulltextSearch::handle_button_pressed( TextButton* text_button )
 			if( ++test_it!=this->words.end() )
 			{
 				this->current_word++;
-				NewWordRenderSettings render_settings;
-				(*this->current_word)->render( this->freetype_renderer, this->word_screen, render_settings, this->library );
+				this->render( SCREEN_MAIN );
+				return BUTTON_ACTION_HANDLED;
 			}
+		}
+	}
+	else if( text_button == &this->hanzi_tab )
+	{
+		this->toggle_foreign_word();
+		this->render( SCREEN_MAIN );
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->pinyin_tab )
+	{
+		this->toggle_pronunciation();
+		this->render( SCREEN_MAIN );
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->latin_tab )
+	{
+		this->toggle_translation();
+		this->render( SCREEN_MAIN );
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->down_button )
+	{
+		if( this->current_word != this->words.end() )
+		{
+			this->free_vram();
+			TextView::show_word_as_text( this->freetype_renderer, this->library, *this->current_word, 0 );
+			this->init_mode();
+			this->init_vram();
+			this->render( SCREEN_SUB );
+			this->render( SCREEN_MAIN );
+			return BUTTON_ACTION_HANDLED;
 		}
 	}
 	else if( text_button == &this->search_button )
@@ -171,12 +224,9 @@ bool FulltextSearch::handle_button_pressed( TextButton* text_button )
 		}
 		this->words.sort( hanzi_min_length_sort_predicate );
 		this->current_word = this->words.begin();
-		if( this->words.size() )
-		{
-			NewWordRenderSettings render_settings;
-			(*this->words.begin())->render( this->freetype_renderer, this->word_screen, render_settings, this->library );
-		}
+		this->render( SCREEN_MAIN );
+		return BUTTON_ACTION_HANDLED;
 	}
-	else return false;
-	return true;
+	
+	return this->TouchKeyboard::handle_button_pressed( text_button );
 }

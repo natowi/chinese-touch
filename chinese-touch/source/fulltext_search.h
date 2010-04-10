@@ -6,13 +6,14 @@
 #include "settings_dialog.h"
 
 
-class FulltextSearch : public TouchKeyboard
+class FulltextSearch : public TouchKeyboard, public NewWordRenderSettings
 {
 public:
 	FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library );
-	virtual void handle_init_screens();
-	virtual void render_prepare();
-	virtual bool handle_button_pressed( TextButton* text_button );
+	virtual void init_mode();
+	virtual void init_vram();
+	virtual void render( Screen screen );
+	virtual ButtonAction handle_button_pressed( TextButton* text_button );
 public:
 	RenderScreen word_screen;
 	Library& library;

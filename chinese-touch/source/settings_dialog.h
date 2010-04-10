@@ -56,7 +56,6 @@ class Settings : public std::map<std::string,Setting*>
 class SettingsDialog : public Mode
 {
 	public:
-		FreetypeRenderer& freetype_renderer;
 		Settings& settings;
 		RenderScreen settings_screen;
 		std::string title;

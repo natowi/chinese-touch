@@ -154,6 +154,24 @@ TextButtonListStorage::~TextButtonListStorage()
 }
 
 
+TextButtonSetStorage::~TextButtonSetStorage()
+{
+	for( TextButtonSetStorage::iterator i=this->begin(); i!=this->end(); i++ )
+	{
+		if( *i ) delete *i;
+	}
+	this->clear();
+}
+
+void TextButtonSetStorage::free_all()
+{
+	for( TextButtonSetStorage::iterator i=this->begin(); i!=this->end(); i++ )
+	{
+		if( *i ) (*i)->free_all();
+	}
+}
+
+
 TextButtonMapStorage::~TextButtonMapStorage()
 {
 	for( TextButtonMapStorage::iterator i=this->begin(); i!=this->end(); i++ )

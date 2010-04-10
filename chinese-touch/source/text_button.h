@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <set>
 #include <nds/arm9/sprite.h>
 
 #include "freetype_renderer.h"
@@ -45,6 +46,13 @@ class TextButtonListStorage : public TextButtonList
 {
 public:
 	~TextButtonListStorage();
+};
+
+class TextButtonSetStorage : public std::set<TextButton*>
+{
+public:
+	~TextButtonSetStorage();
+	void free_all();
 };
 
 class TextButtonMapStorage : public std::map<std::string,TextButton*>

@@ -135,7 +135,7 @@ void TextView::init_subscreen()
 	// unteren Bildschirm für Spritenutzung initialisieren:
 	vramSetBankD( VRAM_D_SUB_SPRITE );
 	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	oamAllocReset( &oamSub );
+	//oamAllocReset( &oamSub );
 	oamEnable( &oamSub );
 
 	// vorgerenderte Spritegrafiken laden:

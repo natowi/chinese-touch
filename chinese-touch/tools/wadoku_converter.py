@@ -97,6 +97,7 @@ for line in sys.stdin:
 	line = line.replace( "\t", " " );
 	line = line.replace( "(u.E.)", "" );
 	line = line.replace( "&gt", ">" );
+	line = line.replace( "http://", "" );
 	#print line
 	#                       word(s) kana       sent.-cmt       gen.-cmt    definition
 	results = re.findall( "^(.*?) \[([^\]]*)\] ((?:\[\].*?/ )*)([^/]*[^ ])?/(.*/)", line )

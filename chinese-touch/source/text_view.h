@@ -25,30 +25,25 @@ enum ContextMode
 	CONTEXT_WORDS_BY_CHARCODE
 };
 
-class TextView : private std::list<BufferedLine*>, public WordListBrowser
+class TextView : private std::list<BufferedLine*>, public Mode
 {
 public:
-	FreetypeRenderer& button_ft;
+	RenderScreen word_screen, text_screen;
 	Library& library;
 	Text& text;
 	Config* config;
-	RenderScreen word_screen, text_screen;
+	NewWordList current_words;
+	WordListBrowser word_browser;
 	int y_offset;
 	int v_y;
 	int sub_frame_count;
-	NewWordList current_new_word_list;
-	NewWordList::iterator current_new_word_list_it;
 	RenderScreenBuffer* current_highlight;
 	int current_highlight_x, current_highlight_y;
 	static int LINE_HEIGHT;
 	ContextMode context_mode;
 	RenderChar* context_render_char;
 	int recursion_depth;
-	TextButton left_button, right_button, exit_button,
-			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
-			rating_easy, rating_medium, rating_hard, rating_impossible,
-			settings_button, down_button, up_button;
-	TextButtonList text_buttons;
+	TextButton exit_button, settings_button, up_button;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */
@@ -57,12 +52,24 @@ public:
 	bool lookup_from_current_lesson, lookup_from_previous_lessons, 
 		lookup_from_upcoming_lessons, lookup_from_other_books;
 	std::string lookup_sql_cond;
+	touchPosition old_touch;
+	int old_y_offset; //!< used for scrolling
+	int old_abs_y_diff; //!< used for scrolling
+	int pixels_scrolled; //!< used for scrolling
 public:
 	TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config );
-	void init_subscreen();
+	void init_mode();
+	void init_vram();
+	void init_button_vram();
 	~TextView();
 	void free_line_buffers();
-	void render( Screen screen, bool update_sprites=true );
+	void render( Screen screen );
+	virtual ButtonAction handle_button_pressed( TextButton* text_button );
+	virtual ButtonAction handle_touch_begin( touchPosition touch );
+	virtual ButtonAction handle_touch_drag( touchPosition touch );
+	virtual ButtonAction handle_touch_end( touchPosition touch );
+	virtual ButtonAction handle_console_button_pressed( int pressed );
+	virtual ButtonAction handle_idle_cycles();
 	void run_until_exit();
 	static void show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth = 0 );
 	void show_settings();

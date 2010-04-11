@@ -102,7 +102,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		// FIXME: TextView::show_word_as_text( this->Mode::freetype_renderer, this->library, this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_HANDLED;

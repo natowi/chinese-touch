@@ -217,6 +217,7 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 	if( this->current_word != this->words.end() ) word = *this->current_word;
 	
 	// retract several edge sensors depending on the current list/display state:
+	this->down_button.y = word ? 0 : -12;
 	// FIXME: it may be to hard for the user to tap on half retracted display setting tabs
 	this->foreign_word_tab.y = word ? ( this->render_foreign_word ? 0 : -8 ) : -12;
 	this->pronunciation_tab.y = word ? ( this->render_pronuciation ? 0 : -8 ) : -12;
@@ -360,7 +361,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	}
 	
 	this->show_settings();
-	// show_settings() calls init_vram(), so no need to do this again
+	// show_settings() calls init_mode() and init_vram(), so no need to do this again
 }
 
 void NewWordsViewer::init_mode()
@@ -448,7 +449,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		// FIXME: TextView::show_word_as_text( this->Mode::freetype_renderer, this->library, this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_HANDLED;

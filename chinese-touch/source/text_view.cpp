@@ -1,4 +1,3 @@
-#if 0
 #include <math.h>
 #include <nds/arm9/sprite.h>
 #include <nds/arm9/background.h>
@@ -38,33 +37,20 @@ int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
 TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config )
-	: freetype_renderer(_ft), library(_library), text(_text), config(_config), y_offset(5), v_y(0), sub_frame_count(0),
-		current_new_word_list_it(this->current_new_word_list.begin()), current_highlight(0),
+	: Mode(_ft), library(_library), text(_text), config(_config),
+		word_browser(button_provider_list, _ft, current_words, text_screen, _library),
+		y_offset(5), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0), recursion_depth(0),
-		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
-		right_button(&oamSub,">",SpriteSize_32x16,text_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
-		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,text_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
-		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,text_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
-		latin_tab(&oamSub,"latin",SpriteSize_32x16,text_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
-		rating_bar(&oamSub,"",SpriteSize_64x32,text_screen.res_x/2-32,text_screen.res_y-32,freetype_renderer.latin_face,7,0,0),
-		rating_easy(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-32,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_medium(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2-16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_hard(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,text_screen.res_x/2+16,text_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,0,0), 
-		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,freetype_renderer.han_face,9,1,-1),
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,_ft.latin_face,10,-1,1),
+		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_ft.latin_face,10,1,1),
+		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_ft.han_face,9,1,-1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
-		lookup_from_upcoming_lessons(true), lookup_from_other_books(true)
+		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
+		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
 {
-	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
-	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
-	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
-	bgShow( this->word_screen.bg_id );
-	this->word_screen.clear();
-
+	this->init_mode();
+	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new SettingsLabel("0_lookup_label","Lookup selected words...") );
 	this->settings.add_setting( new BooleanSetting("1_lookup_from_current_lesson","from current Lesson",this->lookup_from_current_lesson) );
@@ -72,25 +58,12 @@ TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Confi
 	this->settings.add_setting( new BooleanSetting("3_lookup_from_upcoming_lessons","from upcoming Lessons",this->lookup_from_upcoming_lessons) );
 	this->settings.add_setting( new BooleanSetting("4_lookup_from_other_books","from other Books",this->lookup_from_other_books) );
 	
-	this->text_buttons.push_back( &this->left_button );
-	this->text_buttons.push_back( &this->right_button );
 	this->text_buttons.push_back( &this->exit_button );
-	this->text_buttons.push_back( &this->hanzi_tab );
-	this->text_buttons.push_back( &this->pinyin_tab );
-	this->text_buttons.push_back( &this->latin_tab );
-	this->text_buttons.push_back( &this->rating_bar );
-	this->text_buttons.push_back( &this->rating_easy );
-	this->text_buttons.push_back( &this->rating_medium );
-	this->text_buttons.push_back( &this->rating_hard );
-	this->text_buttons.push_back( &this->rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
-	this->text_buttons.push_back( &this->down_button );
 	this->text_buttons.push_back( &this->up_button );
 	
-	// Up-Button is disabled by default (can be explicitly enabled by caller)
-	this->up_button.disabled = true;
-	
-	this->init_subscreen();
+	// Up-Button is hidden by default (can be explicitly enabled by caller)
+	this->up_button.hidden = true;
 	
 	this->restore_init_settings();
 	
@@ -111,8 +84,8 @@ TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Confi
 		RenderStyle render_style;
 		render_style.multiline = false;
 		render_style.indentation_offset = info.indentation_offset;
-		info = this->freetype_renderer.render( *buffered_line, char_list, 
-			this->freetype_renderer.latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
+		info = this->mode_ft.render( *buffered_line, char_list, 
+			this->mode_ft.latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
 		this->push_back( buffered_line );
 		// render progress bar:
 		int progress_bar_pixels = (org_size-char_list.size())*this->word_screen.res_x/org_size;
@@ -125,61 +98,42 @@ TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Confi
 			}
 	}
 	
-	bgHide( this->word_screen.bg_id );
+	this->init_vram();
 }
 
-void TextView::init_subscreen()
+void TextView::init_mode()
 {
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->text_screen );
+	this->mode_ft.init_screen( SCREEN_MAIN, this->word_screen );
+	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
+	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
+	bgShow( this->word_screen.bg_id );
+	this->word_screen.clear();
+
+	this->mode_ft.init_screen( SCREEN_SUB, this->text_screen );
 	this->text_screen.clear();
+	
+	Mode::init_mode();
+}
 
-	// unteren Bildschirm für Spritenutzung initialisieren:
-	vramSetBankD( VRAM_D_SUB_SPRITE );
-	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	//oamAllocReset( &oamSub );
-	oamEnable( &oamSub );
-
-	// vorgerenderte Spritegrafiken laden:
-	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
-	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
-	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
-	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
+void TextView::init_vram()
+{
+	bgHide( this->word_screen.bg_id );
+	this->render( SCREEN_MAIN );
+	
+	Mode::init_vram();
+}
+	
+void TextView::init_button_vram()
+{
+	// load sprite graphics into vram:
 	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
 	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
-	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
-	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
-	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
-	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
-	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
-	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
-	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
-	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
-	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
-	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
-	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
+	this->up_button.init_vram( small_top_buttonBitmap, this->up_button.bg_vram );
+	this->up_button.init_vram( small_top_button_activeBitmap, this->up_button.bg_active_vram );
 
-	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
-	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
-	this->pinyin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
-	this->pinyin_tab.owns_bg_vram = false;
-	this->latin_tab.bg_vram = hanzi_tab.bg_vram;
-	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
-	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
-	this->latin_tab.owns_bg_vram = false;
-	this->up_button.bg_vram = this->down_button.bg_vram;
-	this->up_button.bg_active_vram = this->down_button.bg_active_vram;
-	this->up_button.owns_bg_vram = false;
-
-	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
-	{
-		(*i)->init_text_layer( this->freetype_renderer );
-	}
-	
-	// Palette für 8-Bit-Buttonbeschriftungen wie Hintergrundpalette initialisieren:
-	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );	
-	// FIXME: restore current highlight color
+	ButtonProvider::init_button_vram();
 }
 
 TextView::~TextView()
@@ -198,65 +152,25 @@ void TextView::free_line_buffers()
 	this->clear();
 }
 
-void TextView::render( Screen screen, bool update_sprites )
+void TextView::render( Screen screen )
 {
 	NewWord* new_word = 0;
-	if( this->current_new_word_list_it != this->current_new_word_list.end() )
+	if( this->word_browser.current_word != this->word_browser.words.end() )
 	{
-		new_word = *this->current_new_word_list_it;
+		new_word = *this->word_browser.current_word;
 	}
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( this->freetype_renderer, this->word_screen, *this, this->library );
+			new_word->render( this->mode_ft, this->word_screen, this->word_browser, this->library );
 		}
 	}
 	else if( screen == SCREEN_SUB )
 	{
 		this->sub_frame_count++;
-		if( update_sprites )
-		{
-			oamClear( &oamSub, 0, 0 );
-			int oam_entry = 0;
-			if( this->current_new_word_list.size() )
-			{
-				if( this->current_new_word_list_it != this->current_new_word_list.begin() )
-				{
-					this->left_button.render_to( oam_entry );
-				}
-				NewWordList::iterator test_it = this->current_new_word_list_it;
-				if( ++test_it != this->current_new_word_list.end() )
-				{
-					this->right_button.render_to( oam_entry );
-				}
-			}
-			this->exit_button.render_to( oam_entry );
-			this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(new_word ? (this->render_foreign_word ? 0 : 8) : 12) );
-			this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(new_word ? (this->render_pronuciation ? 0 : 8) : 12) );
-			this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(new_word ? (this->render_translation ? 0 : 8) : 12) );
-			this->rating_bar.render_to( oam_entry, this->rating_bar.x, this->rating_bar.y+(new_word ? 0 : 12) );
-			if( new_word )
-			{
-				this->library.words_db.read_word(*new_word); 
-				if( this->rating_easy.active || new_word->rating==RATING_EASY )
-					this->rating_easy.render_to( oam_entry );
-				if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
-					this->rating_medium.render_to( oam_entry );
-				if( this->rating_hard.active || new_word->rating==RATING_HARD )
-					this->rating_hard.render_to( oam_entry );
-				if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
-					this->rating_impossible.render_to( oam_entry );
-			}
-			if( this->text.lesson ) this->settings_button.render_to( oam_entry );
-			if( !this->down_button.disabled ) this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
-			if( !this->up_button.disabled ) this->up_button.render_to( oam_entry );
-			
-			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
-			swiWaitForVBlank();
-			oamUpdate( &oamSub );
-		}
+		this->settings_button.hidden = !this->text.lesson;
 		
 		int top = this->y_offset;
 		this->text_screen.clear( 1 );
@@ -278,464 +192,224 @@ void TextView::render( Screen screen, bool update_sprites )
 			}
 		}
 	}
+// FIXME only update sprites when needed, during text scrolling
+#if 0
+	bool updates_sprites = (old_pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT) 
+							&& (pixels_scrolled >= BUTTON_ACTIVATION_SCROLL_LIMIT);
+#endif
+	Mode::render( screen );
+}
+
+ButtonAction TextView::handle_button_pressed( TextButton* text_button )
+{
+	if( text_button == &this->exit_button )
+	{
+		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
+		{
+			this->config->save_position( *this->word_browser.current_word );
+		}
+		return BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->up_button )
+	{
+		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
+		{
+			this->config->save_position( *this->word_browser.current_word );
+		}
+		return BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->settings_button )
+	{
+		this->show_settings();
+		return BUTTON_ACTION_HANDLED;
+	}
+	if( text_button == &this->word_browser.down_button
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_HANDLED;
+	}
+	if( text_button == &this->word_browser.left_button
+		|| text_button == &this->word_browser.right_button
+		|| text_button == &this->word_browser.foreign_word_tab
+		|| text_button == &this->word_browser.pronunciation_tab
+		|| text_button == &this->word_browser.translation_tab )
+	{
+		this->render( SCREEN_MAIN );
+		return BUTTON_ACTION_HANDLED;
+	}
+	
+	return ButtonProvider::handle_button_pressed( text_button );
+}
+
+ButtonAction TextView::handle_console_button_pressed( int pressed )
+{
+	// delegate console L and R buttons to touch screen left/right button handlers:
+	if( pressed & KEY_L )
+	{
+		return this->word_browser.handle_button_pressed( &this->word_browser.left_button );
+	}
+	else if( pressed & KEY_R )
+	{
+		return this->word_browser.handle_button_pressed( &this->word_browser.right_button );
+	}
+	
+	return Mode::handle_console_button_pressed(pressed);
+}
+
+ButtonAction TextView::handle_touch_begin(touchPosition touch)
+{
+	this->old_touch = touch;
+	this->pixels_scrolled = 0;
+	this->old_y_offset = this->y_offset;
+	
+	return Mode::handle_touch_begin(touch);
+}
+
+ButtonAction TextView::handle_touch_drag(touchPosition touch)
+{
+	// text scrolling
+	int y_diff = touch.py - old_touch.py;
+	this->old_touch = touch;
+	if( !this->current_active_button )
+	{
+		int abs_y_diff = abs( y_diff );
+		if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*TextView::MAX_ACCELERATION_FACTOR)) 
+						|| (abs_y_diff <= TextView::MAX_ACCELERATION_FACTOR)) )
+		{
+			old_abs_y_diff = abs_y_diff;
+			pixels_scrolled += abs(y_diff);
+			this->y_offset += y_diff;
+			this->v_y = y_diff;
+			// FIXME: force render() not to updates sprites, to make scrolling effect faster
+			this->render( SCREEN_SUB );
+			return BUTTON_ACTION_HANDLED;
+		}
+	}
+	
+	return Mode::handle_touch_drag(touch);
+}
+
+ButtonAction TextView::handle_touch_end(touchPosition touch)
+{
+	if( !this->current_active_button
+		&& this->pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+	{
+		// Dictionary nach relevanten Treffern durchsuchen:
+		bool found = false;
+		TextView::iterator prev_line_it = this->end();
+		for( TextView::iterator line_it = this->begin();
+			!found && line_it != this->end() && (*line_it)->top<this->text_screen.res_y; 
+			prev_line_it=line_it++ )
+		{
+			BufferedLine* line = *line_it;
+			if( line->last_frame_rendered==this->sub_frame_count
+				&& old_touch.py > line->top  
+				&& old_touch.py < line->top+TextView::LINE_HEIGHT  )
+			{
+				// create and fill tempory search list containing characters of 3 successive lines
+				// for multi line context matches:
+				UCCharList search_char_list;
+				UCCharList::iterator search_char_it = search_char_list.begin();
+				typedef std::list<TextView::iterator> SearchLineIterators;
+				SearchLineIterators search_line_its;
+				if( prev_line_it!=this->end() ) search_line_its.push_back( prev_line_it );
+				search_line_its.push_back( line_it );
+				TextView::iterator next_line_it = line_it; next_line_it++;
+				if( next_line_it!=this->end() ) search_line_its.push_back( next_line_it );
+				for( SearchLineIterators::iterator sli = search_line_its.begin();
+					sli != search_line_its.end();
+					sli++ )
+				{
+					for( RenderCharList::iterator r_it = (*(*sli))->render_char_list.begin();
+						r_it != (*(*sli))->render_char_list.end();
+						r_it++ )
+					{
+						search_char_list.push_back( (*r_it)->uc_char );
+						// initiate search character position to first character of current line:
+						if( r_it == line->render_char_list.begin() )
+						{
+							search_char_it = search_char_list.end(); search_char_it--;
+						}
+					}
+				}
+				// find character clicked on:
+				for( RenderCharList::iterator char_it = line->render_char_list.begin();
+					!found && char_it != line->render_char_list.end();
+					char_it++, search_char_it++ )
+				{
+					RenderChar* curr_char = *char_it;
+					if( old_touch.px > curr_char->x && old_touch.px < curr_char->x+curr_char->width )
+					{
+						if( this->context_render_char != curr_char 
+							|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
+						{
+							// first click (odd count) on a character: find words in current context:
+							this->library.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->word_browser.words, this->lookup_sql_cond );
+							this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
+							// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
+							this->text_screen.palette[0] = 16<<10|24<<5|31;
+						}
+						else
+						{
+							// second click (even count) on a character: find words containing selected character:
+							std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
+							this->library.find_words_by_characters( character, this->word_browser.words, this->lookup_sql_cond );
+							this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
+							// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
+							this->text_screen.palette[0] = 31<<10|24<<5|24;
+						}
+						this->context_render_char = curr_char;
+						this->word_browser.current_word = this->word_browser.words.begin();
+						// (re-)define and render highlight for selected character in text view:
+						if( this->current_highlight ) delete this->current_highlight;
+						this->current_highlight = new RenderScreenBuffer( curr_char->width, TextView::LINE_HEIGHT );
+						this->current_highlight->clear();
+						this->current_highlight_x = curr_char->x;
+						this->current_highlight_y = line->top-this->y_offset+curr_char->y-1;
+						this->render( SCREEN_SUB );
+						// render first search result on main screen:
+						this->render( SCREEN_MAIN );
+						found = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+	
+	return Mode::handle_touch_begin(touch);
+}
+
+ButtonAction TextView::handle_idle_cycles()
+{
+	this->pixels_scrolled = 0;
+	/* check if there is still momentum from a previous text scrolling input 
+		and animate the text based on simple physics */
+	if( this->v_y )
+	{
+		int resistance = this->v_y / 4;
+		if( !resistance ) resistance = this->v_y / 2;
+		if( !resistance ) resistance = this->v_y;
+		this->v_y -= resistance;
+		this->y_offset += this->v_y;
+		// FIXME: force render() not to updates sprites, to make scrolling effect faster
+		this->render( SCREEN_SUB );
+		return BUTTON_ACTION_HANDLED;
+	}
+	
+	return Mode::handle_idle_cycles();
 }
 
 void TextView::run_until_exit()
 {
 	if( this->config ) 
 		this->config->save_position( this->text.lesson );
-	this->render( SCREEN_SUB );
-	this->render( SCREEN_MAIN );
-	touchPosition old_touch;
-    touchRead( &old_touch );
-	bool touched = false;
-	int pixels_scrolled = 0;
-	int old_y_offset = this->y_offset;
-	int old_abs_y_diff = 0;
-	while( true )
-	{
-        scanKeys();
-		int pressed = keysDown();
-		int released = keysUp();
-		int held = keysHeld();
-		if( held & KEY_SELECT && pressed & KEY_UP )
-		{
-			ErrorConsole::init_screen( SCREEN_MAIN );
-		}
-		if( held & KEY_SELECT && pressed & KEY_DOWN )
-		{
-			ErrorConsole::init_screen( SCREEN_SUB );
-		}
-		if( held & KEY_SELECT && pressed & KEY_LEFT )
-		{
-			ErrorConsole::clear();
-		}
-		if( held & KEY_SELECT && pressed & KEY_RIGHT )
-		{
-			ErrorConsole::dump();
-		}
-		
-		NewWordList::iterator test_it = this->current_new_word_list_it;
-		if( pressed & KEY_L && this->current_new_word_list_it != this->current_new_word_list.begin() )
-		{
-			this->left_button.active = true;
-			this->render( SCREEN_SUB );
-			this->left_button.active = false;
-			this->current_new_word_list_it--;
-			this->render( SCREEN_MAIN );
-			this->render( SCREEN_SUB );
-		}
-		else if( pressed & KEY_R && ++test_it != this->current_new_word_list.end() )
-		{
-			this->right_button.active = true;
-			this->render( SCREEN_SUB );
-			this->right_button.active = false;
-			this->current_new_word_list_it++;
-			this->render( SCREEN_MAIN );
-			this->render( SCREEN_SUB );
-		}
-
-		touchPosition touch;
-        touchRead( &touch );
-        if( keysCurrent() & KEY_TOUCH )
-        {
-			if( !touched ) 
-			{
-				touched = true;
-				pixels_scrolled = 0;
-				old_y_offset = this->y_offset;
-				old_touch = touch;
-			}
-			NewWordList::iterator end_it = this->current_new_word_list_it;
-			if( end_it != this->current_new_word_list.end() ) end_it++;
-            if( this->exit_button.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
-            {
-				if( !this->exit_button.active )
-				{
-					this->exit_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-            }
-            else if( this->current_new_word_list_it != this->current_new_word_list.begin()
-				&& this->left_button.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
-            {
-				if( !this->left_button.active )
-				{
-					this->left_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( end_it != this->current_new_word_list.end() 
-				&& this->right_button.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
-            {
-				if( !this->right_button.active  )
-				{
-					this->right_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->hanzi_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->hanzi_tab.active )
-				{
-					this->hanzi_tab.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->pinyin_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->pinyin_tab.active )
-				{
-					this->pinyin_tab.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->latin_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->latin_tab.active )
-				{
-					this->latin_tab.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_easy.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->rating_easy.active )
-				{
-					this->rating_easy.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_medium.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->rating_medium.active )
-				{
-					this->rating_medium.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_hard.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->rating_hard.active )
-				{
-					this->rating_hard.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_impossible.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->rating_impossible.active )
-				{
-					this->rating_impossible.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->settings_button.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->text.lesson )
-			{
-				if( !this->settings_button.active )
-				{
-					this->settings_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( !this->down_button.disabled
-				&& this->down_button.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-			{
-				if( !this->down_button.active )
-				{
-					this->down_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( !this->up_button.disabled 
-				&& this->up_button.is_responsible(touch.px, touch.py) 
-				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
-			{
-				if( !this->up_button.active )
-				{
-					this->up_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-			else
-			{
-				bool changed = false;
-				for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
-				{
-					changed |= (*i)->active;
-					(*i)->active = false;
-				}
-				int y_diff = touch.py - old_touch.py;
-				int abs_y_diff = abs( y_diff );
-				int old_pixels_scrolled = pixels_scrolled;
-				if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*TextView::MAX_ACCELERATION_FACTOR)) 
-								|| (abs_y_diff <= TextView::MAX_ACCELERATION_FACTOR)) )
-				{
-					old_abs_y_diff = abs_y_diff;
-					pixels_scrolled += abs(y_diff);
-					changed = true;
-					this->y_offset += y_diff;
-					this->v_y = y_diff;
-				}
-				if( changed ) this->render( SCREEN_SUB, (old_pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT) 
-														&& (pixels_scrolled >= BUTTON_ACTIVATION_SCROLL_LIMIT) );
-			}
-			old_touch = touch;
-		}
-		else if( touched && pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
-		{
-			touched = false;
-            if( this->exit_button.active && this->exit_button.is_responsible(old_touch.px, old_touch.py) )
-            {
-				this->exit_button.active = false;
-				if( this->config )
-					this->config->save_position( this->text.lesson );
-				return;
-            }
-            else if( this->left_button.active && this->left_button.is_responsible(old_touch.px, old_touch.py) )
-            {
-				this->left_button.active = false;
-				if( this->current_new_word_list_it != this->current_new_word_list.begin() )
-				{
-					this->current_new_word_list_it--;
-					this->render( SCREEN_MAIN );
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->right_button.active && this->right_button.is_responsible(old_touch.px, old_touch.py) )
-            {
-				this->right_button.active = false;
-				if( this->current_new_word_list_it != this->current_new_word_list.end() )
-				{
-					if( ++this->current_new_word_list_it == this->current_new_word_list.end() )
-					{
-						this->current_new_word_list_it--;
-					}
-					else
-					{
-						this->render( SCREEN_MAIN );
-						this->render( SCREEN_SUB );
-					}
-				}
-			}
-            else if( this->hanzi_tab.is_responsible(old_touch.px, old_touch.py) 
-				&& this->hanzi_tab.active )
-            {
-				this->hanzi_tab.active = false;
-				this->toggle_foreign_word();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->pinyin_tab.is_responsible(old_touch.px, old_touch.py) 
-				&& this->pinyin_tab.active )
-            {
-				this->pinyin_tab.active = false;
-				this->toggle_pronunciation();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->latin_tab.is_responsible(old_touch.px, old_touch.py) 
-				&& this->latin_tab.active )
-            {
-				this->latin_tab.active = false;
-				this->toggle_translation();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_easy.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_easy.active
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-            {
-				this->rating_easy.active = false;
-				(*this->current_new_word_list_it)->rating = RATING_EASY;
-				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_medium.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_medium.active
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-            {
-				this->rating_medium.active = false;
-				(*this->current_new_word_list_it)->rating = RATING_MEDIUM;
-				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_hard.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_hard.active
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-            {
-				this->rating_hard.active = false;
-				(*this->current_new_word_list_it)->rating = RATING_HARD;
-				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_impossible.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_impossible.active
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-            {
-				this->rating_impossible.active = false;
-				(*this->current_new_word_list_it)->rating = RATING_IMPOSSIBLE;
-				this->library.words_db.add_or_write_word( **this->current_new_word_list_it );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->settings_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->settings_button.active
-				&& this->text.lesson )
-            {
-				this->settings_button.active = false;
-				this->show_settings();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->down_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->down_button.active
-				&& this->current_new_word_list_it != this->current_new_word_list.end() )
-            {
-				this->down_button.active = false;
-				this->text_buttons.free_all();
-				//this->free_line_buffers();
-				TextView::show_word_as_text( this->freetype_renderer, this->library, *this->current_new_word_list_it, 0, this->recursion_depth );
-				this->init_subscreen();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->up_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->up_button.active )
-            {
-				this->up_button.active = false;
-				return;
-            }
-			else
-			{
-				// Dictionary nach relevanten Treffern durchsuchen:
-				bool found = false;
-				TextView::iterator prev_line_it = this->end();
-				for( TextView::iterator line_it = this->begin();
-					!found && line_it != this->end() && (*line_it)->top<this->text_screen.res_y; 
-					prev_line_it=line_it++ )
-				{
-					BufferedLine* line = *line_it;
-					if( line->last_frame_rendered==this->sub_frame_count
-						&& old_touch.py > line->top  
-						&& old_touch.py < line->top+TextView::LINE_HEIGHT  )
-					{
-						// create and fill tempory search list containing characters of 3 successive lines
-						// for multi line context matches:
-						UCCharList search_char_list;
-						UCCharList::iterator search_char_it = search_char_list.begin();
-						typedef std::list<TextView::iterator> SearchLineIterators;
-						SearchLineIterators search_line_its;
-						if( prev_line_it!=this->end() ) search_line_its.push_back( prev_line_it );
-						search_line_its.push_back( line_it );
-						TextView::iterator next_line_it = line_it; next_line_it++;
-						if( next_line_it!=this->end() ) search_line_its.push_back( next_line_it );
-						for( SearchLineIterators::iterator sli = search_line_its.begin();
-							sli != search_line_its.end();
-							sli++ )
-						{
-							for( RenderCharList::iterator r_it = (*(*sli))->render_char_list.begin();
-								r_it != (*(*sli))->render_char_list.end();
-								r_it++ )
-							{
-								search_char_list.push_back( (*r_it)->uc_char );
-								// initiate search character position to first character of current line:
-								if( r_it == line->render_char_list.begin() )
-								{
-									search_char_it = search_char_list.end(); search_char_it--;
-								}
-							}
-						}
-						// find character clicked on:
-						for( RenderCharList::iterator char_it = line->render_char_list.begin();
-							!found && char_it != line->render_char_list.end();
-							char_it++, search_char_it++ )
-						{
-							RenderChar* curr_char = *char_it;
-							if( old_touch.px > curr_char->x && old_touch.px < curr_char->x+curr_char->width )
-							{
-								if( this->context_render_char != curr_char 
-									|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
-								{
-									// first click (odd count) on a character: find words in current context:
-									this->library.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->current_new_word_list, this->lookup_sql_cond );
-									this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
-									// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
-									this->text_screen.palette[0] = 16<<10|24<<5|31;
-								}
-								else
-								{
-									// second click (even count) on a character: find words containing selected character:
-									std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
-									this->library.find_words_by_characters( character, this->current_new_word_list, this->lookup_sql_cond );
-									this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
-									// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
-									this->text_screen.palette[0] = 31<<10|24<<5|24;
-								}
-								this->context_render_char = curr_char;
-								this->current_new_word_list_it = this->current_new_word_list.begin();
-								// (re-)define and render highlight for selected character in text view:
-								if( this->current_highlight ) delete this->current_highlight;
-								this->current_highlight = new RenderScreenBuffer( curr_char->width, TextView::LINE_HEIGHT );
-								this->current_highlight->clear();
-								this->current_highlight_x = curr_char->x;
-								this->current_highlight_y = line->top-this->y_offset+curr_char->y-1;
-								this->render( SCREEN_SUB );
-								// render first search result on main screen:
-								this->render( SCREEN_MAIN );
-								found = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			swiWaitForVBlank();
-			touched = false;
-			pixels_scrolled = 0;
-			for( TextButtonList::iterator i=this->text_buttons.begin(); 
-				i!=this->text_buttons.end(); i++ )
-			{
-				(*i)->active = false;
-			}
-			if( this->v_y )
-			{
-				int resistance = this->v_y / 4;
-				if( !resistance ) resistance = this->v_y / 2;
-				if( !resistance ) resistance = this->v_y;
-				this->v_y -= resistance;
-				this->y_offset += this->v_y;
-				this->render( SCREEN_SUB, false );
-			}
-		}
-	}
+	
+	Mode::run_until_exit();
 }
 
 void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth )
@@ -754,20 +428,21 @@ void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWor
 	TextView* text_view = new TextView( ft, library, new_text, config );
 	text_view->recursion_depth = recursion_depth+1;
 	if( text_view->recursion_depth>=10 )
-		text_view->down_button.disabled = true;
-	text_view->up_button.disabled = false;
+		text_view->word_browser.down_button.hidden = true;
+	text_view->up_button.hidden = false;
 	text_view->run_until_exit();
 	delete text_view;
 }
 
 void TextView::show_settings()
 {
-	this->text_buttons.free_all();
-	SettingsDialog* settings_dialog = new SettingsDialog( this->freetype_renderer, this->settings, "Text Viewer Settings" );
+	this->free_vram();
+	SettingsDialog* settings_dialog = new SettingsDialog( this->mode_ft, this->settings, "Text Viewer Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
-	this->init_subscreen();
 	this->restore_init_settings();
+	this->init_mode();
+	this->init_vram();
 }
 
 void TextView::restore_init_settings()
@@ -803,4 +478,3 @@ void TextView::restore_init_settings()
 	}
 	this->lookup_sql_cond = extra_sql_cond.str();
 }
-#endif

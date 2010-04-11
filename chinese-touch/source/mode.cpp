@@ -194,7 +194,7 @@ void Mode::run_until_exit()
 				if( (*bpi)->current_active_button ) active_button = (*bpi)->current_active_button;
 			}
 			// Copy any active button from a button Provider to the GlobalButtonHandler:
-			if( !this->current_active_button ) this->current_active_button = active_button;
+			this->current_active_button = active_button;
 			// second handle raw touch events
 			if( !touched ) 
 			{
@@ -213,7 +213,7 @@ void Mode::run_until_exit()
 			}
 			old_touch = touch;
 			// update lower screen:
-			// FIXME: should we call this from the upper layer exclusivley through a changed handler?
+			// FIXME: should we call this from the upper layer exclusivley through a "changed"-handler?
 			if( changed ) 
 				this->render( SCREEN_SUB );
 		}
@@ -235,7 +235,7 @@ void Mode::run_until_exit()
 				return;
 			}
 			// update lower screen:
-			// FIXME: should we call this from the upper layer exclusivley through a changed handler?
+			// FIXME: should we call this from the upper layer exclusivley through a "changed"-handler?
 			if( changed )
 				this->render( SCREEN_SUB );
 		}

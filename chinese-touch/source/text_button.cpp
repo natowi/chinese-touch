@@ -13,7 +13,7 @@ TextButton::TextButton( OamState* _oam, const std::string& _text,
 	text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
 	bg_prio(1), text_prio(0),
 	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
-	active(false), inactive(false), owns_bg_vram(true), invisible(false),
+	active(false), disabled(false), owns_bg_vram(true), hidden(false),
 	face(_face), font_size(_font_size)
 {
 	if( SPRITE_SIZE_SHAPE(sprite_size)==OBJSHAPE_SQUARE )
@@ -105,10 +105,10 @@ void TextButton::render_to( int& oam_entry )
 
 void TextButton::render_to( int& oam_entry, int _x, int _y )
 {
-	if( this->invisible ) return;
+	if( this->hidden ) return;
 	u16* vram = this->bg_vram;
 	if( this->active && this->bg_active_vram ) vram = this->bg_active_vram;
-	if( this->inactive && this->bg_inactive_vram ) vram = this->bg_inactive_vram;
+	if( this->disabled && this->bg_inactive_vram ) vram = this->bg_inactive_vram;
 	if( vram )
 	{
 		oamSet( this->oam, oam_entry++,
@@ -129,7 +129,7 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 
 bool TextButton::is_responsible( int ref_x, int ref_y )
 {
-	return !this->invisible
+	return !this->disabled
 			&& ref_x > this->x && ref_x < this->x+this->width
 			&& ref_y > this->y && ref_y < this->y+this->height;
 }

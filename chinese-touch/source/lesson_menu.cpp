@@ -577,10 +577,10 @@ void LessonMenu::render( Screen screen )
 					}
 					if( lesson_entry && lesson_entry->lesson && (lesson_id == this->active_list_id) )
 					{
-						this->new_words_button.inactive = !lesson_entry->lesson->new_words_available;
-						this->grammar_button.inactive = !lesson_entry->lesson->grammar_texts_available;
-						this->text_button.inactive = !lesson_entry->lesson->lesson_texts_available;
-						this->exercises_button.inactive = !lesson_entry->lesson->exercises_available;
+						this->new_words_button.disabled = !lesson_entry->lesson->new_words_available;
+						this->grammar_button.disabled = !lesson_entry->lesson->grammar_texts_available;
+						this->text_button.disabled = !lesson_entry->lesson->lesson_texts_available;
+						this->exercises_button.disabled = !lesson_entry->lesson->exercises_available;
 						if( top > -MenuEntry::ACTIVE_HEIGHT )
 						{
 							int y = top+MenuEntry::BUTTON_Y_OFFSET;
@@ -1026,7 +1026,7 @@ TextButton* LessonMenu::get_button_by_content_type( LessonMenuChoice::ContentTyp
 bool LessonMenu::activate_button_by_content_type( LessonMenuChoice::ContentType content_type )
 {
 	TextButton* button = this->get_button_by_content_type( content_type );
-	if( button && !button->inactive )
+	if( button && !button->disabled )
 	{
 		button->active = true;
 		return true;
@@ -1037,7 +1037,7 @@ bool LessonMenu::activate_button_by_content_type( LessonMenuChoice::ContentType 
 bool LessonMenu::get_activation_by_content_type( LessonMenuChoice::ContentType content_type )
 {
 	TextButton* button = this->get_button_by_content_type( content_type );
-	return button && !button->inactive && button->active;
+	return button && !button->disabled && button->active;
 }
 
 void LessonMenu::show_settings()

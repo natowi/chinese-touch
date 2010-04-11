@@ -8,18 +8,28 @@
 #include "settings_dialog.h"
 
 
-/*! Stores which parts of dictionary entries shall be displayed on top screen. */
-class NewWordRenderSettings
+/*! Base class for modes with word list browsing capabilities */
+class WordListBrowser : public ButtonProvider
 {
 	public:
+		NewWordList& words;
+		NewWordList::iterator current_word;
+		RenderScreen& button_screen;
+		Library& library;
 		bool render_foreign_word, render_pronuciation, render_translation;
 		bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
 		bool restore_on_switch, clear_on_switch;
+		TextButton left_button, right_button, 
+			foreign_word_tab, pronunciation_tab, translation_tab, 
+			rating_bar, 
+			rating_easy, rating_medium, rating_hard, rating_impossible,
+			down_button;
 	public:
-		NewWordRenderSettings() 
-			: render_foreign_word(true), render_pronuciation(true), render_translation(true),
-				init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
-				restore_on_switch(true), clear_on_switch(true) {}
+		WordListBrowser( ButtonProviderList& provider_list, 
+						 FreetypeRenderer& _freetype_renderer, 
+						 NewWordList& _words, 
+						 RenderScreen& _button_screen,
+						 Library& _library );
 		void toggle_foreign_word() { this->render_foreign_word = !this->render_foreign_word; }
 		void toggle_pronunciation() { this->render_pronuciation = !this->render_pronuciation; }
 		void toggle_translation() { this->render_translation = !this->render_translation; }
@@ -30,34 +40,40 @@ class NewWordRenderSettings
 			this->render_translation = this->init_render_translation;
 		}
 		void restore_init_settings_if_needed() { if(this->restore_on_switch) this->restore_init_settings(); }
+		virtual void init_button_vram();
+		virtual void render_buttons( OamState* oam_state, int& oam_entry );
+		virtual ButtonAction handle_button_pressed( TextButton* text_button );
+		void switch_forward();
+		void switch_backwards();
 };
 
 
-class NewWordsViewer : public NewWordRenderSettings
+class NewWordsViewer : public Mode
 {
 	public:
-		FreetypeRenderer& freetype_renderer;
-		DrawingPad drawing_pad;
 		RenderScreen word_screen, drawing_screen;
-		NewWordList& words;
-		NewWordList::iterator current_word;
+		WordListBrowser word_browser;
+		DrawingPad drawing_pad;
 		Library& library;
 		Config* config;
-		TextButton left_button, right_button, exit_button, clear_button, 
-			hanzi_tab, pinyin_tab, latin_tab, rating_bar, 
-			rating_easy, rating_medium, rating_hard, rating_impossible,
-			settings_button, down_button;
-		TextButtonList text_buttons;
+		TextButton exit_button, clear_button, settings_button;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;
+		touchPosition old_touch;
+		int old_distance;
+		bool buttons_locked;
 	public:
 		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config=0 );
-		void init_subscreen();
+		void init_mode();
+		void init_vram();
+		void init_button_vram();
 		void show_settings();
 		void render( Screen screen );
-		void run_until_exit();
-		void switch_forward();
-		void switch_backwards();
+		virtual ButtonAction handle_button_pressed( TextButton* text_button );
+		virtual ButtonAction handle_touch_begin( touchPosition touch );
+		virtual ButtonAction handle_touch_drag( touchPosition touch );
+		virtual ButtonAction handle_touch_end( touchPosition touch );
+		virtual ButtonAction handle_console_button_pressed( int pressed );
 };
 
 #endif // NEW_WORDS_H

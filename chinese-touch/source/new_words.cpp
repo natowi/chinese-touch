@@ -39,7 +39,7 @@
 #include "small_top_button_active.h"
 
 
-void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWordRenderSettings& render_settings, Library& library )
+void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library )
 {
 	// try to read the corresponding entry from the database:
 	if( this->lesson && this->lesson->book && this->lesson->book->library )
@@ -135,536 +135,392 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, NewWord
 }
 
 
-int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
-
-NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config )
-	: freetype_renderer(_freetype_renderer), drawing_pad(drawing_screen), words(_words), 
-		current_word(words.begin()), library(_library), config(_config), 
-		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
-		right_button(&oamSub,">",SpriteSize_32x16,drawing_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,freetype_renderer.latin_face,10,-1,1),
-		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,freetype_renderer.latin_face,9,-7,3),
-		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,drawing_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
-		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,drawing_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
-		latin_tab(&oamSub,"latin",SpriteSize_32x16,drawing_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
-		rating_bar(&oamSub,"",SpriteSize_64x32,drawing_screen.res_x/2-32,drawing_screen.res_y-32,freetype_renderer.latin_face,7,0,0),
-		rating_easy(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-32,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_medium(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2-16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_hard(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,drawing_screen.res_x/2+16,drawing_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,0,0)
+WordListBrowser::WordListBrowser( ButtonProviderList& provider_list, 
+								  FreetypeRenderer& _freetype_renderer, 
+								  NewWordList& _words, 
+								  RenderScreen& _button_screen,
+								  Library& _library ) 
+	: 	ButtonProvider(provider_list, _freetype_renderer), 
+		words(_words), current_word(words.begin()),
+		button_screen(_button_screen), library(_library),
+		render_foreign_word(true), render_pronuciation(true), render_translation(true),
+		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
+		restore_on_switch(true), clear_on_switch(true),
+		left_button(&oamSub,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
+		right_button(&oamSub,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
+		foreign_word_tab(&oamSub,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,0,button_ft.han_face,9),
+		pronunciation_tab(&oamSub,"拼音",SpriteSize_32x16,button_screen.res_x/2-16,0,button_ft.han_face,9,1,-1),
+		translation_tab(&oamSub,"latin",SpriteSize_32x16,button_screen.res_x/2+16+8,0,button_ft.latin_face,7,0,1),
+		rating_bar(&oamSub,"",SpriteSize_64x32,button_screen.res_x/2-32,button_screen.res_y-32,button_ft.latin_face,7,0,0),
+		rating_easy(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-32,button_screen.res_y-16,button_ft.latin_face,7,0,0),
+		rating_medium(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-16,button_screen.res_y-16,button_ft.latin_face,7,0,0),
+		rating_hard(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2,button_screen.res_y-16,button_ft.latin_face,7,0,0),
+		rating_impossible(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+16,button_screen.res_y-16,button_ft.latin_face,7,0,0),
+		down_button(&oamSub,"下",SpriteSize_16x16,44,0,button_ft.han_face,9,0,0)
 {
-	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
-	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
-	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
-	bgShow( this->word_screen.bg_id );
-	this->word_screen.clear();
-	
-	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
-	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->init_render_foreign_word) );
-	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->init_render_pronuciation) );
-	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->init_render_translation) );
-	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Settings on Switch",this->restore_on_switch) );
-	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Writing Screen on Switch",this->clear_on_switch) );
-	
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
-	this->text_buttons.push_back( &this->exit_button );
-	this->text_buttons.push_back( &this->clear_button );
-	this->text_buttons.push_back( &this->hanzi_tab );
-	this->text_buttons.push_back( &this->pinyin_tab );
-	this->text_buttons.push_back( &this->latin_tab );
+	this->text_buttons.push_back( &this->foreign_word_tab );
+	this->text_buttons.push_back( &this->pronunciation_tab );
+	this->text_buttons.push_back( &this->translation_tab );
 	this->text_buttons.push_back( &this->rating_bar );
 	this->text_buttons.push_back( &this->rating_easy );
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
-	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->down_button );
-	
-	// Wortliste initialisieren und auf gespeicherten Index positionieren:
-	if( this->config ) 
-	{
-		int word_id = this->config->get_current_word_id();
-		for( this->current_word=this->words.begin(); this->current_word!=this->words.end(); this->current_word++ )
-		{
-			if( (*this->current_word)->id == word_id ) break;
-		}
-		if( this->current_word==this->words.end() ) this->current_word=this->words.begin();
-	}
-	
-	this->show_settings();
-	// Settings would clobber the subscreen, so we initalize it afterwards:
-	this->init_subscreen();
-	
-	bgHide( this->word_screen.bg_id );
 }
 
-void NewWordsViewer::init_subscreen()
+void WordListBrowser::init_button_vram()
 {
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->drawing_screen );
-	this->drawing_screen.clear();
-
-	// unteren Bildschirm für Spritenutzung initialisieren:
-	vramSetBankD( VRAM_D_SUB_SPRITE );
-	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	//oamAllocReset( &oamSub );
-	oamEnable( &oamSub );
-
 	// vorgerenderte Spritegrafiken laden:
 	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
 	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
 	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
 	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
-	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
-	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
-	this->clear_button.init_vram( right_center_buttonBitmap, this->clear_button.bg_vram );
-	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
-	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
-	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
-	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
+	this->foreign_word_tab.init_vram( top_paper_tabBitmap, this->foreign_word_tab.bg_vram );
+	this->foreign_word_tab.init_vram( top_paper_tab_activeBitmap, this->foreign_word_tab.bg_active_vram );
+	this->foreign_word_tab.init_vram( top_paper_tab_inactiveBitmap, this->foreign_word_tab.bg_inactive_vram );
 	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
 	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
 	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
-	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
-	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
 	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 
-	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
-	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
-	this->pinyin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
-	this->pinyin_tab.owns_bg_vram = false;
-	this->latin_tab.bg_vram = hanzi_tab.bg_vram;
-	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
-	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
-	this->latin_tab.owns_bg_vram = false;
+	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
+	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
+	this->pronunciation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	this->pronunciation_tab.owns_bg_vram = false;
+	this->translation_tab.bg_vram = this->foreign_word_tab.bg_vram;
+	this->translation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
+	this->translation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	this->translation_tab.owns_bg_vram = false;
 	
-	for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
+	ButtonProvider::init_button_vram();
+}
+
+void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
+{
+	// hide left button when at the beginning of the word list:
+	if( this->current_word == this->words.begin() ) this->left_button.hidden = true;
+	else this->left_button.hidden = false;
+	// hide right button when at the end of the word list:
+	NewWordList::iterator test_it = this->current_word;
+	if( this->current_word != this->words.end() ) test_it++;
+	if( test_it == this->words.end() ) this->right_button.hidden = true;
+	else this->right_button.hidden = false;
+	
+	NewWord* word = 0;
+	if( this->current_word != this->words.end() ) word = *this->current_word;
+	
+	// retract several edge sensors depending on the current list/display state:
+	// FIXME: it may be to hard for the user to tap on half retracted display setting tabs
+	this->foreign_word_tab.y = word ? ( this->render_foreign_word ? 0 : -8 ) : -12;
+	this->pronunciation_tab.y = word ? ( this->render_pronuciation ? 0 : -8 ) : -12;
+	this->translation_tab.y = word ? ( this->render_translation ? 0 : -8 ) : -12;
+	this->rating_bar.y = word ? this->button_screen.res_y-32 : this->button_screen.res_y-32+12;
+	this->rating_easy.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
+	this->rating_medium.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
+	this->rating_hard.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
+	this->rating_impossible.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
+	
+	// hide all but currently active rating:
+	if( word )
 	{
-		(*i)->init_text_layer( this->freetype_renderer );
+		this->library.words_db.read_word( *word );
+		this->rating_easy.hidden = !(this->rating_easy.active || word->rating==RATING_EASY);
+		this->rating_medium.hidden = !(this->rating_medium.active || word->rating==RATING_MEDIUM);
+		this->rating_hard.hidden = !(this->rating_hard.active || word->rating==RATING_HARD);
+		this->rating_impossible.hidden = !(this->rating_impossible.active || word->rating==RATING_IMPOSSIBLE);
 	}
 	
-	// Palette für 8-Bit-Buttonbeschriftungen wie Hintergrundpalette initialisieren:
-	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
+	// let ButtonProvider do the actual rendering
+	ButtonProvider::render_buttons(oam_state, oam_entry);
+}
+
+ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
+{
+	if( text_button == &this->left_button )
+	{
+		this->switch_backwards();
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->right_button )
+	{
+		this->switch_forward();
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->foreign_word_tab )
+	{
+		this->toggle_foreign_word();
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->pronunciation_tab )
+	{
+		this->toggle_pronunciation();
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->translation_tab )
+	{
+		this->toggle_translation();
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->rating_easy 
+		&& this->current_word != this->words.end() )
+	{
+		(*this->current_word)->rating = RATING_EASY;
+		this->library.words_db.add_or_write_word( **this->current_word );
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->rating_medium 
+		&& this->current_word != this->words.end() )
+	{
+		(*this->current_word)->rating = RATING_MEDIUM;
+		this->library.words_db.add_or_write_word( **this->current_word );
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->rating_hard 
+		&& this->current_word != this->words.end() )
+	{
+		(*this->current_word)->rating = RATING_HARD;
+		this->library.words_db.add_or_write_word( **this->current_word );
+		return BUTTON_ACTION_HANDLED;
+	}
+	else if( text_button == &this->rating_impossible 
+		&& this->current_word != this->words.end() )
+	{
+		(*this->current_word)->rating = RATING_IMPOSSIBLE;
+		this->library.words_db.add_or_write_word( **this->current_word );
+		return BUTTON_ACTION_HANDLED;
+	}
+	
+	return ButtonProvider::handle_button_pressed(text_button);
+}
+
+void WordListBrowser::switch_forward()
+{
+	if( this->current_word != this->words.end() )
+	{
+		NewWordList::iterator test_it = this->current_word;
+		if( ++test_it != this->words.end() )
+			this->current_word++;
+	}
+	this->restore_init_settings_if_needed();
+}
+
+void WordListBrowser::switch_backwards()
+{
+	if( this->current_word != this->words.begin() )
+		this->current_word--;
+	this->restore_init_settings_if_needed();
+}
+
+
+
+
+
+
+
+int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
+
+NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config )
+	: Mode(_freetype_renderer), word_browser(button_provider_list, _freetype_renderer, _words, drawing_screen, _library),
+		drawing_pad(drawing_screen), library(_library), config(_config),
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,-1,1),
+		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_freetype_renderer.latin_face,9,-7,3),
+		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
+		buttons_locked(false)
+{
+	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
+	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->word_browser.init_render_foreign_word) );
+	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->word_browser.init_render_pronuciation) );
+	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->word_browser.init_render_translation) );
+	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Settings on Switch",this->word_browser.restore_on_switch) );
+	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Writing Screen on Switch",this->word_browser.clear_on_switch) );
+	
+	this->text_buttons.push_back( &this->exit_button );
+	this->text_buttons.push_back( &this->clear_button );
+	this->text_buttons.push_back( &this->settings_button );
+	
+	// initialize word list on stored word index (only used when calling new words from a lesson):
+	if( this->config ) 
+	{
+		int word_id = this->config->get_current_word_id();
+		for( this->word_browser.current_word = this->word_browser.words.begin(); 
+			this->word_browser.current_word != this->word_browser.words.end(); 
+			this->word_browser.current_word++ )
+		{
+			if( (*this->word_browser.current_word)->id == word_id ) break;
+		}
+		if( this->word_browser.current_word == this->word_browser.words.end() ) 
+			this->word_browser.current_word = this->word_browser.words.begin();
+	}
+	
+	this->show_settings();
+	// show_settings() calls init_vram(), so no need to do this again
+}
+
+void NewWordsViewer::init_mode()
+{
+	this->Mode::button_ft.init_screen( SCREEN_MAIN, this->word_screen );
+	this->word_screen.clear();
+	bgHide( this->word_screen.bg_id );
+	
+	this->Mode::button_ft.init_screen( SCREEN_SUB, this->drawing_screen );
+	this->drawing_screen.clear();
+
+	Mode::init_mode();
+}
+
+void NewWordsViewer::init_vram()
+{
+	this->render( SCREEN_MAIN );
+	
+	Mode::init_vram();
+}
+
+void NewWordsViewer::init_button_vram()
+{
+	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
+	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
+	this->clear_button.init_vram( right_center_buttonBitmap, this->clear_button.bg_vram );
+	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
+	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
+	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	
+	ButtonProvider::init_button_vram();
 }
 
 void NewWordsViewer::show_settings()
 {
-	this->text_buttons.free_all();
-	SettingsDialog settings_dialog( this->freetype_renderer, this->settings, "Word List Settings" );
+	this->free_vram();
+	SettingsDialog settings_dialog( this->Mode::button_ft, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
-	this->init_subscreen();
-	this->restore_init_settings();
+	this->word_browser.restore_init_settings();
+	this->init_mode();
+	this->init_vram();
 }
 
 void NewWordsViewer::render( Screen screen )
 {
 	NewWord* new_word = 0;
-	if( this->current_word!=this->words.end() )
+	if( this->word_browser.current_word!=this->word_browser.words.end() )
 	{
-		new_word = *this->current_word;
+		new_word = *this->word_browser.current_word;
 	}
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( this->freetype_renderer, this->word_screen, *this, this->library );
+			if( this->config ) this->config->save_position( new_word );
+			new_word->render( this->Mode::button_ft, this->word_screen, this->word_browser, this->library );
 		}
 	}
-	else if( screen == SCREEN_SUB )
+	
+	Mode::render( screen );
+}
+
+ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
+{
+	if( text_button == &this->clear_button )
 	{
-		oamClear( &oamSub, 0, 0 );
-		int oam_entry = 0;
-		if( this->words.size() )
-		{
-			if( this->current_word != this->words.begin() )
-			{
-				this->left_button.render_to( oam_entry );
-			}
-			NewWordList::iterator test_it = this->current_word;
-			if( ++test_it != this->words.end() )
-			{
-				this->right_button.render_to( oam_entry );
-			}
-		}
-		this->exit_button.render_to( oam_entry );
-		this->clear_button.render_to( oam_entry );
-		this->hanzi_tab.render_to( oam_entry, this->hanzi_tab.x, this->hanzi_tab.y-(this->render_foreign_word ? 0 : 8) );
-		this->pinyin_tab.render_to( oam_entry, this->pinyin_tab.x, this->pinyin_tab.y-(this->render_pronuciation ? 0 : 8) );
-		this->latin_tab.render_to( oam_entry, this->latin_tab.x, this->latin_tab.y-(this->render_translation ? 0 : 8) );
-		this->rating_bar.render_to( oam_entry );
-		if( new_word )
-		{
-			this->library.words_db.read_word(*new_word);
-			if( this->rating_easy.active || new_word->rating==RATING_EASY )
-				this->rating_easy.render_to( oam_entry );
-			if( this->rating_medium.active || new_word->rating==RATING_MEDIUM )
-				this->rating_medium.render_to( oam_entry );
-			if( this->rating_hard.active || new_word->rating==RATING_HARD )
-				this->rating_hard.render_to( oam_entry );
-			if( this->rating_impossible.active || new_word->rating==RATING_IMPOSSIBLE )
-				this->rating_impossible.render_to( oam_entry );
-		}
-		this->settings_button.render_to( oam_entry );
-		this->down_button.render_to( oam_entry );
-		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
-		swiWaitForVBlank();
-		oamUpdate( &oamSub );
+		this->drawing_pad.clear();
+		return BUTTON_ACTION_HANDLED;
 	}
+	if( text_button == &this->exit_button )
+	{
+		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
+		{
+			this->config->save_position( *this->word_browser.current_word );
+		}
+		return BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->settings_button )
+	{
+		this->show_settings();
+		return BUTTON_ACTION_HANDLED;
+	}
+	if( text_button == &this->word_browser.down_button
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		// FIXME: TextView::show_word_as_text( this->Mode::freetype_renderer, this->library, this->word_browser.current_word, 0 );
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_HANDLED;
+	}
+	if( text_button == &this->word_browser.left_button
+		|| text_button == &this->word_browser.right_button
+		|| text_button == &this->word_browser.foreign_word_tab
+		|| text_button == &this->word_browser.pronunciation_tab
+		|| text_button == &this->word_browser.translation_tab )
+	{
+		if( this->word_browser.clear_on_switch
+			&& (text_button == &this->word_browser.left_button
+				|| text_button == &this->word_browser.right_button) )
+		{
+			this->drawing_pad.clear();
+		}
+		this->render( SCREEN_MAIN );
+		return BUTTON_ACTION_HANDLED;
+	}
+	
+	return ButtonProvider::handle_button_pressed( text_button );
 }
 
-void NewWordsViewer::run_until_exit()
+ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 {
-	if( this->config ) this->config->save_position( *this->current_word );
-	this->render( SCREEN_SUB );
-	this->render( SCREEN_MAIN );
-	touchPosition old_touch;
-    touchRead( &old_touch );
-	bool touched = false;
-	int pixels_drawn = 0;
-	int old_distance = 0;
-    while( this->current_word!=this->words.end() )
-    {
-        if( this->config ) this->config->save_position( *this->current_word );
-        scanKeys();
-		int pressed = keysDown();
-		int released = keysUp();
-		int held = keysHeld();
-		if( held & KEY_SELECT && pressed & KEY_UP )
-		{
-			ErrorConsole::init_screen( SCREEN_MAIN );
-		}
-		if( held & KEY_SELECT && pressed & KEY_DOWN )
-		{
-			ErrorConsole::init_screen( SCREEN_SUB );
-		}
-		if( held & KEY_SELECT && pressed & KEY_LEFT )
-		{
-			ErrorConsole::clear();
-		}
-		if( held & KEY_SELECT && pressed & KEY_RIGHT )
-		{
-			ErrorConsole::dump();
-		}
-		
-		NewWordList::iterator test_it = this->current_word;
-		if( pressed & KEY_L && this->current_word!=this->words.begin() )
-		{
-			this->left_button.active = true;
-			this->render( SCREEN_SUB );
-			this->switch_backwards();
-		}
-		else if( pressed & KEY_R && ++test_it!=this->words.end() )
-		{
-			this->right_button.active = true;
-			this->render( SCREEN_SUB );
-			this->switch_forward();
-		}
-		
-		touchPosition touch;
-        touchRead( &touch );
-        if( keysCurrent() & KEY_TOUCH )
-        {
-			if( !touched ) 
-			{
-				touched = true;
-				pixels_drawn = 0;
-				old_touch = touch;
-			}
-			NewWordList::iterator test_it = this->current_word;
-            if( this->current_word!=this->words.begin()
-				&& this->left_button.is_responsible(touch.px, touch.py)
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->left_button.active )
-				{
-					this->left_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( ++test_it != this->words.end()
-				&& this->right_button.is_responsible(touch.px, touch.py)
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->right_button.active )
-				{
-					this->right_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->clear_button.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->clear_button.active )
-				{
-					this->clear_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->exit_button.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->exit_button.active )
-				{
-					this->exit_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->hanzi_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->hanzi_tab.active )
-				{
-					this->hanzi_tab.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->pinyin_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->pinyin_tab.active )
-				{
-					this->pinyin_tab.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->latin_tab.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->latin_tab.active )
-				{
-					this->latin_tab.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_easy.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->rating_easy.active )
-				{
-					this->rating_easy.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_medium.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->rating_medium.active )
-				{
-					this->rating_medium.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_hard.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->rating_hard.active )
-				{
-					this->rating_hard.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->rating_impossible.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->rating_impossible.active )
-				{
-					this->rating_impossible.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->settings_button.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-			{
-				if( !this->settings_button.active )
-				{
-					this->settings_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-            else if( this->down_button.is_responsible(touch.px, touch.py) 
-				&& pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT
-				&& this->current_word!=this->words.end() )
-			{
-				if( !this->down_button.active )
-				{
-					this->down_button.active = true;
-					this->render( SCREEN_SUB );
-				}
-			}
-			else
-			{
-				bool changed = false;
-				for( TextButtonList::iterator i=this->text_buttons.begin(); i!=this->text_buttons.end(); i++ )
-				{
-					changed |= (*i)->active;
-					(*i)->active = false;
-				}
-				int x_diff = touch.px - old_touch.px;
-				int y_diff = touch.py - old_touch.py;
-				int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
-				if( distance && ((old_distance && (distance <= old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
-								|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR)) )
-				{
-					old_distance = distance;
-					pixels_drawn += distance;
-					this->drawing_pad.draw_line( touch.px, touch.py, old_touch.px, old_touch.py );
-				}
-				if( changed ) this->render( SCREEN_SUB );
-			}
-			old_touch = touch;
-		}
-		else if( touched && pixels_drawn < BUTTON_ACTIVATION_DRAW_LIMIT )
-		{
-			touched = false;
-			NewWordList::iterator test_it = this->current_word;
-            if( this->current_word != this->words.begin()
-				&& this->left_button.is_responsible(old_touch.px, old_touch.py)
-				&& this->left_button.active )
-            {
-				this->switch_backwards();
-            }
-            else if( ++test_it != this->words.end()
-				&& this->right_button.is_responsible(old_touch.px, old_touch.py)
-				&& this->right_button.active )
-            {
-				this->switch_forward();
-            }
-            else if( this->clear_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->clear_button.active )
-            {
-				this->clear_button.active = false;
-				this->render( SCREEN_SUB );
-				this->drawing_pad.clear();
-            }
-            else if( this->exit_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->exit_button.active )
-            {
-				this->exit_button.active = false;
-				NewWord* word = *this->current_word;
-				if( this->config ) this->config->save_position( word );
-				return;
-            }
-            else if( this->hanzi_tab.is_responsible(old_touch.px, old_touch.py) 
-				&& this->hanzi_tab.active )
-            {
-				this->hanzi_tab.active = false;
-				this->toggle_foreign_word();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->pinyin_tab.is_responsible(old_touch.px, old_touch.py) 
-				&& this->pinyin_tab.active )
-            {
-				this->pinyin_tab.active = false;
-				this->toggle_pronunciation();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->latin_tab.is_responsible(old_touch.px, old_touch.py) 
-				&& this->latin_tab.active )
-            {
-				this->latin_tab.active = false;
-				this->toggle_translation();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_easy.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_easy.active )
-            {
-				this->rating_easy.active = false;
-				(*this->current_word)->rating = RATING_EASY;
-				this->library.words_db.add_or_write_word( **this->current_word );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_medium.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_medium.active )
-            {
-				this->rating_medium.active = false;
-				(*this->current_word)->rating = RATING_MEDIUM;
-				this->library.words_db.add_or_write_word( **this->current_word );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_hard.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_hard.active )
-            {
-				this->rating_hard.active = false;
-				(*this->current_word)->rating = RATING_HARD;
-				this->library.words_db.add_or_write_word( **this->current_word );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->rating_impossible.is_responsible(old_touch.px, old_touch.py) 
-				&& this->rating_impossible.active )
-            {
-				this->rating_impossible.active = false;
-				(*this->current_word)->rating = RATING_IMPOSSIBLE;
-				this->library.words_db.add_or_write_word( **this->current_word );
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->settings_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->settings_button.active )
-            {
-				this->settings_button.active = false;
-				this->show_settings();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-            else if( this->down_button.is_responsible(old_touch.px, old_touch.py) 
-				&& this->down_button.active
-				&& this->current_word!=this->words.end() )
-            {
-				this->down_button.active = false;
-				this->text_buttons.free_all();
-				TextView::show_word_as_text( this->freetype_renderer, this->library, *this->current_word, 0 );
-				this->init_subscreen();
-				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-            }
-			else
-			{
-				this->drawing_pad.draw_point( old_touch.px, old_touch.py );
-			}
-		}
-		else
-		{
-			swiWaitForVBlank();
-			touched = false;
-			pixels_drawn = 0;
-			for( TextButtonList::iterator i=this->text_buttons.begin(); 
-				i!=this->text_buttons.end(); i++ )
-			{
-				(*i)->active = false;
-			}
-		}
-    }
+	this->old_touch = touch;
+	this->old_distance = 0;
+	if( !this->current_active_button )
+	{
+		this->drawing_pad.draw_point( touch.px, touch.py );
+		return BUTTON_ACTION_HANDLED;
+	}
+	
+	return Mode::handle_touch_begin( touch );
 }
 
-void NewWordsViewer::switch_forward()
+ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 {
-	this->right_button.active = false;
-	this->current_word++;
-	this->restore_init_settings_if_needed();
-	if( this->clear_on_switch ) this->drawing_pad.clear();
-	this->render( SCREEN_MAIN );
-	this->render( SCREEN_SUB );
+	int x_diff = touch.px - this->old_touch.px;
+	int y_diff = touch.py - this->old_touch.py;
+	int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
+	if( !this->current_active_button 
+		&& (distance && ((this->old_distance && (distance <= this->old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
+			|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) );
+	{
+		this->old_distance = distance;
+		//pixels_drawn += distance;
+		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
+		this->old_touch = touch;
+		return BUTTON_ACTION_HANDLED;
+	}
+	this->old_touch = touch;
+	
+	return Mode::handle_touch_drag( touch );
 }
 
-void NewWordsViewer::switch_backwards()
+ButtonAction NewWordsViewer::handle_touch_end( touchPosition touch )
 {
-	this->left_button.active = false;
-	this->current_word--;
-	this->restore_init_settings_if_needed();
-	if( this->clear_on_switch ) this->drawing_pad.clear();
-	this->render( SCREEN_MAIN );
-	this->render( SCREEN_SUB );
+	return this->handle_touch_drag( touch );
+}
+
+ButtonAction NewWordsViewer::handle_console_button_pressed( int pressed )
+{
+	// delegate console L and R buttons to touch screen left/right button handlers:
+	if( pressed & KEY_L )
+	{
+		return this->word_browser.handle_button_pressed( &this->word_browser.left_button );
+	}
+	else if( pressed & KEY_R )
+	{
+		return this->word_browser.handle_button_pressed( &this->word_browser.right_button );
+	}
+	
+	return Mode::handle_console_button_pressed(pressed);
 }

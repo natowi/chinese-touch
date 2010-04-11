@@ -64,9 +64,9 @@ bool Settings::get_boolean_setting( const std::string& name )
 
 SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title )
 	: Mode(_freetype_renderer), settings(_settings), title(_title),
-		ok_button(&oamSub,"OK",SpriteSize_32x32,settings_screen.res_x-32,settings_screen.res_y-32,freetype_renderer.latin_face,12,0,8),
-		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.latin_face,8,1,1),
-		dummy_start_button(&oamSub,"",SpriteSize_32x16,0,0,freetype_renderer.latin_face,8,1,1)
+		ok_button(&oamSub,"OK",SpriteSize_32x32,settings_screen.res_x-32,settings_screen.res_y-32,_freetype_renderer.latin_face,12,0,8),
+		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,_freetype_renderer.latin_face,8,1,1),
+		dummy_start_button(&oamSub,"",SpriteSize_32x16,0,0,_freetype_renderer.latin_face,8,1,1)
 {
 	this->init_mode();
 	
@@ -76,9 +76,9 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	int top = 4; // vertical start offset
 	RenderStyle render_style;
 	render_style.center_x = true;
-	RenderInfo render_info = this->freetype_renderer.render( 
+	RenderInfo render_info = this->mode_ft.render( 
 		this->settings_screen, this->title, 
-		this->freetype_renderer.latin_face, 14, 0, top, &render_style );
+		this->mode_ft.latin_face, 14, 0, top, &render_style );
 	top += render_info.height + 5;
 	memset( this->settings_screen.base_address+this->settings_screen.res_x*(top++)/2, 
 			255, this->settings_screen.res_x );
@@ -111,9 +111,9 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 			this->text_buttons.push_back( new_button );
 			left += new_button->width + 5;
 		}
-		RenderInfo render_info = this->freetype_renderer.render( this->settings_screen, setting->description, 
-																freetype_renderer.latin_face, 11,
-																left, top+1 );
+		RenderInfo render_info = this->mode_ft.render( this->settings_screen, setting->description, 
+														this->mode_ft.latin_face, 11,
+														left, top+1 );
 		if( render_info.height < 16 )
 			top += 16;
 		else top += render_info.height;
@@ -124,15 +124,15 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 	this->text_buttons.push_back( &this->dummy_checkbox );
 	this->text_buttons.push_back( &this->dummy_start_button );
 	
-	this->dummy_checkbox.invisible = true;
-	this->dummy_start_button.invisible = true;
+	this->dummy_checkbox.hidden = true;
+	this->dummy_start_button.hidden = true;
 	
 	this->init_vram();
 }
 
 void SettingsDialog::init_mode()
 {
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->settings_screen );
+	this->mode_ft.init_screen( SCREEN_SUB, this->settings_screen );
 	this->settings_screen.clear();
 	
 	Mode::init_mode();
@@ -213,5 +213,5 @@ ButtonAction SettingsDialog::handle_button_pressed(TextButton* text_button)
 		}
 	}
 	
-	return Mode::handle_button_pressed(text_button);
+	return ButtonProvider::handle_button_pressed(text_button);
 }

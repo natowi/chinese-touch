@@ -25,10 +25,10 @@ enum ContextMode
 	CONTEXT_WORDS_BY_CHARCODE
 };
 
-class TextView : private std::list<BufferedLine*>, public NewWordRenderSettings
+class TextView : private std::list<BufferedLine*>, public WordListBrowser
 {
 public:
-	FreetypeRenderer& freetype_renderer;
+	FreetypeRenderer& button_ft;
 	Library& library;
 	Text& text;
 	Config* config;

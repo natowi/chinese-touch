@@ -30,33 +30,13 @@
 
 
 FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library )
-	: TouchKeyboard( _ui_lang, _freetype_renderer ), library(_library), current_word(words.begin()),
-		left_button(&oamSub,"<",SpriteSize_32x16,0,0,freetype_renderer.latin_face,10,0,0), 
-		right_button(&oamSub,">",SpriteSize_32x16,keyboard_screen.res_x-32,0,freetype_renderer.latin_face,10,2,0), 
-		hanzi_tab(&oamSub,"汉字",SpriteSize_32x16,keyboard_screen.res_x/2-16-32-8,0,freetype_renderer.han_face,9),
-		pinyin_tab(&oamSub,"拼音",SpriteSize_32x16,keyboard_screen.res_x/2-16,0,freetype_renderer.han_face,9,1,-1),
-		latin_tab(&oamSub,"latin",SpriteSize_32x16,keyboard_screen.res_x/2+16+8,0,freetype_renderer.latin_face,7,0,1),
-		rating_bar(&oamSub,"",SpriteSize_64x32,keyboard_screen.res_x/2-32,keyboard_screen.res_y-32,freetype_renderer.latin_face,7,0,0),
-		rating_easy(&oamSub,"",SpriteSize_16x16,keyboard_screen.res_x/2-32,keyboard_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_medium(&oamSub,"",SpriteSize_16x16,keyboard_screen.res_x/2-16,keyboard_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_hard(&oamSub,"",SpriteSize_16x16,keyboard_screen.res_x/2,keyboard_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,keyboard_screen.res_x/2+16,keyboard_screen.res_y-16,freetype_renderer.latin_face,7,0,0),
-		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,0,freetype_renderer.han_face,9,0,0),
-		search_button(&oamSub,"找",SpriteSize_32x16,keyboard_screen.res_x/2-16,keyboard_screen.res_y-64,freetype_renderer.han_face,9,1,1)
+	: Mode(_freetype_renderer), library(_library), 
+		touch_keyboard(button_provider_list, _ui_lang, _freetype_renderer, keyboard_screen), 
+		word_browser(button_provider_list, _freetype_renderer, current_words, keyboard_screen, _library),
+		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
+		search_button(&oamSub,"找",SpriteSize_32x16,keyboard_screen.res_x/2-16,keyboard_screen.res_y-64,_freetype_renderer.han_face,9,1,1)
 {
-	this->text_buttons.push_back( &this->left_button );
-	this->text_buttons.push_back( &this->right_button );
-	this->text_buttons.push_back( &this->hanzi_tab );
-	this->text_buttons.push_back( &this->pinyin_tab );
-	this->text_buttons.push_back( &this->latin_tab );
-	this->text_buttons.push_back( &this->rating_bar );
-	this->text_buttons.push_back( &this->rating_easy );
-	this->text_buttons.push_back( &this->rating_medium );
-	this->text_buttons.push_back( &this->rating_hard );
-	this->text_buttons.push_back( &this->rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
-	this->text_buttons.push_back( &this->down_button );
 	this->text_buttons.push_back( &this->search_button );
 	
 	this->init_mode();
@@ -65,47 +45,26 @@ FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetyp
 
 void FulltextSearch::init_mode()
 {
-	this->freetype_renderer.init_screen( SCREEN_MAIN, this->word_screen );
+	this->mode_ft.init_screen( SCREEN_MAIN, this->word_screen );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 	bgHide( this->word_screen.bg_id );
+
+	this->mode_ft.init_screen( SCREEN_SUB, this->keyboard_screen );
+	this->keyboard_screen.clear();
 	
-	this->TouchKeyboard::init_mode();	
+	this->Mode::init_mode();
 }
 
-void FulltextSearch::init_vram()
+void FulltextSearch::init_button_vram()
 {
 	// load sprite graphics into vram:
-	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
-	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
-	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
-	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
-	this->hanzi_tab.init_vram( top_paper_tabBitmap, this->hanzi_tab.bg_vram );
-	this->hanzi_tab.init_vram( top_paper_tab_activeBitmap, this->hanzi_tab.bg_active_vram );
-	this->hanzi_tab.init_vram( top_paper_tab_inactiveBitmap, this->hanzi_tab.bg_inactive_vram );
-	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
-	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
-	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
-	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
-	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
-	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
-	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
-	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 	this->search_button.init_vram( menu_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( menu_button_activeBitmap, this->search_button.bg_active_vram );
-
-	this->pinyin_tab.bg_vram = hanzi_tab.bg_vram;
-	this->pinyin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
-	this->pinyin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
-	this->pinyin_tab.owns_bg_vram = false;
-	this->latin_tab.bg_vram = hanzi_tab.bg_vram;
-	this->latin_tab.bg_active_vram = hanzi_tab.bg_active_vram;
-	this->latin_tab.bg_inactive_vram = hanzi_tab.bg_inactive_vram;
-	this->latin_tab.owns_bg_vram = false;
 	
-	this->TouchKeyboard::init_vram();
+	ButtonProvider::init_button_vram();
 }
 
 void FulltextSearch::render( Screen screen )
@@ -113,88 +72,56 @@ void FulltextSearch::render( Screen screen )
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
-		if( this->words.size() && this->current_word != this->words.end() )
+		if( this->word_browser.words.size() && this->word_browser.current_word != this->word_browser.words.end() )
 		{
-			(*this->current_word)->render( this->freetype_renderer, this->word_screen, *this, this->library );
+			(*this->word_browser.current_word)->render( this->mode_ft, this->word_screen, this->word_browser, this->library );
 		}
 	}
 	else if( screen == SCREEN_SUB )
 	{
-		if( this->current_word == this->words.begin() )
-			this->left_button.invisible = true;
-		else this->left_button.invisible = false;
-		NewWordList::iterator test_it = this->current_word;
-		if( this->current_word != this->words.end() )
-			test_it++;
-		if( test_it == this->words.end() )
-			this->right_button.invisible = true;
-		else this->right_button.invisible = false;
+		this->keyboard_screen.clear();
+		int top = 20;
+		RenderStyle render_style;
+		render_style.center_x = true;
+		RenderInfo render_info = this->mode_ft.render( 
+			this->keyboard_screen, this->touch_keyboard.written_text, 
+			this->mode_ft.han_face, 12, 0, top, &render_style );
+		top = 45;
+		memset( this->keyboard_screen.base_address+this->keyboard_screen.res_x*(top++)/2, 
+				255, this->keyboard_screen.res_x );
+		memset( this->keyboard_screen.base_address+this->keyboard_screen.res_x*(top++)/2, 
+				64, this->keyboard_screen.res_x );
 	}
 	
-	this->TouchKeyboard::render( screen );
+	Mode::render( screen );
 }
 
 ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 {
-	if( text_button == &this->left_button )
+	if( text_button == &this->word_browser.down_button
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
-		if( this->current_word!=this->words.begin() )
-		{
-			this->current_word--;
-			this->render( SCREEN_MAIN );
-			return BUTTON_ACTION_HANDLED;
-		}
+		this->free_vram();
+		// FIXME: TextView::show_word_as_text( this->Mode::freetype_renderer, this->library, this->word_browser.current_word, 0 );
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_HANDLED;
 	}
-	else if( text_button == &this->right_button )
+	if( text_button == &this->word_browser.left_button
+		|| text_button == &this->word_browser.right_button
+		|| text_button == &this->word_browser.foreign_word_tab
+		|| text_button == &this->word_browser.pronunciation_tab
+		|| text_button == &this->word_browser.translation_tab )
 	{
-		if( this->current_word != this->words.end() )
-		{
-			NewWordList::iterator test_it = this->current_word;
-			if( ++test_it!=this->words.end() )
-			{
-				this->current_word++;
-				this->render( SCREEN_MAIN );
-				return BUTTON_ACTION_HANDLED;
-			}
-		}
-	}
-	else if( text_button == &this->hanzi_tab )
-	{
-		this->toggle_foreign_word();
 		this->render( SCREEN_MAIN );
 		return BUTTON_ACTION_HANDLED;
 	}
-	else if( text_button == &this->pinyin_tab )
+	if( text_button == &this->search_button )
 	{
-		this->toggle_pronunciation();
-		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_HANDLED;
-	}
-	else if( text_button == &this->latin_tab )
-	{
-		this->toggle_translation();
-		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_HANDLED;
-	}
-	else if( text_button == &this->down_button )
-	{
-		if( this->current_word != this->words.end() )
-		{
-			this->free_vram();
-			TextView::show_word_as_text( this->freetype_renderer, this->library, *this->current_word, 0 );
-			this->init_mode();
-			this->init_vram();
-			this->render( SCREEN_SUB );
-			this->render( SCREEN_MAIN );
-			return BUTTON_ACTION_HANDLED;
-		}
-	}
-	else if( text_button == &this->search_button )
-	{
-		this->words.clear();
-		this->current_word = this->words.begin();
+		this->word_browser.words.clear();
+		this->word_browser.current_word = this->word_browser.words.begin();
 		// query available static book databases
-		std::string sql_cond = "pattern='"+this->written_text+"'";
+		std::string sql_cond = "pattern='"+this->touch_keyboard.written_text+"'";
 		for( Library::iterator book_it = this->library.begin(); book_it != this->library.end(); book_it++ )
 		{
 			if( book_it->second 
@@ -207,7 +134,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 					static_db->open( book_it->second->static_words_db_path );
 					try
 					{
-						static_db->query_static_fulltext( this->library, sql_cond, this->words, book_it->second->dictionary_lesson );
+						static_db->query_static_fulltext( this->library, sql_cond, this->word_browser.words, book_it->second->dictionary_lesson );
 					}
 					catch( Error& e )
 					{
@@ -222,11 +149,11 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 				delete static_db;
 			}
 		}
-		this->words.sort( hanzi_min_length_sort_predicate );
-		this->current_word = this->words.begin();
+		this->word_browser.words.sort( hanzi_min_length_sort_predicate );
+		this->word_browser.current_word = this->word_browser.words.begin();
 		this->render( SCREEN_MAIN );
 		return BUTTON_ACTION_HANDLED;
 	}
 	
-	return this->TouchKeyboard::handle_button_pressed( text_button );
+	return ButtonProvider::handle_button_pressed( text_button );
 }

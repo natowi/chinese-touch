@@ -7,23 +7,21 @@
 #include "new_words.h"
 
 
-class FulltextSearch : public TouchKeyboard, public NewWordRenderSettings
+class FulltextSearch : public Mode
 {
 public:
 	FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library );
 	virtual void init_mode();
-	virtual void init_vram();
+	virtual void init_button_vram();
 	virtual void render( Screen screen );
 	virtual ButtonAction handle_button_pressed( TextButton* text_button );
 public:
-	RenderScreen word_screen;
+	RenderScreen word_screen, keyboard_screen;
 	Library& library;
-	NewWordList words;
-	NewWordList::iterator current_word;
-	TextButton left_button, right_button,
-		hanzi_tab, pinyin_tab, latin_tab, rating_bar,
-		rating_easy, rating_medium, rating_hard, rating_impossible,
-		settings_button, down_button, search_button;
+	TouchKeyboard touch_keyboard;
+	NewWordList current_words;
+	WordListBrowser word_browser;
+	TextButton settings_button, search_button;
 	Settings settings;
 };
 

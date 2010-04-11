@@ -8,20 +8,18 @@
 
 typedef std::map<std::string,std::string> StringMap;
 
-class TouchKeyboard : public Mode
+class TouchKeyboard : public ButtonProvider
 {
-protected:
+public:
 	UILanguage& ui_lang;
-	RenderScreen keyboard_screen;
+	RenderScreen& keyboard_screen;
 	TextButton reference_key, exit_button;
 	TextButtonSetStorage keys;
 	std::string written_text, modifier;
 	StringMap modifier_map;
 public:
-	TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer );
-	virtual void init_mode();
-	virtual void init_vram();
-	virtual void render( Screen screen );
+	TouchKeyboard( ButtonProviderList& button_provider_list, UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen );
+	virtual void init_button_vram();
 	virtual ButtonAction handle_button_pressed( TextButton* text_button );
 	virtual std::string handle_key_pressed( const std::string& input ) { return input; }
 	virtual void handle_text_changed( std::string& written_text ) {}

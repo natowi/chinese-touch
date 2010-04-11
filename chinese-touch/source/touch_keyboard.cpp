@@ -9,15 +9,15 @@
 #include "error_console.h"
 
 
-TouchKeyboard::TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer )  
-	: Mode(_freetype_renderer), ui_lang(_ui_lang), 
-		reference_key(&oamSub,"",SpriteSize_16x16,0,0,freetype_renderer.han_face,9,0,1),
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,freetype_renderer.latin_face,10,-1,1)
+TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen )  
+	: ButtonProvider(button_provider_list, _freetype_renderer), ui_lang(_ui_lang), keyboard_screen(_keyboard_screen),
+		reference_key(&oamSub,"",SpriteSize_16x16,0,0,button_ft.han_face,9,0,1),
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,button_ft.latin_face,10,-1,1)
 {
 	this->text_buttons.push_back( &this->reference_key );
 	this->text_buttons.push_back( &this->exit_button );
 	
-	this->reference_key.invisible = true;
+	this->reference_key.hidden = true;
 
 	int key_count = 0;
 	int keys_per_line = 10;
@@ -29,7 +29,7 @@ TouchKeyboard::TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_
 		kci != this->ui_lang.keyboard_characters.end(); kci++, key_count++ )
 	{
 		TextButton* new_key = new TextButton( this->reference_key );
-		new_key->invisible = false;
+		new_key->hidden = false;
 		new_key->owns_bg_vram = false;
 		new_key->text = *kci;
 		if( new_key->text == "¯" || new_key->text == "´"
@@ -74,15 +74,7 @@ TouchKeyboard::TouchKeyboard( UILanguage& _ui_lang, FreetypeRenderer& _freetype_
 	this->modifier_map["`v"] = "ǜ";
 }
 
-void TouchKeyboard::init_mode()
-{
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->keyboard_screen );
-	this->keyboard_screen.clear();
-	
-	this->Mode::init_mode();
-}
-
-void TouchKeyboard::init_vram()
+void TouchKeyboard::init_button_vram()
 {
 	// load sprite graphics into vram:
 	this->reference_key.init_vram( checkboxBitmap, this->reference_key.bg_vram );
@@ -96,29 +88,7 @@ void TouchKeyboard::init_vram()
 	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
 	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
 	
-	this->Mode::init_vram();
-}
-
-void TouchKeyboard::render( Screen screen )
-{
-	if( screen == SCREEN_SUB )
-	{
-		this->keyboard_screen.clear();
-		int top = 20;
-		RenderStyle render_style;
-		render_style.center_x = true;
-		RenderInfo render_info = this->freetype_renderer.render( 
-			this->keyboard_screen, this->written_text, 
-			this->freetype_renderer.han_face, 12, 0, top, &render_style );
-		top = 45;
-		memset( this->keyboard_screen.base_address+this->keyboard_screen.res_x*(top++)/2, 
-				255, this->keyboard_screen.res_x );
-		memset( this->keyboard_screen.base_address+this->keyboard_screen.res_x*(top++)/2, 
-				64, this->keyboard_screen.res_x );
-		
-	}
-
-	this->Mode::render( screen );
+	ButtonProvider::init_button_vram();
 }
 
 ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
@@ -163,5 +133,5 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 		return BUTTON_ACTION_EXIT_MODE;
 	}
 	
-	return this->Mode::handle_button_pressed( text_button );
+	return this->ButtonProvider::handle_button_pressed( text_button );
 }

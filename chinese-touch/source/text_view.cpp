@@ -1,3 +1,4 @@
+#if 0
 #include <math.h>
 #include <nds/arm9/sprite.h>
 #include <nds/arm9/background.h>
@@ -87,7 +88,7 @@ TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Confi
 	this->text_buttons.push_back( &this->up_button );
 	
 	// Up-Button is disabled by default (can be explicitly enabled by caller)
-	this->up_button.inactive = true;
+	this->up_button.disabled = true;
 	
 	this->init_subscreen();
 	
@@ -249,8 +250,8 @@ void TextView::render( Screen screen, bool update_sprites )
 					this->rating_impossible.render_to( oam_entry );
 			}
 			if( this->text.lesson ) this->settings_button.render_to( oam_entry );
-			if( !this->down_button.inactive ) this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
-			if( !this->up_button.inactive ) this->up_button.render_to( oam_entry );
+			if( !this->down_button.disabled ) this->down_button.render_to( oam_entry, this->down_button.x, this->down_button.y-(new_word ? 0: 12) );
+			if( !this->up_button.disabled ) this->up_button.render_to( oam_entry );
 			
 			// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
 			swiWaitForVBlank();
@@ -456,7 +457,7 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
-            else if( !this->down_button.inactive
+            else if( !this->down_button.disabled
 				&& this->down_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT
 				&& this->current_new_word_list_it != this->current_new_word_list.end() )
@@ -467,7 +468,7 @@ void TextView::run_until_exit()
 					this->render( SCREEN_SUB );
 				}
 			}
-            else if( !this->up_button.inactive 
+            else if( !this->up_button.disabled 
 				&& this->up_button.is_responsible(touch.px, touch.py) 
 				&& pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
 			{
@@ -753,8 +754,8 @@ void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWor
 	TextView* text_view = new TextView( ft, library, new_text, config );
 	text_view->recursion_depth = recursion_depth+1;
 	if( text_view->recursion_depth>=10 )
-		text_view->down_button.inactive = true;
-	text_view->up_button.inactive = false;
+		text_view->down_button.disabled = true;
+	text_view->up_button.disabled = false;
 	text_view->run_until_exit();
 	delete text_view;
 }
@@ -802,3 +803,4 @@ void TextView::restore_init_settings()
 	}
 	this->lookup_sql_cond = extra_sql_cond.str();
 }
+#endif

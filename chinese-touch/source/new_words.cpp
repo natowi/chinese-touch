@@ -14,7 +14,6 @@
 #include "words_db.h"
 #include "text_view.h"
 
-#include "greys256.h"
 #include "top_left_button.h"
 #include "top_left_button_active.h"
 #include "top_right_button.h"
@@ -26,7 +25,6 @@
 #include "top_paper_tab.h"
 #include "top_paper_tab_active.h"
 #include "top_paper_tab_inactive.h"
-#include "bg_dragon.h"
 #include "bottom_rating_bar.h"
 #include "bottom_rating_easy.h"
 #include "bottom_rating_medium.h"

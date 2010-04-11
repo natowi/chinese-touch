@@ -2,31 +2,14 @@
 
 #include "fulltext_search.h"
 #include "error_console.h"
-#include "top_left_button.h"
-#include "top_left_button_active.h"
-#include "top_right_button.h"
-#include "top_right_button_active.h"
 #include "bottom_left_button.h"
 #include "bottom_left_button_active.h"
 #include "bottom_right_button.h"
 #include "bottom_right_button_active.h"
-#include "top_paper_tab.h"
-#include "top_paper_tab_active.h"
-#include "top_paper_tab_inactive.h"
-#include "bg_dragon.h"
-#include "bottom_rating_bar.h"
-#include "bottom_rating_easy.h"
-#include "bottom_rating_medium.h"
-#include "bottom_rating_hard.h"
-#include "bottom_rating_impossible.h"
 #include "settings_dialog.h"
-#include "right_center_button.h"
-#include "right_center_button_active.h"
-#include "small_top_button.h"
-#include "small_top_button_active.h"
-#include "menu_button.h"
-#include "menu_button_active.h"
 #include "text_view.h"
+#include "large_center_button.h"
+#include "large_center_button_active.h"
 
 
 FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library )
@@ -34,7 +17,7 @@ FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetyp
 		touch_keyboard(button_provider_list, _ui_lang, _freetype_renderer, keyboard_screen), 
 		word_browser(button_provider_list, _freetype_renderer, current_words, keyboard_screen, _library),
 		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
-		search_button(&oamSub,"找",SpriteSize_32x16,keyboard_screen.res_x/2-16,keyboard_screen.res_y-64,_freetype_renderer.han_face,9,1,1)
+		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x/2-32,keyboard_screen.res_y-60,_freetype_renderer.han_face,13,0,4)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
@@ -56,13 +39,20 @@ void FulltextSearch::init_mode()
 	this->Mode::init_mode();
 }
 
+void FulltextSearch::init_vram()
+{
+	this->render( SCREEN_MAIN );
+	
+	Mode::init_vram();
+}
+
 void FulltextSearch::init_button_vram()
 {
 	// load sprite graphics into vram:
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
-	this->search_button.init_vram( menu_buttonBitmap, this->search_button.bg_vram );
-	this->search_button.init_vram( menu_button_activeBitmap, this->search_button.bg_active_vram );
+	this->search_button.init_vram( large_center_buttonBitmap, this->search_button.bg_vram );
+	this->search_button.init_vram( large_center_button_activeBitmap, this->search_button.bg_active_vram );
 	
 	ButtonProvider::init_button_vram();
 }

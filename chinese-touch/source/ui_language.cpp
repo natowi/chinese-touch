@@ -5,7 +5,7 @@ UILanguage::UILanguage( const std::string& language )
 {
 	// TODO open required ui language database from /chinese-touch/ui_lang/
 	// TODO load language specific keyboard characters from database
-	std::string keyboard_characters_utf8 = "<abcdefghijklmnopqrstuvwxyzü¯´ˇ` ";
+	std::string keyboard_characters_utf8 = "<abcdefghijklmnopqrstuvwxyzäöüß¯´ˇ` ";
 	utf8_to_utf8_char_list( (const unsigned char*)keyboard_characters_utf8.c_str(), this->keyboard_characters );
 }
 

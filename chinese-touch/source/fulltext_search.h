@@ -12,6 +12,7 @@ class FulltextSearch : public Mode
 public:
 	FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library );
 	virtual void init_mode();
+	virtual void init_vram();
 	virtual void init_button_vram();
 	virtual void render( Screen screen );
 	virtual ButtonAction handle_button_pressed( TextButton* text_button );

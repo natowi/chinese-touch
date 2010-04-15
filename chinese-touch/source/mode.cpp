@@ -91,30 +91,30 @@ void Mode::render( Screen screen )
 
 ButtonAction ButtonProvider::handle_touch( int x, int y, GlobalButtonHandler* global_handler )
 {
-	bool changed = false;
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
 	this->current_active_button = 0;
 	for( TextButtonList::iterator b_it = this->text_buttons.begin(); 
 			b_it != this->text_buttons.end(); b_it++ )
 	{
 		if( (*b_it)->is_responsible(x, y) )
 		{
-			changed |= !(*b_it)->active;
+			if( !(*b_it)->active ) action |= BUTTON_ACTION_CHANGED;
 			(*b_it)->active = true;
 			this->current_active_button = *b_it;
+			action |= BUTTON_ACTION_ACTIVE;
 		}
 		else
 		{
-			changed |= (*b_it)->active;
+			if( (*b_it)->active ) action |= BUTTON_ACTION_CHANGED;
 			(*b_it)->active = false;
 		}
 	}
-	if( changed ) return BUTTON_ACTION_HANDLED;
-	else return BUTTON_ACTION_UNHANDLED;
+	return action;
 }
 
 ButtonAction ButtonProvider::handle_release( int x, int y, GlobalButtonHandler* global_handler )
 {
-	bool changed = false;
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
 	this->current_active_button = 0;
 	for( TextButtonList::iterator b_it = this->text_buttons.begin(); 
 			b_it != this->text_buttons.end(); b_it++ )
@@ -123,27 +123,61 @@ ButtonAction ButtonProvider::handle_release( int x, int y, GlobalButtonHandler* 
 			&& (*b_it)->active )
 		{
 			(*b_it)->active = false;
-			ButtonAction action = this->handle_button_pressed( *b_it );
-			if( action == BUTTON_ACTION_EXIT_MODE )
-			{
-				return action;
-			}
+			action |= this->handle_button_pressed( *b_it );
+			if( action & BUTTON_ACTION_EXIT_MODE ) return action;
 			// optional mode-global button hook:
-			if( global_handler && global_handler!=this ) action = global_handler->handle_button_pressed( *b_it );
-			if( action == BUTTON_ACTION_EXIT_MODE )
-			{
-				return action;
-			}
-			changed = true;
+			if( global_handler && global_handler!=this ) 
+				action |= global_handler->handle_button_pressed( *b_it );
+			if( action & BUTTON_ACTION_EXIT_MODE ) return action;
+			action |= BUTTON_ACTION_CHANGED;
 		}
 		else
 		{
-			changed |= (*b_it)->active;
+			if( (*b_it)->active ) action |= BUTTON_ACTION_CHANGED;
 			(*b_it)->active = false;
 		}
 	}
-	if( changed ) return BUTTON_ACTION_HANDLED;
-	else return BUTTON_ACTION_UNHANDLED;
+	return action;
+}
+
+ButtonAction Mode::change_button_activation( touchPosition touch )
+{
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	TextButton* active_button = 0;
+	// handle button down events:
+	for( ButtonProviderList::iterator bpi = this->button_provider_list.begin();
+		bpi != this->button_provider_list.end(); bpi++ )
+	{
+		action |= (*bpi)->handle_touch( touch.px, touch.py, this );
+		if( action & BUTTON_ACTION_EXIT_MODE ) return action;
+		if( (*bpi)->current_active_button ) active_button = (*bpi)->current_active_button;
+	}
+	// Copy any active button from a button Provider to the GlobalButtonHandler:
+	this->current_active_button = active_button;
+	return action;
+}
+
+ButtonAction Mode::handle_touch_begin( touchPosition touch )
+{
+	return this->change_button_activation( touch );
+}
+
+ButtonAction Mode::handle_touch_drag( touchPosition touch )
+{
+	return this->change_button_activation( touch );
+}
+
+ButtonAction Mode::handle_touch_end( touchPosition touch )
+{
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	// handle button release events:
+	for( ButtonProviderList::iterator bpi = this->button_provider_list.begin();
+		bpi != this->button_provider_list.end(); bpi++ )
+	{
+		action |= (*bpi)->handle_release( touch.px, touch.py, this );
+		if( action & BUTTON_ACTION_EXIT_MODE ) return action;
+	}
+	return action;
 }
 
 void Mode::run_until_exit()
@@ -184,59 +218,35 @@ void Mode::run_until_exit()
         touchRead( &touch );
         if( keysCurrent() & KEY_TOUCH )
         {
-			TextButton* active_button = 0;
-			// first handle button down events (they have priority about raw touch handlers)
-			bool changed = false;
-			for( ButtonProviderList::iterator bpi = this->button_provider_list.begin();
-				bpi != this->button_provider_list.end(); bpi++ )
-			{
-				changed |= ( (*bpi)->handle_touch(touch.px, touch.py, this) == BUTTON_ACTION_HANDLED );
-				if( (*bpi)->current_active_button ) active_button = (*bpi)->current_active_button;
-			}
-			// Copy any active button from a button Provider to the GlobalButtonHandler:
-			this->current_active_button = active_button;
-			// second handle raw touch events
+			// handle touch begin/drag events:
+			ButtonAction action = BUTTON_ACTION_UNHANDLED;
 			if( !touched ) 
 			{
-				if( this->handle_touch_begin(touch)==BUTTON_ACTION_EXIT_MODE )
-				{
-					return;
-				}
+				action |= this->handle_touch_begin( touch );
+				if( action & BUTTON_ACTION_EXIT_MODE ) return;
 				touched = true;
 			} 
 			else if( (old_touch.px != touch.px) || (old_touch.py != touch.py) )
 			{
-				if( this->handle_touch_drag(touch)==BUTTON_ACTION_EXIT_MODE )
-				{
-					return;
-				}
+				action |= this->handle_touch_drag( touch ); 
+				if( action & BUTTON_ACTION_EXIT_MODE ) return;
 			}
 			old_touch = touch;
 			// update lower screen:
 			// FIXME: should we call this from the upper layer exclusivley through a "changed"-handler?
-			if( changed ) 
+			if( action & (BUTTON_ACTION_CHANGED | BUTTON_ACTION_PRESSED) ) 
 				this->render( SCREEN_SUB );
 		}
 		else if( touched )
 		{
 			touched = false;
-			// first handle button release events (they have priority about raw touch handlers):
-			bool changed = false;
-			for( ButtonProviderList::iterator bpi = this->button_provider_list.begin();
-				bpi != this->button_provider_list.end(); bpi++ )
-			{
-				ButtonAction action = (*bpi)->handle_release( old_touch.px, old_touch.py, this );
-				if( action == BUTTON_ACTION_EXIT_MODE ) return;
-				else changed |= ( action == BUTTON_ACTION_HANDLED );
-			}
-			// second handle raw touch release events:
-			if( this->handle_touch_end(old_touch)==BUTTON_ACTION_EXIT_MODE )
-			{
-				return;
-			}
+			// handle touch release events:
+			ButtonAction action = BUTTON_ACTION_UNHANDLED;
+			action |= this->handle_touch_end( old_touch );
+			if( action & BUTTON_ACTION_EXIT_MODE ) return;
 			// update lower screen:
 			// FIXME: should we call this from the upper layer exclusivley through a "changed"-handler?
-			if( changed )
+			if( action & (BUTTON_ACTION_CHANGED | BUTTON_ACTION_PRESSED) )
 				this->render( SCREEN_SUB );
 		}
 		else

@@ -245,55 +245,55 @@ ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->left_button )
 	{
 		this->switch_backwards();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->right_button )
 	{
 		this->switch_forward();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->foreign_word_tab )
 	{
 		this->toggle_foreign_word();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->pronunciation_tab )
 	{
 		this->toggle_pronunciation();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->translation_tab )
 	{
 		this->toggle_translation();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->rating_easy 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_EASY;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->rating_medium 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_MEDIUM;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->rating_hard 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_HARD;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->rating_impossible 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_IMPOSSIBLE;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	
 	return ButtonProvider::handle_button_pressed(text_button);
@@ -331,7 +331,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,-1,1),
 		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_freetype_renderer.latin_face,9,-7,3),
 		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
-		buttons_locked(false)
+		pixels_drawn(0)
 {
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->word_browser.init_render_foreign_word) );
@@ -428,7 +428,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->clear_button )
 	{
 		this->drawing_pad.clear();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	if( text_button == &this->exit_button )
 	{
@@ -436,12 +436,12 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		{
 			this->config->save_position( *this->word_browser.current_word );
 		}
-		return BUTTON_ACTION_EXIT_MODE;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	if( text_button == &this->settings_button )
 	{
 		this->show_settings();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	if( text_button == &this->word_browser.down_button
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
@@ -450,7 +450,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
 		this->init_mode();
 		this->init_vram();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	if( text_button == &this->word_browser.left_button
 		|| text_button == &this->word_browser.right_button
@@ -465,7 +465,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 			this->drawing_pad.clear();
 		}
 		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );
@@ -475,38 +475,60 @@ ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 {
 	this->old_touch = touch;
 	this->old_distance = 0;
-	if( !this->current_active_button )
+	this->pixels_drawn = 0;
+	// check for touch screen button activation:
+	ButtonAction action = Mode::handle_touch_begin( touch );
+	// only draw a pixel if no button was activated by the touch:
+	if( action == BUTTON_ACTION_UNHANDLED )
 	{
 		this->drawing_pad.draw_point( touch.px, touch.py );
-		return BUTTON_ACTION_HANDLED;
+		this->pixels_drawn += 1;
+		action |= BUTTON_ACTION_CHANGED;
 	}
 	
-	return Mode::handle_touch_begin( touch );
+	return action;
 }
 
 ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 {
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
 	int x_diff = touch.px - this->old_touch.px;
 	int y_diff = touch.py - this->old_touch.py;
 	int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
-	if( !this->current_active_button 
-		&& (distance && ((this->old_distance && (distance <= this->old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
-			|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) );
+	// check for touch screen button activation, but only if the users
+	// is not already writing to the screen:
+	if( this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
 	{
-		this->old_distance = distance;
-		//pixels_drawn += distance;
-		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
-		this->old_touch = touch;
-		return BUTTON_ACTION_HANDLED;
+		action |= Mode::handle_touch_drag( touch );
 	}
+	// if we are not hovering a touch screen button, draw a line:
+	if( (action == BUTTON_ACTION_UNHANDLED)
+		&& (distance 
+			&& ((this->old_distance && (distance <= this->old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
+				|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) )
+	{
+		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
+		this->pixels_drawn += distance;
+		action |= BUTTON_ACTION_CHANGED;
+	}
+	this->old_distance = distance;
 	this->old_touch = touch;
 	
-	return Mode::handle_touch_drag( touch );
+	return action;
 }
 
 ButtonAction NewWordsViewer::handle_touch_end( touchPosition touch )
 {
-	return this->handle_touch_drag( touch );
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	// check for touch screen button activation, but only if the users
+	// is not already writing to the screen:
+	if( this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
+	{
+		action |= Mode::handle_touch_end( touch );
+	}
+	if( action == BUTTON_ACTION_UNHANDLED )
+		action |= this->handle_touch_drag( touch );
+	return action;
 }
 
 ButtonAction NewWordsViewer::handle_console_button_pressed( int pressed )

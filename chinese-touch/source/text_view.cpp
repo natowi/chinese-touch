@@ -195,7 +195,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		{
 			this->config->save_position( *this->word_browser.current_word );
 		}
-		return BUTTON_ACTION_EXIT_MODE;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	if( text_button == &this->up_button )
 	{
@@ -203,12 +203,12 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		{
 			this->config->save_position( *this->word_browser.current_word );
 		}
-		return BUTTON_ACTION_EXIT_MODE;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	if( text_button == &this->settings_button )
 	{
 		this->show_settings();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	if( text_button == &this->word_browser.down_button
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
@@ -217,7 +217,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
 		this->init_mode();
 		this->init_vram();
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	if( text_button == &this->word_browser.left_button
 		|| text_button == &this->word_browser.right_button
@@ -226,7 +226,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		|| text_button == &this->word_browser.translation_tab )
 	{
 		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );
@@ -256,12 +256,18 @@ ButtonAction TextView::handle_touch_begin(touchPosition touch)
 	return Mode::handle_touch_begin(touch);
 }
 
-ButtonAction TextView::handle_touch_drag(touchPosition touch)
+ButtonAction TextView::handle_touch_drag( touchPosition touch )
 {
-	// text scrolling
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	// check for touch screen button activation, but only when the user 
+	// is not already scrolling text:
+	if( this->pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+		action |= Mode::handle_touch_drag( touch );
+	// do text scrolling, but only if we are not currently hovering a 
+	// touch screen button:
 	int y_diff = touch.py - old_touch.py;
 	this->old_touch = touch;
-	if( !this->current_active_button )
+	if( action == BUTTON_ACTION_UNHANDLED )
 	{
 		int abs_y_diff = abs( y_diff );
 		if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*TextView::MAX_ACCELERATION_FACTOR)) 
@@ -273,17 +279,25 @@ ButtonAction TextView::handle_touch_drag(touchPosition touch)
 			this->v_y = y_diff;
 			// FIXME: force render() not to updates sprites, to make scrolling effect faster
 			this->render( SCREEN_SUB );
-			return BUTTON_ACTION_HANDLED;
+			return BUTTON_ACTION_CHANGED;
 		}
 	}
 	
-	return Mode::handle_touch_drag(touch);
+	return action;
 }
 
-ButtonAction TextView::handle_touch_end(touchPosition touch)
+ButtonAction TextView::handle_touch_end( touchPosition touch )
 {
-	if( !this->current_active_button
-		&& this->pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	// ignore any touch screen buttons and characters currently pointed on,
+	// when the user was scrolling text, so she does not press a button 
+	// by accident:
+	if( this->pixels_scrolled >= BUTTON_ACTIVATION_SCROLL_LIMIT )
+		return BUTTON_ACTION_UNHANDLED;
+	// else priority check normal touch screen buttons for a pressed event:
+	else action |= Mode::handle_touch_end( touch );
+	// if no other button was activated, fall back to character tap detection:
+	if( action == BUTTON_ACTION_UNHANDLED )
 	{
 		// Dictionary nach relevanten Treffern durchsuchen:
 		bool found = false;
@@ -331,6 +345,7 @@ ButtonAction TextView::handle_touch_end(touchPosition touch)
 					RenderChar* curr_char = *char_it;
 					if( old_touch.px > curr_char->x && old_touch.px < curr_char->x+curr_char->width )
 					{
+						action |= BUTTON_ACTION_PRESSED;
 						if( this->context_render_char != curr_char 
 							|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 						{
@@ -368,7 +383,7 @@ ButtonAction TextView::handle_touch_end(touchPosition touch)
 		}
 	}
 	
-	return Mode::handle_touch_begin(touch);
+	return action;
 }
 
 ButtonAction TextView::handle_idle_cycles()
@@ -385,7 +400,7 @@ ButtonAction TextView::handle_idle_cycles()
 		this->y_offset += this->v_y;
 		// FIXME: force render() not to updates sprites, to make scrolling effect faster
 		this->render( SCREEN_SUB );
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_CHANGED;
 	}
 	
 	return Mode::handle_idle_cycles();

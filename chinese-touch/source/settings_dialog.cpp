@@ -204,12 +204,12 @@ ButtonAction SettingsDialog::handle_button_pressed(TextButton* text_button)
 		if( boolean_setting )
 		{
 			boolean_setting->value = !boolean_setting->value;
-			return BUTTON_ACTION_HANDLED;
+			return BUTTON_ACTION_PRESSED;
 		}
 		else if( action_button )
 		{
 			action_button->run_action();
-			return BUTTON_ACTION_HANDLED;
+			return BUTTON_ACTION_PRESSED;
 		}
 	}
 	

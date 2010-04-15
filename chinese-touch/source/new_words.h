@@ -61,7 +61,7 @@ class NewWordsViewer : public Mode
 		Settings settings;
 		touchPosition old_touch;
 		int old_distance;
-		bool buttons_locked;
+		int pixels_drawn;
 	public:
 		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config=0 );
 		void init_mode();

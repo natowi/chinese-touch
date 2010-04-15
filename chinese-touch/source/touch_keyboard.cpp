@@ -126,11 +126,11 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 			this->modifier = "";
 			this->handle_text_changed( this->written_text );
 		}
-		return BUTTON_ACTION_HANDLED;
+		return BUTTON_ACTION_PRESSED;
 	}
 	else if( text_button == &this->exit_button )
 	{
-		return BUTTON_ACTION_EXIT_MODE;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	
 	return this->ButtonProvider::handle_button_pressed( text_button );

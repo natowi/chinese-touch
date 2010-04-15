@@ -5,12 +5,13 @@
 #include "text_button.h"
 
 
-enum ButtonAction
-{
-	BUTTON_ACTION_UNHANDLED=0,
-	BUTTON_ACTION_HANDLED,
-	BUTTON_ACTION_EXIT_MODE
-};
+#define BUTTON_ACTION_UNHANDLED 0
+#define BUTTON_ACTION_CHANGED 1
+#define BUTTON_ACTION_ACTIVE 2
+#define BUTTON_ACTION_PRESSED 4
+#define BUTTON_ACTION_EXIT_MODE 8
+
+typedef int ButtonAction;
 
 class ButtonProvider;
 typedef std::list<ButtonProvider*> ButtonProviderList;
@@ -71,10 +72,11 @@ public:
 	virtual void free_vram();
 	virtual void render( Screen screen );
 	virtual void run_until_exit();
+	virtual ButtonAction change_button_activation( touchPosition touch );
 	virtual ButtonAction handle_console_button_pressed( int pressed ) { return BUTTON_ACTION_UNHANDLED; }
-	virtual ButtonAction handle_touch_begin( touchPosition touch ) { return BUTTON_ACTION_UNHANDLED; }
-	virtual ButtonAction handle_touch_drag( touchPosition touch ) { return BUTTON_ACTION_UNHANDLED; }
-	virtual ButtonAction handle_touch_end( touchPosition touch ) { return BUTTON_ACTION_UNHANDLED; }
+	virtual ButtonAction handle_touch_begin( touchPosition touch );
+	virtual ButtonAction handle_touch_drag( touchPosition touch );
+	virtual ButtonAction handle_touch_end( touchPosition touch );
 	virtual ButtonAction handle_idle_cycles() { return BUTTON_ACTION_UNHANDLED; }
 };
 

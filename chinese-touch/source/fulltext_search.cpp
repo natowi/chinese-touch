@@ -41,8 +41,6 @@ void FulltextSearch::init_mode()
 
 void FulltextSearch::init_vram()
 {
-	this->render( SCREEN_MAIN );
-	
 	Mode::init_vram();
 }
 
@@ -95,16 +93,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
 		this->init_mode();
 		this->init_vram();
-		return BUTTON_ACTION_PRESSED;
-	}
-	if( text_button == &this->word_browser.left_button
-		|| text_button == &this->word_browser.right_button
-		|| text_button == &this->word_browser.foreign_word_tab
-		|| text_button == &this->word_browser.pronunciation_tab
-		|| text_button == &this->word_browser.translation_tab )
-	{
-		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->search_button )
 	{
@@ -141,8 +130,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		}
 		this->word_browser.words.sort( hanzi_min_length_sort_predicate );
 		this->word_browser.current_word = this->word_browser.words.begin();
-		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

@@ -7,9 +7,11 @@
 
 #define BUTTON_ACTION_UNHANDLED 0
 #define BUTTON_ACTION_CHANGED 1
-#define BUTTON_ACTION_ACTIVE 2
-#define BUTTON_ACTION_PRESSED 4
-#define BUTTON_ACTION_EXIT_MODE 8
+#define BUTTON_ACTION_ACTIVE (1 << 2)
+#define BUTTON_ACTION_PRESSED (1 << 3)
+#define BUTTON_ACTION_EXIT_MODE (1 << 4)
+#define BUTTON_ACTION_SCREEN_SUB (1 << 5)
+#define BUTTON_ACTION_SCREEN_MAIN (1 << 6)
 
 typedef int ButtonAction;
 
@@ -38,6 +40,7 @@ public:
 	virtual ButtonAction handle_touch( int x, int y, GlobalButtonHandler* global_handler=0 );
 	virtual ButtonAction handle_release( int x, int y, GlobalButtonHandler* global_handler=0 );
 	virtual ButtonAction handle_button_pressed( TextButton* text_button ) { return BUTTON_ACTION_UNHANDLED; }
+	virtual ButtonAction handle_console_button_event( int pressed, int held, int released ) { return BUTTON_ACTION_UNHANDLED; }
 };
 
 /*! Adapter class for Mode that is a ButtonProvider on its own, but receives Events for
@@ -73,11 +76,12 @@ public:
 	virtual void render( Screen screen );
 	virtual void run_until_exit();
 	virtual ButtonAction change_button_activation( touchPosition touch );
-	virtual ButtonAction handle_console_button_pressed( int pressed ) { return BUTTON_ACTION_UNHANDLED; }
 	virtual ButtonAction handle_touch_begin( touchPosition touch );
 	virtual ButtonAction handle_touch_drag( touchPosition touch );
 	virtual ButtonAction handle_touch_end( touchPosition touch );
 	virtual ButtonAction handle_idle_cycles() { return BUTTON_ACTION_UNHANDLED; }
+	void handle_changed( ButtonAction action );
+	virtual ButtonAction handle_console_button_event( int pressed, int held, int released );
 };
 
 #endif // MODE_H

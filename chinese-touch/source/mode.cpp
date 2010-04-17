@@ -98,14 +98,14 @@ ButtonAction ButtonProvider::handle_touch( int x, int y, GlobalButtonHandler* gl
 	{
 		if( (*b_it)->is_responsible(x, y) )
 		{
-			if( !(*b_it)->active ) action |= BUTTON_ACTION_CHANGED;
+			if( !(*b_it)->active ) action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 			(*b_it)->active = true;
 			this->current_active_button = *b_it;
 			action |= BUTTON_ACTION_ACTIVE;
 		}
 		else
 		{
-			if( (*b_it)->active ) action |= BUTTON_ACTION_CHANGED;
+			if( (*b_it)->active ) action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 			(*b_it)->active = false;
 		}
 	}
@@ -129,11 +129,11 @@ ButtonAction ButtonProvider::handle_release( int x, int y, GlobalButtonHandler* 
 			if( global_handler && global_handler!=this ) 
 				action |= global_handler->handle_button_pressed( *b_it );
 			if( action & BUTTON_ACTION_EXIT_MODE ) return action;
-			action |= BUTTON_ACTION_CHANGED;
+			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 		}
 		else
 		{
-			if( (*b_it)->active ) action |= BUTTON_ACTION_CHANGED;
+			if( (*b_it)->active ) action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 			(*b_it)->active = false;
 		}
 	}
@@ -180,9 +180,60 @@ ButtonAction Mode::handle_touch_end( touchPosition touch )
 	return action;
 }
 
+ButtonAction Mode::handle_console_button_event( int pressed, int held, int released )
+{
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	
+	if( held & KEY_SELECT && pressed & KEY_UP )
+	{
+		// FIXME: make Error Console a real mode
+		ErrorConsole::init_screen( SCREEN_MAIN );
+		action |= BUTTON_ACTION_PRESSED;
+	}
+	if( held & KEY_SELECT && pressed & KEY_DOWN )
+	{
+		// FIXME: make Error Console a real mode
+		ErrorConsole::init_screen( SCREEN_SUB );
+		action |= BUTTON_ACTION_PRESSED;
+	}
+	if( held & KEY_SELECT && pressed & KEY_LEFT )
+	{
+		ErrorConsole::clear();
+		action |= BUTTON_ACTION_PRESSED;
+	}
+	if( held & KEY_SELECT && pressed & KEY_RIGHT )
+	{
+		ErrorConsole::dump();
+		action |= BUTTON_ACTION_PRESSED;
+	}
+	
+	for( ButtonProviderList::iterator bpi = this->button_provider_list.begin();
+		bpi != this->button_provider_list.end(); bpi++ )
+	{
+		if( *bpi != this )
+		{
+			action |= (*bpi)->handle_console_button_event( pressed, held, released );
+			if( action & BUTTON_ACTION_EXIT_MODE ) return action;
+		}
+	}
+	
+	return action;
+}
+
+void Mode::handle_changed(ButtonAction action)
+{
+	if( action & (BUTTON_ACTION_CHANGED | BUTTON_ACTION_PRESSED) )
+	{
+		if( action & BUTTON_ACTION_SCREEN_MAIN )
+			this->render( SCREEN_MAIN );
+		if( action & BUTTON_ACTION_SCREEN_SUB )
+			this->render( SCREEN_SUB );
+	}
+}
+
 void Mode::run_until_exit()
 {
-	this->render( SCREEN_SUB );
+	this->handle_changed( BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN );
 	touchPosition old_touch;
     touchRead( &old_touch );
 	bool touched = false;
@@ -190,28 +241,15 @@ void Mode::run_until_exit()
     {
         scanKeys();
 		int pressed = keysDown();
-		if( pressed && this->handle_console_button_pressed(pressed)==BUTTON_ACTION_EXIT_MODE )
-		{
-			return;
-		}
-		
-		int released = keysUp();
 		int held = keysHeld();
-		if( held & KEY_SELECT && pressed & KEY_UP )
+		int released = keysUp();
+		if( pressed || held || released )
 		{
-			ErrorConsole::init_screen( SCREEN_MAIN );
-		}
-		if( held & KEY_SELECT && pressed & KEY_DOWN )
-		{
-			ErrorConsole::init_screen( SCREEN_SUB );
-		}
-		if( held & KEY_SELECT && pressed & KEY_LEFT )
-		{
-			ErrorConsole::clear();
-		}
-		if( held & KEY_SELECT && pressed & KEY_RIGHT )
-		{
-			ErrorConsole::dump();
+			ButtonAction action = this->handle_console_button_event( pressed, held, released );
+			
+			if( action & BUTTON_ACTION_EXIT_MODE ) return;
+			else if( action != BUTTON_ACTION_UNHANDLED )
+				this->handle_changed( action );
 		}
 		
 		touchPosition touch;
@@ -223,38 +261,35 @@ void Mode::run_until_exit()
 			if( !touched ) 
 			{
 				action |= this->handle_touch_begin( touch );
-				if( action & BUTTON_ACTION_EXIT_MODE ) return;
 				touched = true;
 			} 
 			else if( (old_touch.px != touch.px) || (old_touch.py != touch.py) )
 			{
 				action |= this->handle_touch_drag( touch ); 
-				if( action & BUTTON_ACTION_EXIT_MODE ) return;
 			}
 			old_touch = touch;
-			// update lower screen:
-			// FIXME: should we call this from the upper layer exclusivley through a "changed"-handler?
-			if( action & (BUTTON_ACTION_CHANGED | BUTTON_ACTION_PRESSED) ) 
-				this->render( SCREEN_SUB );
+			
+			if( action & BUTTON_ACTION_EXIT_MODE ) return;
+			else if( action != BUTTON_ACTION_UNHANDLED )
+				this->handle_changed( action );
 		}
 		else if( touched )
 		{
 			touched = false;
 			// handle touch release events:
-			ButtonAction action = BUTTON_ACTION_UNHANDLED;
-			action |= this->handle_touch_end( old_touch );
+			ButtonAction action = this->handle_touch_end( old_touch );
+			
 			if( action & BUTTON_ACTION_EXIT_MODE ) return;
-			// update lower screen:
-			// FIXME: should we call this from the upper layer exclusivley through a "changed"-handler?
-			if( action & (BUTTON_ACTION_CHANGED | BUTTON_ACTION_PRESSED) )
-				this->render( SCREEN_SUB );
+			else if( action != BUTTON_ACTION_UNHANDLED )
+				this->handle_changed( action );
 		}
 		else
 		{
-			if( this->handle_idle_cycles()==BUTTON_ACTION_EXIT_MODE )
-			{
-				return;
-			}
+			ButtonAction action = this->handle_idle_cycles();			
+			
+			if( action & BUTTON_ACTION_EXIT_MODE ) return;
+			else if( action != BUTTON_ACTION_UNHANDLED )
+				this->handle_changed( action );
 			swiWaitForVBlank();
 		}
     }

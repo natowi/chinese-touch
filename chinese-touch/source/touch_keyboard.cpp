@@ -126,7 +126,7 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 			this->modifier = "";
 			this->handle_text_changed( this->written_text );
 		}
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	else if( text_button == &this->exit_button )
 	{

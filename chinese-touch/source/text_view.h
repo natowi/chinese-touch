@@ -68,7 +68,6 @@ public:
 	virtual ButtonAction handle_touch_begin( touchPosition touch );
 	virtual ButtonAction handle_touch_drag( touchPosition touch );
 	virtual ButtonAction handle_touch_end( touchPosition touch );
-	virtual ButtonAction handle_console_button_pressed( int pressed );
 	virtual ButtonAction handle_idle_cycles();
 	void run_until_exit();
 	static void show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth = 0 );

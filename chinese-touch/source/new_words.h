@@ -43,8 +43,9 @@ class WordListBrowser : public ButtonProvider
 		virtual void init_button_vram();
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
-		void switch_forward();
-		void switch_backwards();
+		bool switch_forward();
+		bool switch_backwards();
+		virtual ButtonAction handle_console_button_event( int pressed, int held, int released );
 };
 
 
@@ -73,7 +74,6 @@ class NewWordsViewer : public Mode
 		virtual ButtonAction handle_touch_begin( touchPosition touch );
 		virtual ButtonAction handle_touch_drag( touchPosition touch );
 		virtual ButtonAction handle_touch_end( touchPosition touch );
-		virtual ButtonAction handle_console_button_pressed( int pressed );
 };
 
 #endif // NEW_WORDS_H

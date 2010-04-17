@@ -143,7 +143,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		button_screen(_button_screen), library(_library),
 		render_foreign_word(true), render_pronuciation(true), render_translation(true),
 		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
-		restore_on_switch(true), clear_on_switch(true),
+		restore_on_switch(false), clear_on_switch(false),
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
 		foreign_word_tab(&oamSub,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,0,button_ft.han_face,9),
@@ -242,81 +242,101 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 
 ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 {
-	if( text_button == &this->left_button )
+	if( text_button == &this->left_button && this->switch_backwards() )
 	{
-		this->switch_backwards();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
-	else if( text_button == &this->right_button )
+	else if( text_button == &this->right_button && this->switch_forward() )
 	{
-		this->switch_forward();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	else if( text_button == &this->foreign_word_tab )
 	{
 		this->toggle_foreign_word();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	else if( text_button == &this->pronunciation_tab )
 	{
 		this->toggle_pronunciation();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	else if( text_button == &this->translation_tab )
 	{
 		this->toggle_translation();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	else if( text_button == &this->rating_easy 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_EASY;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	else if( text_button == &this->rating_medium 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_MEDIUM;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	else if( text_button == &this->rating_hard 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_HARD;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	else if( text_button == &this->rating_impossible 
 		&& this->current_word != this->words.end() )
 	{
 		(*this->current_word)->rating = RATING_IMPOSSIBLE;
 		this->library.words_db.add_or_write_word( **this->current_word );
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed(text_button);
 }
 
-void WordListBrowser::switch_forward()
+bool WordListBrowser::switch_forward()
 {
 	if( this->current_word != this->words.end() )
 	{
 		NewWordList::iterator test_it = this->current_word;
 		if( ++test_it != this->words.end() )
+		{
 			this->current_word++;
+			this->restore_init_settings_if_needed();
+			return true;
+		}
 	}
-	this->restore_init_settings_if_needed();
+	return false;
 }
 
-void WordListBrowser::switch_backwards()
+bool WordListBrowser::switch_backwards()
 {
 	if( this->current_word != this->words.begin() )
+	{
 		this->current_word--;
-	this->restore_init_settings_if_needed();
+		this->restore_init_settings_if_needed();
+		return true;
+	}
+	return false;
 }
 
+ButtonAction WordListBrowser::handle_console_button_event( int pressed, int held, int released )
+{
+	// delegate console L and R buttons to touch screen left/right button handlers:
+	if( pressed & KEY_L )
+	{
+		return this->handle_button_pressed( &this->left_button );
+	}
+	else if( pressed & KEY_R )
+	{
+		return this->handle_button_pressed( &this->right_button );
+	}
+	
+	return ButtonProvider::handle_console_button_event( pressed, held, released );
+}
 
 
 
@@ -333,6 +353,11 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
 		pixels_drawn(0)
 {
+	// In this mode we want to restore visibility settings on switch by default:
+	// FIXME: make default configurable somewhere
+	this->word_browser.restore_on_switch = true;
+	this->word_browser.clear_on_switch = true;
+	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->word_browser.init_render_foreign_word) );
 	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->word_browser.init_render_pronuciation) );
@@ -345,7 +370,7 @@ NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordLis
 	this->text_buttons.push_back( &this->settings_button );
 	
 	// initialize word list on stored word index (only used when calling new words from a lesson):
-	if( this->config ) 
+	if( this->config )
 	{
 		int word_id = this->config->get_current_word_id();
 		for( this->word_browser.current_word = this->word_browser.words.begin(); 
@@ -376,8 +401,6 @@ void NewWordsViewer::init_mode()
 
 void NewWordsViewer::init_vram()
 {
-	this->render( SCREEN_MAIN );
-	
 	Mode::init_vram();
 }
 
@@ -428,7 +451,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->clear_button )
 	{
 		this->drawing_pad.clear();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->exit_button )
 	{
@@ -441,7 +464,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->settings_button )
 	{
 		this->show_settings();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->word_browser.down_button
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
@@ -450,22 +473,13 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
 		this->init_mode();
 		this->init_vram();
-		return BUTTON_ACTION_PRESSED;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->word_browser.left_button
-		|| text_button == &this->word_browser.right_button
-		|| text_button == &this->word_browser.foreign_word_tab
-		|| text_button == &this->word_browser.pronunciation_tab
-		|| text_button == &this->word_browser.translation_tab )
+	if( this->word_browser.clear_on_switch
+		&& (text_button == &this->word_browser.left_button
+			|| text_button == &this->word_browser.right_button) )
 	{
-		if( this->word_browser.clear_on_switch
-			&& (text_button == &this->word_browser.left_button
-				|| text_button == &this->word_browser.right_button) )
-		{
-			this->drawing_pad.clear();
-		}
-		this->render( SCREEN_MAIN );
-		return BUTTON_ACTION_PRESSED;
+		this->drawing_pad.clear();
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );
@@ -483,7 +497,7 @@ ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 	{
 		this->drawing_pad.draw_point( touch.px, touch.py );
 		this->pixels_drawn += 1;
-		action |= BUTTON_ACTION_CHANGED;
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return action;
@@ -509,7 +523,7 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	{
 		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
 		this->pixels_drawn += distance;
-		action |= BUTTON_ACTION_CHANGED;
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	this->old_distance = distance;
 	this->old_touch = touch;
@@ -529,19 +543,4 @@ ButtonAction NewWordsViewer::handle_touch_end( touchPosition touch )
 	if( action == BUTTON_ACTION_UNHANDLED )
 		action |= this->handle_touch_drag( touch );
 	return action;
-}
-
-ButtonAction NewWordsViewer::handle_console_button_pressed( int pressed )
-{
-	// delegate console L and R buttons to touch screen left/right button handlers:
-	if( pressed & KEY_L )
-	{
-		return this->word_browser.handle_button_pressed( &this->word_browser.left_button );
-	}
-	else if( pressed & KEY_R )
-	{
-		return this->word_browser.handle_button_pressed( &this->word_browser.right_button );
-	}
-	
-	return Mode::handle_console_button_pressed(pressed);
 }

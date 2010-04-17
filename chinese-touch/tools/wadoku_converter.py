@@ -47,7 +47,6 @@ def extended_lower( s ):
 
 col_names = [ 
 	"atime",
-	"id",
 	"word",
 	"lesson_id",
 	"duplicate_id",
@@ -66,7 +65,6 @@ ft_col_names = [
 	"comment"
 ]
 
-col_names.remove("id")
 print "BEGIN TRANSACTION;"
 print "CREATE TABLE words (atime NUMERIC, id INTEGER PRIMARY KEY, word TEXT, lesson_id NUMERIC, duplicate_id NUMERIC, type TEXT, pronunciation TEXT, definition TEXT, comment TEXT, rating NUMERIC, file_id NUMERIC default 0, file_offset NUMERIC default 0);"
 

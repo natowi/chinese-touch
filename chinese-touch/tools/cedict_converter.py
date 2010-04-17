@@ -157,7 +157,7 @@ atime=int(time.time())
 id=1
 word="-"
 lesson_id=0
-type="-"
+type=""
 pronunciation="-"
 definition="-"
 comment=""
@@ -197,18 +197,14 @@ for line in sys.stdin:
 	# ignore slash-fix on irregular parenthesis expressions:
 	if parenthesis_level!=0:
 		fixed_definition = raw_definition
-	#                      transl.    comment        type                example
-	results = re.findall( "(.*?) *(?:<(.*?)>)? *(?:\(([^\(]*)\))? *(?:; *(Bsp\.:[^/]*))? *[/]", fixed_definition )
+	#                      transl.    comment
+	results = re.findall( "(.*?) *(?:\(([^\(]*)\))? *[/]", fixed_definition )
 	test=False
 	for duplicate_id in xrange(len(results)):
 		test=True
 		result = results[ duplicate_id ]
 		definition = result[0]
 		comment = result[1]
-		type = result[2]
-		if( len(comment) and len(result[3]) ):
-			comment += "; "
-		comment += result[3]
 		insert = "insert into words ("+",".join(col_names)+") values ("
 		ft_pattern_list = []
 		for i in xrange(len(col_names)):

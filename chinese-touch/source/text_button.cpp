@@ -129,7 +129,7 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 
 bool TextButton::is_responsible( int ref_x, int ref_y )
 {
-	return !this->disabled && !this->hidden
+	return !this->disabled
 			&& ref_x > this->x && ref_x < this->x+this->width
 			&& ref_y > this->y && ref_y < this->y+this->height;
 }

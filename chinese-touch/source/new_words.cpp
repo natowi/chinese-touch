@@ -146,15 +146,15 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		restore_on_switch(false), clear_on_switch(false),
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
-		foreign_word_tab(&oamSub,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,0,button_ft.han_face,9),
-		pronunciation_tab(&oamSub,"拼音",SpriteSize_32x16,button_screen.res_x/2-16,0,button_ft.han_face,9,1,-1),
-		translation_tab(&oamSub,"latin",SpriteSize_32x16,button_screen.res_x/2+16+8,0,button_ft.latin_face,7,0,1),
-		rating_bar(&oamSub,"",SpriteSize_64x32,button_screen.res_x/2-32,button_screen.res_y-32,button_ft.latin_face,7,0,0),
-		rating_easy(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-32,button_screen.res_y-16,button_ft.latin_face,7,0,0),
-		rating_medium(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-16,button_screen.res_y-16,button_ft.latin_face,7,0,0),
-		rating_hard(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2,button_screen.res_y-16,button_ft.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+16,button_screen.res_y-16,button_ft.latin_face,7,0,0),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,0,button_ft.han_face,9,0,0)
+		foreign_word_tab(&oamSub,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
+		pronunciation_tab(&oamSub,"拼音",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
+		translation_tab(&oamSub,"latin",SpriteSize_32x16,button_screen.res_x/2+16+8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		rating_bar(&oamSub,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_easy(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_medium(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_hard(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_impossible(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		down_button(&oamSub,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0)
 {
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -203,13 +203,13 @@ void WordListBrowser::init_button_vram()
 void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 {
 	// hide left button when at the beginning of the word list:
-	if( this->current_word == this->words.begin() ) this->left_button.hidden = true;
-	else this->left_button.hidden = false;
+	if( this->current_word == this->words.begin() ) this->left_button.hidden = this->left_button.disabled = true;
+	else this->left_button.hidden = this->left_button.disabled = false;
 	// hide right button when at the end of the word list:
 	NewWordList::iterator test_it = this->current_word;
 	if( this->current_word != this->words.end() ) test_it++;
-	if( test_it == this->words.end() ) this->right_button.hidden = true;
-	else this->right_button.hidden = false;
+	if( test_it == this->words.end() ) this->right_button.hidden = this->right_button.disabled = true;
+	else this->right_button.hidden = this->right_button.disabled = false;
 	
 	NewWord* word = 0;
 	if( this->current_word != this->words.end() ) word = *this->current_word;
@@ -220,7 +220,7 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 	this->foreign_word_tab.y = word ? ( this->render_foreign_word ? 0 : -8 ) : -12;
 	this->pronunciation_tab.y = word ? ( this->render_pronuciation ? 0 : -8 ) : -12;
 	this->translation_tab.y = word ? ( this->render_translation ? 0 : -8 ) : -12;
-	this->rating_bar.y = word ? this->button_screen.res_y-32 : this->button_screen.res_y-32+12;
+	this->rating_bar.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
 	this->rating_easy.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
 	this->rating_medium.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
 	this->rating_hard.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;

@@ -297,6 +297,25 @@ void WordsDB::write_word( NewWord& new_word )
 	}
 }
 
+void WordsDB::delete_word( NewWord& new_word )
+{
+	std::stringstream statement_stream;
+	statement_stream << "delete from words"
+		<< " where id=" << new_word.id;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), 0, 0, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
+	}
+	// remove id and lesson reference from word to prevent it from being 
+	// re-added by a successive call to add_or_write_word:
+	new_word.id = 0;
+	new_word.lesson = 0;
+}
+
 bool WordsDB::read_word( NewWord& new_word )
 {
 	MapList map_list;

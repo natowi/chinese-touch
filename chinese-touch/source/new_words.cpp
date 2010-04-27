@@ -35,6 +35,10 @@
 #include "right_center_button_active.h"
 #include "small_top_button.h"
 #include "small_top_button_active.h"
+#include "small_star.h"
+#include "small_star_active.h"
+#include "small_trash.h"
+#include "small_trash_active.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library )
@@ -154,7 +158,9 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		rating_medium(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_hard(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_impossible(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0)
+		down_button(&oamSub,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
+		add_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
+		remove_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0)
 {
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -167,6 +173,11 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
 	this->text_buttons.push_back( &this->down_button );
+	this->text_buttons.push_back( &this->add_button );
+	this->text_buttons.push_back( &this->remove_button );
+	
+	this->add_button.hidden = this->add_button.disabled = true;
+	this->remove_button.hidden = this->remove_button.disabled = true;
 }
 
 void WordListBrowser::init_button_vram()
@@ -187,6 +198,10 @@ void WordListBrowser::init_button_vram()
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
 	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
 	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
+	this->add_button.init_vram( small_starBitmap, this->add_button.bg_vram );
+	this->add_button.init_vram( small_star_activeBitmap, this->add_button.bg_active_vram );
+	this->remove_button.init_vram( small_trashBitmap, this->remove_button.bg_vram );
+	this->remove_button.init_vram( small_trash_activeBitmap, this->remove_button.bg_active_vram );
 
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
@@ -234,6 +249,12 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 		this->rating_medium.hidden = !(this->rating_medium.active || word->rating==RATING_MEDIUM);
 		this->rating_hard.hidden = !(this->rating_hard.active || word->rating==RATING_HARD);
 		this->rating_impossible.hidden = !(this->rating_impossible.active || word->rating==RATING_IMPOSSIBLE);
+		/* make remove-button available if word is orphan with no lesson reference 
+			or is from a static dictionary and loosely associated with a lesson: */
+		this->remove_button.hidden = this->remove_button.disabled = 
+			!( (word->id && !word->lesson)
+				|| word->lesson && (word->lesson->number && (word->file_id==0)
+									|| (word->lesson->number==0) && (word->rating!=RATING_NONE)) );
 	}
 	
 	// let ButtonProvider do the actual rendering
@@ -291,6 +312,12 @@ ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 	{
 		(*this->current_word)->rating = RATING_IMPOSSIBLE;
 		this->library.words_db.add_or_write_word( **this->current_word );
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	else if( text_button == &this->remove_button
+		&& this->current_word != this->words.end() )
+	{
+		this->library.words_db.delete_word( **this->current_word );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	

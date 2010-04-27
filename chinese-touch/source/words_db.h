@@ -27,6 +27,7 @@ public:
 	void add_or_write_word( NewWord& );
 	void write_word( NewWord& );
 	bool read_word( NewWord& );
+	void delete_word( NewWord& );
 	void query_words( Library& library, const std::string& condition, NewWordList& result_list, const std::string& ordering="" );
 	void query_static_words( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );
 	void query_static_fulltext( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );

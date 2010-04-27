@@ -23,7 +23,7 @@ class WordListBrowser : public ButtonProvider
 			foreign_word_tab, pronunciation_tab, translation_tab, 
 			rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
-			down_button;
+			down_button, add_button, remove_button;
 	public:
 		WordListBrowser( ButtonProviderList& provider_list, 
 						 FreetypeRenderer& _freetype_renderer, 

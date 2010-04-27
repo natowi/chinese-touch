@@ -157,6 +157,11 @@ void TextView::render( Screen screen )
 	{
 		this->sub_frame_count++;
 		this->settings_button.hidden = !this->text.lesson;
+		// make add button available for words from static dictionaries, to allow them to be 
+		// loosely associated with the current lesson:
+		this->word_browser.add_button.hidden = 
+			this->word_browser.add_button.disabled = 
+				!( this->text.lesson && new_word && new_word->lesson && new_word->lesson->number==0 );
 		
 		int top = this->y_offset;
 		this->text_screen.clear( 1 );
@@ -217,6 +222,20 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.add_button
+		&& this->word_browser.current_word!=this->word_browser.words.end()
+		&& this->text.lesson )
+	{
+		NewWord* new_word = *this->word_browser.current_word;
+		// loosely associate word with current lesson:
+		new_word->lesson = this->text.lesson;
+		new_word->id = new_word->file_id = new_word->file_offset = 0;
+		// HACK: set duplicate_id to an unusual high value, to prevent overwriting duplicate words from *.dict-files
+		// FIXME: this might overwrite previously associated duplicate words
+		new_word->duplicate_id = 1000;
+		this->library.words_db.add_or_write_word( *new_word );
+		this->library.words_db.read_word( *new_word );
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

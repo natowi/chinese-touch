@@ -177,8 +177,7 @@ for line in sys.stdin:
 	#                       trad.   simpl.    pinyin      definition
 	results = re.findall( "^([^ ]*) ([^ ]*) \[([^\]]*)\] /(.*/)", line )
 	result = results[0]
-	traditional = result[0]
-	word = result[1]
+	words = { "trad" : result[0], "simp" : result[1] }
 	pronunciation = translate_pinyin( result[2] )
 	raw_definition = result[3]
 	fixed_definition = ""
@@ -202,27 +201,39 @@ for line in sys.stdin:
 	test=False
 	for duplicate_id in xrange(len(results)):
 		test=True
-		result = results[ duplicate_id ]
-		definition = result[0]
-		comment = result[1]
-		insert = "insert into words ("+",".join(col_names)+") values ("
-		ft_pattern_list = []
-		for i in xrange(len(col_names)):
-			if( i ): insert+=","
-			value = ("%("+col_names[i]+")s") % locals()
-			if( col_names[i] in ft_col_names ):
-				ft_pattern_list += re.split( "[ ,;:.\!\?\-/\(\)\[\]\{\}\<\>0-9'\"]", value )
-			value = value.replace( "'", "''" ).strip()
-			insert += "'"+value+"'"
-		insert += ");"
-		print insert
-		for ft_pattern in ft_pattern_list:
-			ft_pattern = extended_lower( ft_pattern )
-			if ft_pattern!="":
-				if ft_patterns.has_key(ft_pattern):
-					ft_patterns[ft_pattern][id] = True
-				else: ft_patterns[ft_pattern] = { id : True }
-		id+=1
+		for variant in "trad", "simp":
+			if variant=="simp" and words["simp"]==words["trad"]:
+				break
+			word = words[variant]
+			result = results[ duplicate_id ]
+			definition = result[0]
+			comment = result[1]
+			if words["simp"] != words["trad"]:
+				if len(comment):
+					comment += "; "
+				if variant=="trad":
+					comment += "simpl: " + words["simp"]
+				elif variant=="simp":
+					comment += "trad: " + words["trad"]
+			insert = "insert into words ("+",".join(col_names)+") values ("
+			ft_pattern_list = []
+			for i in xrange(len(col_names)):
+				if( i ): insert+=","
+				value = ("%("+col_names[i]+")s") % locals()
+				if( col_names[i] in ft_col_names ):
+					ft_pattern_list += re.split( "[ ,;:.\!\?\-/\(\)\[\]\{\}\<\>0-9'\"]", value )
+				value = value.replace( "'", "''" ).strip()
+				insert += "'"+value+"'"
+			insert += ");"
+			print insert
+			for ft_pattern in ft_pattern_list:
+				ft_pattern = extended_lower( ft_pattern )
+				# do not generate unnecessary self and bogus references:
+				if ft_pattern not in words.values() + [""]:
+					if ft_patterns.has_key(ft_pattern):
+						ft_patterns[ft_pattern][id] = True
+					else: ft_patterns[ft_pattern] = { id : True }
+			id+=1
 	if( not test ):
 		print line
 		raise Exception("Parse error")

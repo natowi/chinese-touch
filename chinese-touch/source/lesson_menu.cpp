@@ -578,7 +578,8 @@ void LessonMenu::render( Screen screen )
 					}
 					if( lesson_entry && lesson_entry->lesson && (lesson_id == this->active_list_id) )
 					{
-						this->new_words_button.disabled = !lesson_entry->lesson->new_words_available;
+						// FIXME: query database for dynamic assignments, if no static words exist for this lesson:
+						this->new_words_button.disabled = false; //!lesson_entry->lesson->new_words_available;
 						this->grammar_button.disabled = !lesson_entry->lesson->grammar_texts_available;
 						this->text_button.disabled = !lesson_entry->lesson->lesson_texts_available;
 						this->exercises_button.disabled = !lesson_entry->lesson->exercises_available;

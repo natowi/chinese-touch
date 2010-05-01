@@ -187,11 +187,14 @@ void TextView::render( Screen screen )
 	{
 		this->sub_frame_count++;
 		this->settings_button.hidden = !this->text.lesson;
-		// make add button available for words from static dictionaries, to allow them to be 
+		// make add button available for words from other books or dictionaries, to allow them to be 
 		// loosely associated with the current lesson:
 		this->word_browser.add_button.hidden = 
 			this->word_browser.add_button.disabled = 
-				!( this->text.lesson && new_word && new_word->lesson && new_word->lesson->number==0 );
+				!( this->text.lesson && new_word 
+					&& ( (new_word->lesson && new_word->lesson->number==0) /*dictionaries*/
+							|| (new_word->lesson && new_word->lesson->book!=this->text.lesson->book) /*other books*/
+							|| !new_word->lesson /*lost words*/ ) );
 		
 		int top = this->y_offset;
 		this->text_screen.clear( 1 );

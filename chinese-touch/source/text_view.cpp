@@ -167,6 +167,15 @@ void TextView::render( Screen screen )
 		this->text_screen.clear( 1 );
 		if( this->current_highlight )
 		{
+			// set color index 0 of the background palette, used by the character selection highlight
+			if( this->context_mode == CONTEXT_WORDS_BY_CONTEXT )
+			{
+				this->text_screen.palette[0] = 16<<10|24<<5|31; // orange
+			}
+			else if( this->context_mode == CONTEXT_WORDS_BY_CHARCODE )
+			{
+				this->text_screen.palette[0] = 31<<10|24<<5|24; // blue
+			}
 			this->current_highlight->render_to( this->text_screen, 
 				this->current_highlight_x, this->current_highlight_y+this->y_offset,
 				/*replace=*/true );
@@ -346,8 +355,6 @@ ButtonAction TextView::handle_touch_end( touchPosition touch )
 							// first click (odd count) on a character: find words in current context:
 							this->library.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->word_browser.words, this->lookup_sql_cond );
 							this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
-							// Farbindex 0 der Hintergrundpalette auf orange für's Highlight setzen:
-							this->text_screen.palette[0] = 16<<10|24<<5|31;
 						}
 						else
 						{
@@ -355,8 +362,6 @@ ButtonAction TextView::handle_touch_end( touchPosition touch )
 							std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
 							this->library.find_words_by_characters( character, this->word_browser.words, this->lookup_sql_cond );
 							this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
-							// Farbindex 0 der Hintergrundpalette auf blau für's Highlight setzen:
-							this->text_screen.palette[0] = 31<<10|24<<5|24;
 						}
 						this->context_render_char = curr_char;
 						this->word_browser.current_word = this->word_browser.words.begin();

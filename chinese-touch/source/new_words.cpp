@@ -253,8 +253,8 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 			or is from a static dictionary and loosely associated with a lesson: */
 		this->remove_button.hidden = this->remove_button.disabled = 
 			!( (word->id && !word->lesson)
-				|| word->lesson && (word->lesson->number && (word->file_id==0)
-									|| (word->lesson->number==0) && (word->rating!=RATING_NONE)) );
+				|| (word->lesson && ((word->lesson->number && (word->file_id==0))
+									|| ((word->lesson->number==0) && (word->rating!=RATING_NONE)))) );
 	}
 	
 	// let ButtonProvider do the actual rendering

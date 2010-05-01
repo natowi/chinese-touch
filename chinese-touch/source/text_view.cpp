@@ -152,6 +152,36 @@ void TextView::render( Screen screen )
 		{
 			new_word->render( this->mode_ft, this->word_screen, this->word_browser, this->library );
 		}
+		else
+		{
+			std::string message;
+			if( !this->current_highlight )
+			{
+				message = "Welcome to the text mode!";
+				message += "\n ";
+				message += "\nYou may:";
+				message += "\n- Grab the text to scroll up and down";
+				message += "\n- Tap a character to lookup context matching words";
+			}
+			else
+			{
+				if( this->context_mode == CONTEXT_WORDS_BY_CONTEXT )
+				{
+					message = "No context matching words found :(";
+					message += "\n ";
+					message += "\nYou may:";
+					message += "\n- Tap again to search by character";
+					message += "\n- Download dictionaries at the project site";
+				}
+				else if( this->context_mode == CONTEXT_WORDS_BY_CHARCODE )
+				{
+					message = "No words with that character found :(";
+				}
+			}
+			RenderStyle style;
+			style.center_x = style.center_y = false;
+			this->mode_ft.render( this->word_screen, message, this->mode_ft.latin_face, 8, 5, 60, &style );
+		}
 	}
 	else if( screen == SCREEN_SUB )
 	{

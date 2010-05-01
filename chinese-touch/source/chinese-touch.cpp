@@ -141,6 +141,7 @@ int main()
 						Lesson* lesson = lesson_menu_choice.lesson;
 						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
+						config.save_position( lesson, true );
 						lesson->parse_dictionary_if_needed();
 						NewWordList words;
 						std::stringstream condition;
@@ -156,6 +157,7 @@ int main()
 						Lesson* lesson = lesson_menu_choice.lesson;
 						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
+						config.save_position( lesson, true );
 						TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
 						if( !texts.size() )
 						{
@@ -173,6 +175,7 @@ int main()
 						Lesson* lesson = lesson_menu_choice.lesson;
 						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
+						config.save_position( lesson, true );
 						TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
 						if( !texts.size() )
 						{
@@ -190,6 +193,7 @@ int main()
 						Lesson* lesson = lesson_menu_choice.lesson;
 						if( !lesson )
 							throw ERROR( "LessonMenu returned no lesson" );
+						config.save_position( lesson, true );
 						TextVector& texts = lesson_menu_choice.lesson->exercises;
 						if( !texts.size() )
 						{

@@ -465,7 +465,7 @@ void NewWordsViewer::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			if( this->config ) this->config->save_position( new_word );
+			if( this->config ) this->config->save_word_position( new_word );
 			new_word->render( this->Mode::button_ft, this->word_screen, this->word_browser, this->library );
 		}
 	}
@@ -484,7 +484,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	{
 		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
 		{
-			this->config->save_position( *this->word_browser.current_word );
+			this->config->save_word_position( *this->word_browser.current_word );
 		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}

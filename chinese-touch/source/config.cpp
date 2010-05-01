@@ -11,6 +11,19 @@ Config::Config()
     memset( (void*)&this->data, 0, sizeof(this->data) );
 }
 
+void Config::save_word_position( NewWord* word, bool force )
+{
+    if( !word
+		|| (this->previous_word == word && !this->changed && !force) )
+    {
+        return;
+    }
+    this->previous_word = word;
+    this->changed = true;
+    this->data.config.current_word_id = word->id;
+    this->save();
+}
+
 void Config::save_position( NewWord* word, bool force )
 {
     if( !word || !word->lesson || !word->lesson->book

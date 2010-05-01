@@ -237,18 +237,10 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 {
 	if( text_button == &this->exit_button )
 	{
-		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
-		{
-			this->config->save_position( *this->word_browser.current_word );
-		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	if( text_button == &this->up_button )
 	{
-		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
-		{
-			this->config->save_position( *this->word_browser.current_word );
-		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	if( text_button == &this->settings_button )
@@ -436,14 +428,6 @@ ButtonAction TextView::handle_idle_cycles()
 	}
 	
 	return Mode::handle_idle_cycles();
-}
-
-void TextView::run_until_exit()
-{
-	if( this->config ) 
-		this->config->save_position( this->text.lesson );
-	
-	Mode::run_until_exit();
 }
 
 void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth )

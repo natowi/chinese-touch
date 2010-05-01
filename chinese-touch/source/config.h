@@ -29,6 +29,7 @@ public:
     Config();
     void load();
     void save();
+    void save_word_position( NewWord* word, bool force=false );
     void save_position( NewWord* word, bool force=false );
 	void save_position( Lesson* lesson, bool force=false );
 	void save_position( Book* book, bool force=false );

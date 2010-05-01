@@ -129,11 +129,14 @@ int main()
 						if( lesson_menu_choice.lesson )
 							condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
 						library.words_db.query_words( library, condition.str(), words, "atime" );
-						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library );
 						if( lesson_menu_choice.lesson ) config.save_position( lesson_menu_choice.lesson, true );
 						else config.save_position( lesson_menu_choice.book, true );
-						new_words->run_until_exit();
-						delete new_words;
+						if( words.size() )
+						{
+							NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library );
+							new_words->run_until_exit();
+							delete new_words;
+						} else throw ERROR( "Empty word list; Assign new words from text mode!" );
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
@@ -147,9 +150,12 @@ int main()
 						std::stringstream condition;
 						condition << "lesson_id=" << lesson->id;
 						library.words_db.query_words( library, condition.str(), words, "file_offset" );
-						NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library, &config );
-						new_words->run_until_exit();
-						delete new_words;
+						if( words.size() )
+						{
+							NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library, &config );
+							new_words->run_until_exit();
+							delete new_words;
+						} else throw ERROR( "Empty word list; Assign new words from text mode!" );
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
@@ -167,7 +173,7 @@ int main()
 						{
 							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
-						} else throw ERROR( "Keine Grammatik für diese Lektion vorhanden" );
+						} else throw ERROR( "No grammar description available for this lesson" );
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_TEXT:
@@ -185,7 +191,7 @@ int main()
 						{
 							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
-						} else throw ERROR( "Kein Text für diese Lektion vorhanden" );
+						} else throw ERROR( "No lesson text available" );
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
@@ -203,7 +209,7 @@ int main()
 						{
 							TextView text_view( *ft, library, *texts[0], &config );
 							text_view.run_until_exit();
-						} else throw ERROR( "Keine Übung für diese Lektion vorhanden" );
+						} else throw ERROR( "No exercises available for this lesson" );
 						break;
 					}
 					case LessonMenuChoice::CONTENT_TYPE_SEARCH:

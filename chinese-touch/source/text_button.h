@@ -16,8 +16,8 @@ class TextButton
 public:
 	OamState* oam;
 	std::string name, text;
-	SpriteSize sprite_size;
-	int width, height, x, y, text_x_offset, text_y_offset, bg_prio, text_prio;
+	SpriteSize sprite_size, text_sprite_size;
+	int width, height, sensor_width, sensor_height, text_width, text_height, x, y, text_x_offset, text_y_offset, bg_prio, text_prio;
 	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram;
 	bool active, disabled, owns_bg_vram, hidden;
 	FT_Face face;
@@ -27,6 +27,7 @@ public:
 				SpriteSize _sprite_size, int _x, int _y, 
 				FT_Face _face, int _font_size, 
 				int _text_x_offset=0, int _text_y_offset=0 );
+	void get_dimensions_from_sprite_size( SpriteSize _sprite_size, int& _width, int& _height );
 	~TextButton();
 	void init_vram( const void* source, u16*& vram_dest );
 	void init_text_layer(FreetypeRenderer& freetype_renderer);

@@ -109,7 +109,7 @@ SettingsDialog::SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& 
 			new_button->x = left;
 			new_button->y = top;
 			this->text_buttons.push_back( new_button );
-			left += new_button->width + 5;
+			left += new_button->sensor_width + 5;
 		}
 		RenderInfo render_info = this->mode_ft.render( this->settings_screen, setting->description, 
 														this->mode_ft.latin_face, 11,

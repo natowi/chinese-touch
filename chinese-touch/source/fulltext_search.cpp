@@ -17,10 +17,12 @@ FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetyp
 		touch_keyboard(button_provider_list, _ui_lang, _freetype_renderer, keyboard_screen), 
 		word_browser(button_provider_list, _freetype_renderer, current_words, keyboard_screen, _library),
 		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
-		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x/2-32,keyboard_screen.res_y-60,_freetype_renderer.han_face,13,0,4)
+		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_freetype_renderer.han_face,13,0,4)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
+	// disable currently unused settings button:
+	this->settings_button.hidden = this->settings_button.disabled = true;
 	
 	this->init_mode();
 	this->init_vram();

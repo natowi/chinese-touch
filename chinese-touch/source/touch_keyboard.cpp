@@ -4,44 +4,64 @@
 #include "freetype_renderer.h"
 #include "bottom_left_button.h"
 #include "bottom_left_button_active.h"
-#include "checkbox.h"
-#include "checkbox_active.h"
 #include "error_console.h"
+#include "key.h"
+#include "key_active.h"
 
 
 TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen )  
 	: ButtonProvider(button_provider_list, _freetype_renderer), ui_lang(_ui_lang), keyboard_screen(_keyboard_screen),
-		reference_key(&oamSub,"",SpriteSize_16x16,0,0,button_ft.han_face,9,0,1),
+		reference_key(&oamSub,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2),
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,button_ft.latin_face,10,-1,1)
 {
 	this->text_buttons.push_back( &this->reference_key );
 	this->text_buttons.push_back( &this->exit_button );
 	
 	this->reference_key.hidden = true;
+	this->reference_key.sensor_height = this->reference_key.sensor_width = 22;
+	this->reference_key.text_sprite_size = SpriteSize_16x16;
+	this->reference_key.get_dimensions_from_sprite_size( this->reference_key.text_sprite_size, 
+														 this->reference_key.text_width, this->reference_key.text_height );
 
-	int key_count = 0;
-	int keys_per_line = 10;
-	int key_x_start = 5;
-	int key_x_offset = (this->keyboard_screen.res_x-key_x_start*2) / keys_per_line;
+	int key_x_start = 1;
+	int key_x_offset = this->reference_key.sensor_width+1;
+	int key_x = key_x_start;
 	int key_y_start = 50;
-	int key_y_offset = 16+4;
+	int key_y_offset = this->reference_key.sensor_height+1;
+	int key_y = key_y_start;
 	for( StringList::iterator kci = this->ui_lang.keyboard_characters.begin();
-		kci != this->ui_lang.keyboard_characters.end(); kci++, key_count++ )
+		kci != this->ui_lang.keyboard_characters.end(); kci++ )
 	{
+		if( *kci=="\n" )
+		{
+			key_x = key_x_start;
+			key_y += key_y_offset;
+			continue;
+		}
+		if( *kci=="\t" )
+		{
+			key_x += key_x_offset / 2;
+			continue;
+		}
 		TextButton* new_key = new TextButton( this->reference_key );
 		new_key->hidden = false;
 		new_key->owns_bg_vram = false;
 		new_key->text = *kci;
-		if( new_key->text == "¯" || new_key->text == "´"
-			/*|| new_key->text == "ˇ"*/ || new_key->text == "`" )
+		if( new_key->text == "ˇ" )
+		{
+			new_key->text_y_offset += 3;
+		}
+		else if( new_key->text == "¯" || new_key->text == "´"
+			|| new_key->text == "`" )
 		{
 			new_key->text_y_offset += 3;
 			new_key->font_size += 2;
 		}
-		new_key->x = key_x_start + ( key_count % keys_per_line ) * key_x_offset;
-		new_key->y = key_y_start + ( key_count / keys_per_line ) * key_y_offset;
+		new_key->x = key_x;
+		new_key->y = key_y;
 		this->text_buttons.push_back( new_key );
 		this->keys.insert( new_key );
+		key_x += key_x_offset;
 	}
 	
 	this->modifier_map["¯a"] = "ā";
@@ -77,8 +97,8 @@ TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, UILangua
 void TouchKeyboard::init_button_vram()
 {
 	// load sprite graphics into vram:
-	this->reference_key.init_vram( checkboxBitmap, this->reference_key.bg_vram );
-	this->reference_key.init_vram( checkbox_activeBitmap, this->reference_key.bg_active_vram );
+	this->reference_key.init_vram( keyBitmap, this->reference_key.bg_vram );
+	this->reference_key.init_vram( key_activeBitmap, this->reference_key.bg_active_vram );
 	for( TextButtonSetStorage::iterator key_it = this->keys.begin(); key_it != this->keys.end(); key_it++ )
 	{
 		(*key_it)->bg_vram = this->reference_key.bg_vram;

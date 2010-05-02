@@ -9,30 +9,37 @@ TextButton::TextButton( OamState* _oam, const std::string& _text,
 						SpriteSize _sprite_size, int _x, int _y,
 						FT_Face _face, int _font_size,
 						int _text_x_offset, int _text_y_offset )
-	: oam(_oam), text(_text), sprite_size(_sprite_size), x(_x), y(_y), 
-	text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
+	: oam(_oam), text(_text), sprite_size(_sprite_size), text_sprite_size(_sprite_size), 
+	x(_x), y(_y), text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
 	bg_prio(1), text_prio(0),
 	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
 	active(false), disabled(false), owns_bg_vram(true), hidden(false),
 	face(_face), font_size(_font_size)
 {
-	if( SPRITE_SIZE_SHAPE(sprite_size)==OBJSHAPE_SQUARE )
+	this->get_dimensions_from_sprite_size( this->sprite_size, this->width, this->height );
+	this->sensor_width = this->width; this->sensor_height = this->height;
+	this->text_width = this->width; this->text_height = this->height;
+}
+
+void TextButton::get_dimensions_from_sprite_size(SpriteSize _sprite_size, int& _width, int& _height)
+{
+	if( SPRITE_SIZE_SHAPE(_sprite_size)==OBJSHAPE_SQUARE )
 	{
-		if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_8 ) this->width=8;
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_16 ) this->width=16;
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 ) this->width=32;
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_64 ) this->width=64;
-		this->height = this->width;
+		if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_8 ) _width=8;
+		else if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_16 ) _width=16;
+		else if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_32 ) _width=32;
+		else if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_64 ) _width=64;
+		_height = _width;
 	}
 	else
 	{
-		if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_8 ) { this->width=16; this->height=8; }
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_16 ) { this->width=32; this->height=8; }
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_32 )  { this->width=32; this->height=16; }
-		else if( SPRITE_SIZE_SIZE(sprite_size)==OBJSIZE_64 ) { this->width=64; this->height=32; }
-		if( SPRITE_SIZE_SHAPE(sprite_size)==OBJSHAPE_TALL )
+		if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_8 ) { _width=16; _height=8; }
+		else if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_16 ) { _width=32; _height=8; }
+		else if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_32 )  { _width=32; _height=16; }
+		else if( SPRITE_SIZE_SIZE(_sprite_size)==OBJSIZE_64 ) { _width=64; _height=32; }
+		if( SPRITE_SIZE_SHAPE(_sprite_size)==OBJSHAPE_TALL )
 		{
-			int temp = this->height; this->height = this->width; this->width = temp;
+			int temp = _height; _height = _width; _width = temp;
 		}
 	}
 }
@@ -74,7 +81,7 @@ void TextButton::init_vram( const void* source, u16*& vram_dest )
 	vram_dest = oamAllocateGfx( this->oam, this->sprite_size, SpriteColorFormat_Bmp );
 	DC_FlushRange( source, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
 	dmaCopy( source, vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
-	set_16bpp_sprite_opague( vram_dest, this->width, this->height, 0 );
+	set_16bpp_sprite_opague( vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
 }
 
 void TextButton::init_text_layer( FreetypeRenderer& freetype_renderer )
@@ -82,19 +89,19 @@ void TextButton::init_text_layer( FreetypeRenderer& freetype_renderer )
 	if( this->text.length() )
 	{
 		// allocate VRAM for 8bpp text layer
-		this->text_vram = oamAllocateGfx( this->oam, this->sprite_size, SpriteColorFormat_256Color );
-		RenderScreenBuffer button_text( this->width, this->height );
+		this->text_vram = oamAllocateGfx( this->oam, this->text_sprite_size, SpriteColorFormat_256Color );
+		RenderScreenBuffer button_text( this->text_width, this->text_height );
 		RenderStyle render_style;
 		render_style.center_x = true;
 		freetype_renderer.render( button_text, this->text, 
 			this->face, this->font_size, 0, 1, &render_style );
 		// convert 8bpp sprite data for use in 16bpp mode
 		// FIXME: currently needs ram buffering, as vram supports 16bit operations only
-		u8 conversion_buffer[this->width * this->height];
-		tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, this->width, this->height );
+		u8 conversion_buffer[ SPRITE_SIZE_PIXELS(this->text_sprite_size) ];
+		tile_8bpp_sprite( (u8*)(button_text.base_address), conversion_buffer, this->text_width, this->text_height );
 		//DC_FlushRange( conversion_buffer, SPRITE_SIZE_PIXELS(this->sprite_size)*1 );
 		//dmaCopy( conversion_buffer, this->text_vram, SPRITE_SIZE_PIXELS(this->sprite_size)*1 );
-		memcpy( this->text_vram, conversion_buffer, SPRITE_SIZE_PIXELS(this->sprite_size)*1 );
+		memcpy( this->text_vram, conversion_buffer, SPRITE_SIZE_PIXELS(this->text_sprite_size)*1 );
 	}
 }
 
@@ -121,7 +128,7 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 	{
 		oamSet( this->oam, oam_entry++,
 				_x+this->text_x_offset, _y+this->text_y_offset, 	// position
-				this->text_prio, 0, this->sprite_size, SpriteColorFormat_256Color, 
+				this->text_prio, 0, this->text_sprite_size, SpriteColorFormat_256Color, 
 				this->text_vram,
 				0, 0, 0, 0, 0, 0 );
 	}
@@ -130,8 +137,8 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 bool TextButton::is_responsible( int ref_x, int ref_y )
 {
 	return !this->disabled
-			&& ref_x > this->x && ref_x < this->x+this->width
-			&& ref_y > this->y && ref_y < this->y+this->height;
+			&& ref_x > this->x && ref_x < this->x+this->sensor_width
+			&& ref_y > this->y && ref_y < this->y+this->sensor_height;
 }
 
 

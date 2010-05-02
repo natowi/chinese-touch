@@ -133,7 +133,7 @@ int main()
 						else config.save_position( lesson_menu_choice.book, true );
 						if( words.size() )
 						{
-							NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library );
+							NewWordsViewer* new_words = new NewWordsViewer( /*ui_language, */*ft, words, library );
 							new_words->run_until_exit();
 							delete new_words;
 						} else throw ERROR( "Empty word list; Assign new words from text mode!" );
@@ -152,7 +152,7 @@ int main()
 						library.words_db.query_words( library, condition.str(), words, "file_offset" );
 						if( words.size() )
 						{
-							NewWordsViewer* new_words = new NewWordsViewer( *ft, words, library, &config );
+							NewWordsViewer* new_words = new NewWordsViewer( /*ui_language, */*ft, words, library, &config );
 							new_words->run_until_exit();
 							delete new_words;
 						} else throw ERROR( "Empty word list; Assign new words from text mode!" );
@@ -171,7 +171,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, library, *texts[0], &config );
+							TextView text_view( /*ui_language, */*ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "No grammar description available for this lesson" );
 						break;
@@ -189,7 +189,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, library, *texts[0], &config );
+							TextView text_view( /*ui_language, */*ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "No lesson text available" );
 						break;
@@ -207,7 +207,7 @@ int main()
 						}
 						if( texts.size() )
 						{
-							TextView text_view( *ft, library, *texts[0], &config );
+							TextView text_view( /*ui_language, */*ft, library, *texts[0], &config );
 							text_view.run_until_exit();
 						} else throw ERROR( "No exercises available for this lesson" );
 						break;

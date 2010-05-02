@@ -39,6 +39,9 @@
 #include "small_star_active.h"
 #include "small_trash.h"
 #include "small_trash_active.h"
+#include "bottom_center_button.h"
+#include "bottom_center_button_active.h"
+#include "fulltext_search.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library )
@@ -160,7 +163,8 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		rating_impossible(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		down_button(&oamSub,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
 		add_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
-		remove_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0)
+		remove_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
+		search_button(&oamSub,"词典",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1)
 {
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -175,9 +179,12 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->text_buttons.push_back( &this->down_button );
 	this->text_buttons.push_back( &this->add_button );
 	this->text_buttons.push_back( &this->remove_button );
+	this->text_buttons.push_back( &this->search_button );
 	
 	this->add_button.hidden = this->add_button.disabled = true;
 	this->remove_button.hidden = this->remove_button.disabled = true;
+	// broken:
+	this->search_button.hidden = this->search_button.disabled = true;
 }
 
 void WordListBrowser::init_button_vram()
@@ -202,6 +209,8 @@ void WordListBrowser::init_button_vram()
 	this->add_button.init_vram( small_star_activeBitmap, this->add_button.bg_active_vram );
 	this->remove_button.init_vram( small_trashBitmap, this->remove_button.bg_vram );
 	this->remove_button.init_vram( small_trash_activeBitmap, this->remove_button.bg_active_vram );
+	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
+	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
 
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
@@ -372,8 +381,9 @@ ButtonAction WordListBrowser::handle_console_button_event( int pressed, int held
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config )
-	: Mode(_freetype_renderer), word_browser(button_provider_list, _freetype_renderer, _words, drawing_screen, _library),
+NewWordsViewer::NewWordsViewer( /*UILanguage& _ui_language, */FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config )
+	: Mode(_freetype_renderer), /*ui_language(_ui_language),*/
+		word_browser(button_provider_list, _freetype_renderer, _words, drawing_screen, _library),
 		drawing_pad(drawing_screen), library(_library), config(_config),
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,-1,1),
 		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_freetype_renderer.latin_face,9,-7,3),
@@ -497,7 +507,17 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( /*this->ui_language, */this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.search_button
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		//FulltextSearch fulltext_search( this->ui_language, this->mode_ft, library );
+		//fulltext_search.run_until_exit();
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;

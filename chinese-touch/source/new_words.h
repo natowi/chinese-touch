@@ -6,6 +6,7 @@
 #include "drawing_pad.h"
 #include "config.h"
 #include "settings_dialog.h"
+#include "ui_language.h"
 
 
 /*! Base class for modes with word list browsing capabilities */
@@ -23,7 +24,7 @@ class WordListBrowser : public ButtonProvider
 			foreign_word_tab, pronunciation_tab, translation_tab, 
 			rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
-			down_button, add_button, remove_button;
+			down_button, add_button, remove_button, search_button;
 	public:
 		WordListBrowser( ButtonProviderList& provider_list, 
 						 FreetypeRenderer& _freetype_renderer, 
@@ -52,6 +53,7 @@ class WordListBrowser : public ButtonProvider
 class NewWordsViewer : public Mode
 {
 	public:
+		//UILanguage& ui_language;
 		RenderScreen word_screen, drawing_screen;
 		WordListBrowser word_browser;
 		DrawingPad drawing_pad;
@@ -64,7 +66,7 @@ class NewWordsViewer : public Mode
 		int old_distance;
 		int pixels_drawn;
 	public:
-		NewWordsViewer( FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config=0 );
+		NewWordsViewer( /*UILanguage& _ui_language, */FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config=0 );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();

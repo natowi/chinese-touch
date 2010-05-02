@@ -17,14 +17,15 @@
 #include "bg_dragon.h"
 #include "small_top_button.h"
 #include "small_top_button_active.h"
+#include "fulltext_search.h"
 
 
 int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
-TextView::TextView( FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config )
-	: Mode(_ft), library(_library), text(_text), config(_config),
+TextView::TextView( /*UILanguage& _ui_language, */FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config )
+	: Mode(_ft), /*ui_language(_ui_language), */library(_library), text(_text), config(_config),
 		word_browser(button_provider_list, _ft, current_words, text_screen, _library),
 		y_offset(5), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
@@ -252,7 +253,17 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( /*this->ui_language, */this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.search_button
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		//FulltextSearch fulltext_search( this->ui_language, this->mode_ft, library );
+		//fulltext_search.run_until_exit();
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -430,7 +441,7 @@ ButtonAction TextView::handle_idle_cycles()
 	return Mode::handle_idle_cycles();
 }
 
-void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth )
+void TextView::show_word_as_text( /*UILanguage& ui_language, */FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth )
 {
 	if( !word )
 		return;
@@ -443,7 +454,7 @@ void TextView::show_word_as_text( FreetypeRenderer& ft, Library& library, NewWor
 		new_text += di->second->comment + "\n\n";
 		new_text += di->second->example + "\n\n";
 	}
-	TextView* text_view = new TextView( ft, library, new_text, config );
+	TextView* text_view = new TextView( /*ui_language, */ft, library, new_text, config );
 	text_view->recursion_depth = recursion_depth+1;
 	if( text_view->recursion_depth>=10 )
 		text_view->word_browser.down_button.hidden = true;

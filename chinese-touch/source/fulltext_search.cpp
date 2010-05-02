@@ -10,19 +10,25 @@
 #include "text_view.h"
 #include "large_center_button.h"
 #include "large_center_button_active.h"
+#include <small_top_button.h>
+#include <small_top_button_active.h>
 
 
-FulltextSearch::FulltextSearch( UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, Library& _library )
-	: Mode(_freetype_renderer), library(_library), 
-		touch_keyboard(button_provider_list, _ui_lang, _freetype_renderer, keyboard_screen), 
+FulltextSearch::FulltextSearch( UILanguage& _ui_language, FreetypeRenderer& _freetype_renderer, Library& _library )
+	: Mode(_freetype_renderer), ui_language(_ui_language), library(_library), 
+		touch_keyboard(button_provider_list, _ui_language, _freetype_renderer, keyboard_screen), 
 		word_browser(button_provider_list, _freetype_renderer, current_words, keyboard_screen, _library),
 		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
-		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_freetype_renderer.han_face,13,0,4)
+		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_freetype_renderer.han_face,14,0,4),
+		clear_button(&oamSub,"c",SpriteSize_16x16,keyboard_screen.res_x-44-16,0,_freetype_renderer.latin_face,10,1,-1)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
+	this->text_buttons.push_back( &this->clear_button );
 	// disable currently unused settings button:
 	this->settings_button.hidden = this->settings_button.disabled = true;
+	// disable word_browsers redundant search_button:
+	this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
 	
 	this->init_mode();
 	this->init_vram();
@@ -53,6 +59,8 @@ void FulltextSearch::init_button_vram()
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	this->search_button.init_vram( large_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( large_center_button_activeBitmap, this->search_button.bg_active_vram );
+	this->clear_button.init_vram( small_top_buttonBitmap, this->clear_button.bg_vram );
+	this->clear_button.init_vram( small_top_button_activeBitmap, this->clear_button.bg_active_vram );
 	
 	ButtonProvider::init_button_vram();
 }
@@ -69,13 +77,18 @@ void FulltextSearch::render( Screen screen )
 	}
 	else if( screen == SCREEN_SUB )
 	{
-		this->keyboard_screen.clear();
+		this->clear_button.y = touch_keyboard.written_text.length() ? 0 : -12;
 		int top = 20;
-		RenderStyle render_style;
-		render_style.center_x = true;
-		RenderInfo render_info = this->mode_ft.render( 
-			this->keyboard_screen, this->touch_keyboard.written_text, 
-			this->mode_ft.han_face, 12, 0, top, &render_style );
+		if( this->prev_rendered_text != this->touch_keyboard.written_text )
+		{
+			this->keyboard_screen.clear();
+			RenderStyle render_style;
+			render_style.center_x = true;
+			RenderInfo render_info = this->mode_ft.render( 
+				this->keyboard_screen, this->touch_keyboard.written_text, 
+				this->mode_ft.han_face, 12, 0, top, &render_style );
+			this->prev_rendered_text = this->touch_keyboard.written_text;
+		}
 		top = 45;
 		memset( this->keyboard_screen.base_address+this->keyboard_screen.res_x*(top++)/2, 
 				255, this->keyboard_screen.res_x );
@@ -92,7 +105,8 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( /*this->ui_language, */this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		this->prev_rendered_text=""; // force rerendering of current search text
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -133,6 +147,11 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->word_browser.words.sort( hanzi_min_length_sort_predicate );
 		this->word_browser.current_word = this->word_browser.words.begin();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->clear_button )
+	{
+		this->touch_keyboard.written_text = "";
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

@@ -221,7 +221,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
 		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
 		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
-		search_button(&oamSub,"词典",SpriteSize_32x16,menu_screen.res_x-16-80/2-16,menu_screen.res_y-16,freetype_renderer.han_face,9,0,1)
+		search_button(&oamSub,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,freetype_renderer.han_face,9,0,1)
 {
 	this->freetype_renderer.init_screen( SCREEN_MAIN, this->info_screen );
 	//ErrorConsole::init_screen( SCREEN_MAIN );

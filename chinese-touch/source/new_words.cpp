@@ -184,7 +184,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->add_button.hidden = this->add_button.disabled = true;
 	this->remove_button.hidden = this->remove_button.disabled = true;
 	// broken:
-	this->search_button.hidden = this->search_button.disabled = true;
+	//this->search_button.hidden = this->search_button.disabled = true;
 }
 
 void WordListBrowser::init_button_vram()
@@ -381,13 +381,13 @@ ButtonAction WordListBrowser::handle_console_button_event( int pressed, int held
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( /*UILanguage& _ui_language, */FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config )
-	: Mode(_freetype_renderer), /*ui_language(_ui_language),*/
-		word_browser(button_provider_list, _freetype_renderer, _words, drawing_screen, _library),
-		drawing_pad(drawing_screen), library(_library), config(_config),
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,-1,1),
-		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_freetype_renderer.latin_face,9,-7,3),
-		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
+NewWordsViewer::NewWordsViewer( Program& _program, NewWordList& _words, bool _save_position )
+	: Mode(_program), save_position(_save_position),
+		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
+		drawing_pad(drawing_screen),
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
+		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
+		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		pixels_drawn(0)
 {
 	// In this mode we want to restore visibility settings on switch by default:
@@ -407,9 +407,9 @@ NewWordsViewer::NewWordsViewer( /*UILanguage& _ui_language, */FreetypeRenderer& 
 	this->text_buttons.push_back( &this->settings_button );
 	
 	// initialize word list on stored word index (only used when calling new words from a lesson):
-	if( this->config )
+	if( this->save_position )
 	{
-		int word_id = this->config->get_current_word_id();
+		int word_id = this->program.config->get_current_word_id();
 		for( this->word_browser.current_word = this->word_browser.words.begin(); 
 			this->word_browser.current_word != this->word_browser.words.end(); 
 			this->word_browser.current_word++ )
@@ -456,7 +456,7 @@ void NewWordsViewer::init_button_vram()
 void NewWordsViewer::show_settings()
 {
 	this->free_vram();
-	SettingsDialog settings_dialog( this->Mode::button_ft, this->settings, "Word List Settings" );
+	SettingsDialog settings_dialog( this->program, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
 	this->word_browser.restore_init_settings();
 	this->init_mode();
@@ -475,8 +475,8 @@ void NewWordsViewer::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			if( this->config ) this->config->save_word_position( new_word );
-			new_word->render( this->Mode::button_ft, this->word_screen, this->word_browser, this->library );
+			if( this->save_position ) this->program.config->save_word_position( new_word );
+			new_word->render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
 		}
 	}
 	
@@ -492,9 +492,9 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	}
 	if( text_button == &this->exit_button )
 	{
-		if( this->config && (this->word_browser.current_word != this->word_browser.words.end()) )
+		if( this->save_position && (this->word_browser.current_word != this->word_browser.words.end()) )
 		{
-			this->config->save_word_position( *this->word_browser.current_word );
+			this->program.config->save_word_position( *this->word_browser.current_word );
 		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
@@ -507,7 +507,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( /*this->ui_language, */this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -516,8 +516,9 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		//FulltextSearch fulltext_search( this->ui_language, this->mode_ft, library );
-		//fulltext_search.run_until_exit();
+		FulltextSearch *fulltext_search = new FulltextSearch( this->program );
+		fulltext_search->run_until_exit();
+		delete fulltext_search;
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;

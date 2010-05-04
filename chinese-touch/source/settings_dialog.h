@@ -62,7 +62,7 @@ class SettingsDialog : public Mode
 		TextButton ok_button, dummy_checkbox, dummy_start_button;
 		TextButtonMapStorage checkboxes, start_buttons;
 	public:
-		SettingsDialog( FreetypeRenderer& _freetype_renderer, Settings& _settings, const std::string& _title );
+		SettingsDialog( Program& _program, Settings& _settings, const std::string& _title );
 		virtual void init_mode();
 		virtual void init_vram();
 		virtual void render( Screen screen );

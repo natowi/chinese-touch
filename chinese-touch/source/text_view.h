@@ -28,11 +28,8 @@ enum ContextMode
 class TextView : private std::list<BufferedLine*>, public Mode
 {
 public:
-	//UILanguage& ui_language;
 	RenderScreen word_screen, text_screen;
-	Library& library;
 	Text& text;
-	Config* config;
 	NewWordList current_words;
 	WordListBrowser word_browser;
 	int y_offset;
@@ -58,7 +55,7 @@ public:
 	int old_abs_y_diff; //!< used for scrolling
 	int pixels_scrolled; //!< used for scrolling
 public:
-	TextView( /*UILanguage& _ui_language, */FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config );
+	TextView( Program& _program, Text& _text );
 	void init_mode();
 	void init_vram();
 	void init_button_vram();
@@ -70,7 +67,7 @@ public:
 	virtual ButtonAction handle_touch_drag( touchPosition touch );
 	virtual ButtonAction handle_touch_end( touchPosition touch );
 	virtual ButtonAction handle_idle_cycles();
-	static void show_word_as_text( /*UILanguage& ui_language, */FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth = 0 );
+	static void show_word_as_text( Program& program, NewWord* word, int recursion_depth = 0 );
 	void show_settings();
 	void restore_init_settings();
 };

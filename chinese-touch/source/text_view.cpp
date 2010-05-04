@@ -24,15 +24,15 @@ int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
-TextView::TextView( /*UILanguage& _ui_language, */FreetypeRenderer& _ft, Library& _library, Text& _text, Config* _config )
-	: Mode(_ft), /*ui_language(_ui_language), */library(_library), text(_text), config(_config),
-		word_browser(button_provider_list, _ft, current_words, text_screen, _library),
+TextView::TextView( Program& _program, Text& _text )
+	: Mode(_program), text(_text),
+		word_browser(button_provider_list, *_program.ft, current_words, text_screen, *_program.library),
 		y_offset(5), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0), recursion_depth(0),
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,_ft.latin_face,10,-1,1),
-		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_ft.latin_face,10,1,1),
-		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_ft.han_face,9,1,-1),
+		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
+		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
 		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
@@ -72,8 +72,8 @@ TextView::TextView( /*UILanguage& _ui_language, */FreetypeRenderer& _ft, Library
 		RenderStyle render_style;
 		render_style.multiline = false;
 		render_style.indentation_offset = info.indentation_offset;
-		info = this->mode_ft.render( *buffered_line, char_list, 
-			this->mode_ft.latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
+		info = this->program.ft->render( *buffered_line, char_list, 
+			this->program.ft->latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
 		this->push_back( buffered_line );
 		// render progress bar:
 		int progress_bar_pixels = (org_size-char_list.size())*this->word_screen.res_x/org_size;
@@ -91,13 +91,13 @@ TextView::TextView( /*UILanguage& _ui_language, */FreetypeRenderer& _ft, Library
 
 void TextView::init_mode()
 {
-	this->mode_ft.init_screen( SCREEN_MAIN, this->word_screen );
+	this->program.ft->init_screen( SCREEN_MAIN, this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
 	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 
-	this->mode_ft.init_screen( SCREEN_SUB, this->text_screen );
+	this->program.ft->init_screen( SCREEN_SUB, this->text_screen );
 	this->text_screen.clear();
 	
 	Mode::init_mode();
@@ -151,7 +151,7 @@ void TextView::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( this->mode_ft, this->word_screen, this->word_browser, this->library );
+			new_word->render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
 		}
 		else
 		{
@@ -181,7 +181,7 @@ void TextView::render( Screen screen )
 			}
 			RenderStyle style;
 			style.center_x = style.center_y = false;
-			this->mode_ft.render( this->word_screen, message, this->mode_ft.latin_face, 8, 5, 60, &style );
+			this->program.ft->render( this->word_screen, message, this->program.ft->latin_face, 8, 5, 60, &style );
 		}
 	}
 	else if( screen == SCREEN_SUB )
@@ -253,7 +253,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( /*this->ui_language, */this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -262,8 +262,9 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		//FulltextSearch fulltext_search( this->ui_language, this->mode_ft, library );
-		//fulltext_search.run_until_exit();
+		FulltextSearch *fulltext_search = new FulltextSearch( this->program );
+		fulltext_search->run_until_exit();
+		delete fulltext_search;
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -279,8 +280,8 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		// HACK: set duplicate_id to an unusual high value, to prevent overwriting duplicate words from *.dict-files
 		// FIXME: this might overwrite previously associated duplicate words
 		new_word->duplicate_id = 1000;
-		this->library.words_db.add_or_write_word( *new_word );
-		this->library.words_db.read_word( *new_word );
+		this->program.words_db->add_or_write_word( *new_word );
+		this->program.words_db->read_word( *new_word );
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );
@@ -389,14 +390,14 @@ ButtonAction TextView::handle_touch_end( touchPosition touch )
 							|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 						{
 							// first click (odd count) on a character: find words in current context:
-							this->library.find_words_by_context( this->text, search_char_list, search_char_it, 6, this->word_browser.words, this->lookup_sql_cond );
+							this->program.library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->word_browser.words, this->lookup_sql_cond );
 							this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
 						}
 						else
 						{
 							// second click (even count) on a character: find words containing selected character:
 							std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
-							this->library.find_words_by_characters( character, this->word_browser.words, this->lookup_sql_cond );
+							this->program.library->find_words_by_characters( character, this->word_browser.words, this->lookup_sql_cond );
 							this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 						}
 						this->context_render_char = curr_char;
@@ -441,7 +442,7 @@ ButtonAction TextView::handle_idle_cycles()
 	return Mode::handle_idle_cycles();
 }
 
-void TextView::show_word_as_text( /*UILanguage& ui_language, */FreetypeRenderer& ft, Library& library, NewWord* word, Config* config, int recursion_depth )
+void TextView::show_word_as_text( Program& program, NewWord* word, int recursion_depth )
 {
 	if( !word )
 		return;
@@ -454,7 +455,7 @@ void TextView::show_word_as_text( /*UILanguage& ui_language, */FreetypeRenderer&
 		new_text += di->second->comment + "\n\n";
 		new_text += di->second->example + "\n\n";
 	}
-	TextView* text_view = new TextView( /*ui_language, */ft, library, new_text, config );
+	TextView* text_view = new TextView( program, new_text );
 	text_view->recursion_depth = recursion_depth+1;
 	if( text_view->recursion_depth>=10 )
 		text_view->word_browser.down_button.hidden = true;
@@ -466,7 +467,7 @@ void TextView::show_word_as_text( /*UILanguage& ui_language, */FreetypeRenderer&
 void TextView::show_settings()
 {
 	this->free_vram();
-	SettingsDialog* settings_dialog = new SettingsDialog( this->mode_ft, this->settings, "Text Viewer Settings" );
+	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->settings, "Text Viewer Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
 	this->restore_init_settings();

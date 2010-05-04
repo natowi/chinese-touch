@@ -22,215 +22,211 @@
 #include "fulltext_search.h"
 
 
-int main()
+Program::Program()
+	: first_run( false )
 {
-	defaultExceptionHandler();
-	bool first_run = false;
+	LOG( "initializing fat driver" );
+	if( !fatInitDefault() )
+	{
+		throw ERROR( "error initializing fat driver" );
+	}
+
 	try
 	{
-		LOG( "initializing fat driver" );
-		if( !fatInitDefault() )
-		{
-			throw ERROR( "error initializing fat driver" );
-		}
-		
-		WordsDB words_db;
+		this->words_db->open( WORDS_DB_FILE_NAME );
+	}
+	catch( Error& e )
+	{
+		WARN( e.what() );
+		this->words_db->create( WORDS_DB_FILE_NAME );
+		first_run = true;
+	}
+	this->words_db->update();
+	
+	LOG( "initializing library" );
+	this->library = new Library( *words_db );
+	LOG( "scanning library..." );
+	this->library->rescan();
+	LOG( "scanning complete" );
+	
+	this->ui_lang = new UILanguage( "en" );
+	
+	LOG( "initializing Freetype" );
+	this->ft = new FreetypeRenderer( "ukai.ttc", "VeraSe.ttf" );
+	
+	this->config = new Config();
+	LOG( "loading config" );
+	this->config->load();
+}
+
+void Program::run()
+{
+	bool sync_done = false;
+	while( true )
+	{
 		try
 		{
-			words_db.open( WORDS_DB_FILE_NAME );
+			LOG( "initializing lesson menu" );
+			LessonMenu* lesson_menu = new LessonMenu( *this );
+			if( first_run && !sync_done )
+			{
+				DictionarySynchronizer* dict_sync = new DictionarySynchronizer( "","","", *this, lesson_menu->menu_screen );
+				dict_sync->run_action();
+				delete dict_sync;
+				sync_done = true;
+			}
+			LessonMenuChoice lesson_menu_choice;
+			lesson_menu->run_for_user_choice( lesson_menu_choice );
+			delete lesson_menu;
+			
+			switch( lesson_menu_choice.content_type )
+			{
+				case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+				case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+				case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+				case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
+				{
+					if( !lesson_menu_choice.book )
+						throw ERROR( "LessonMenu returned no book" );
+					NewWordList words;
+					std::stringstream condition;
+					condition << "book_id=" << lesson_menu_choice.book->id;
+					switch( lesson_menu_choice.content_type )
+					{
+						case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
+							condition << " and rating=" << RATING_EASY;
+							break;
+						case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
+							condition << " and rating=" << RATING_MEDIUM;
+							break;
+						case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
+							condition << " and rating=" << RATING_HARD;
+							break;
+						case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
+							condition << " and (rating=" << RATING_IMPOSSIBLE << " or rating=" << RATING_NONE << ")";
+							break;
+						default:
+							break;
+					}
+					if( lesson_menu_choice.lesson )
+						condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
+					this->words_db->query_words( *this->library, condition.str(), words, "atime" );
+					if( lesson_menu_choice.lesson ) config->save_position( lesson_menu_choice.lesson, true );
+					else config->save_position( lesson_menu_choice.book, true );
+					if( words.size() )
+					{
+						NewWordsViewer* new_words = new NewWordsViewer( *this, words, false );
+						new_words->run_until_exit();
+						delete new_words;
+					} else throw ERROR( "Empty word list; Assign new words from text mode!" );
+					break;
+				}
+				case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
+				{
+					Lesson* lesson = lesson_menu_choice.lesson;
+					if( !lesson )
+						throw ERROR( "LessonMenu returned no lesson" );
+					this->config->save_position( lesson, true );
+					lesson->parse_dictionary_if_needed();
+					NewWordList words;
+					std::stringstream condition;
+					condition << "lesson_id=" << lesson->id;
+					this->words_db->query_words( *this->library, condition.str(), words, "file_offset" );
+					if( words.size() )
+					{
+						NewWordsViewer* new_words = new NewWordsViewer( *this, words, true );
+						new_words->run_until_exit();
+						delete new_words;
+					} else throw ERROR( "Empty word list; Assign new words from text mode!" );
+					break;
+				}
+				case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
+				{
+					Lesson* lesson = lesson_menu_choice.lesson;
+					if( !lesson )
+						throw ERROR( "LessonMenu returned no lesson" );
+					this->config->save_position( lesson, true );
+					TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
+					if( !texts.size() )
+					{
+						lesson->parse_text( ".grammar", lesson->grammar_texts );
+					}
+					if( texts.size() )
+					{
+						TextView *text_view = new TextView( *this, *texts[0] );
+						text_view->run_until_exit();
+						delete text_view;
+					} else throw ERROR( "No grammar description available for this lesson" );
+					break;
+				}
+				case LessonMenuChoice::CONTENT_TYPE_TEXT:
+				{
+					Lesson* lesson = lesson_menu_choice.lesson;
+					if( !lesson )
+						throw ERROR( "LessonMenu returned no lesson" );
+					this->config->save_position( lesson, true );
+					TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
+					if( !texts.size() )
+					{
+						lesson->parse_text( ".text", lesson->lesson_texts );
+					}
+					if( texts.size() )
+					{
+						TextView *text_view = new TextView( *this, *texts[0] );
+						text_view->run_until_exit();
+						delete text_view;
+					} else throw ERROR( "No lesson text available" );
+					break;
+				}
+				case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
+				{
+					Lesson* lesson = lesson_menu_choice.lesson;
+					if( !lesson )
+						throw ERROR( "LessonMenu returned no lesson" );
+					this->config->save_position( lesson, true );
+					TextVector& texts = lesson_menu_choice.lesson->exercises;
+					if( !texts.size() )
+					{
+						lesson->parse_text( ".exercise", lesson->exercises );
+					}
+					if( texts.size() )
+					{
+						TextView *text_view = new TextView( *this, *texts[0] );
+						text_view->run_until_exit();
+						delete text_view;
+					} else throw ERROR( "No exercises available for this lesson" );
+					break;
+				}
+				case LessonMenuChoice::CONTENT_TYPE_SEARCH:
+				{
+					FulltextSearch *fulltext_search = new FulltextSearch( *this );
+					fulltext_search->run_until_exit();
+					delete fulltext_search;
+					break;
+				}
+				default: throw ERROR( "LessonMenu returned invalid content type" );
+			}
 		}
 		catch( Error& e )
 		{
-			WARN( e.what() );
-			words_db.create( WORDS_DB_FILE_NAME );
-			first_run = true;
+			RenderScreen error_screen;
+			this->ft->init_screen( SCREEN_MAIN, error_screen );
+			error_screen.clear();
+			this->ft->render( error_screen, e.what(), this->ft->latin_face, 8, 3, 3 );
+			error_stream << "caught " << e.what() << std::endl;
+			for( int i=0; i<500; i++ ) swiWaitForVBlank();
 		}
-		words_db.update();
-		
-		LOG( "initializing library" );
-		Library library( words_db );
-		LOG( "scanning library..." );
-		library.rescan();
-		LOG( "scanning complete" );
+	}
+}
 
-		LOG( "initializing Freetype" );
-		FreetypeRenderer* ft = new FreetypeRenderer( "ukai.ttc", "VeraSe.ttf" );
 
-		Config config;
-		LOG( "loading config" );
-		config.load();
-	
-		UILanguage ui_language( "en" );
-#if 0
-		NewWordList words;
-		words.insert( words.end(), 
-					library.begin()->second->begin()->second->new_words.begin(), 
-					library.begin()->second->begin()->second->new_words.end() );
-		NewWordsViewer* new_words = new NewWordsViewer( *ft, words, &config );
-		new_words->run_until_exit();
-		delete new_words;
-#endif
-#if 0
-		ErrorConsole::init_screen();
-		RenderScreen r;
-		ft->init_screen( SCREEN_MAIN, r );
-		ft->render( r, "vvvvvvvaaaaaaaaaaaaavvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiii我的中文老师很好！", ft->latin_face, 10, 0, 0 );
-		//ft->render( r, "Ich schreib hier mal einen längeren Text hin um auszuprobieren wie gut das mit den horizontalen Buchstabenabständen nun eigentlich funktioniert. 我的中文老师很好！", ft->latin_face, 10, 0, 0 );
-		while( true ) swiWaitForVBlank();
-#endif
-		
-		bool sync_done = false;
-		while( true )
-		{
-			try
-			{
-				LOG( "initializing lesson menu" );
-				LessonMenu* lesson_menu = new LessonMenu( *ft, library, config );
-				if( first_run && !sync_done )
-				{
-					DictionarySynchronizer* dict_sync = new DictionarySynchronizer( "","","", *ft, library, lesson_menu->menu_screen );
-					dict_sync->run_action();
-					delete dict_sync;
-					sync_done = true;
-				}
-				LessonMenuChoice lesson_menu_choice;
-				lesson_menu->run_for_user_choice( lesson_menu_choice );
-				delete lesson_menu;
-				
-				switch( lesson_menu_choice.content_type )
-				{
-					case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-					case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-					case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-					case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-					{
-						if( !lesson_menu_choice.book )
-							throw ERROR( "LessonMenu returned no book" );
-						NewWordList words;
-						std::stringstream condition;
-						condition << "book_id=" << lesson_menu_choice.book->id;
-						switch( lesson_menu_choice.content_type )
-						{
-							case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-								condition << " and rating=" << RATING_EASY;
-								break;
-							case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-								condition << " and rating=" << RATING_MEDIUM;
-								break;
-							case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-								condition << " and rating=" << RATING_HARD;
-								break;
-							case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-								condition << " and (rating=" << RATING_IMPOSSIBLE << " or rating=" << RATING_NONE << ")";
-								break;
-							default:
-								break;
-						}
-						if( lesson_menu_choice.lesson )
-							condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
-						library.words_db.query_words( library, condition.str(), words, "atime" );
-						if( lesson_menu_choice.lesson ) config.save_position( lesson_menu_choice.lesson, true );
-						else config.save_position( lesson_menu_choice.book, true );
-						if( words.size() )
-						{
-							NewWordsViewer* new_words = new NewWordsViewer( /*ui_language, */*ft, words, library );
-							new_words->run_until_exit();
-							delete new_words;
-						} else throw ERROR( "Empty word list; Assign new words from text mode!" );
-						break;
-					}
-					case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
-					{
-						Lesson* lesson = lesson_menu_choice.lesson;
-						if( !lesson )
-							throw ERROR( "LessonMenu returned no lesson" );
-						config.save_position( lesson, true );
-						lesson->parse_dictionary_if_needed();
-						NewWordList words;
-						std::stringstream condition;
-						condition << "lesson_id=" << lesson->id;
-						library.words_db.query_words( library, condition.str(), words, "file_offset" );
-						if( words.size() )
-						{
-							NewWordsViewer* new_words = new NewWordsViewer( /*ui_language, */*ft, words, library, &config );
-							new_words->run_until_exit();
-							delete new_words;
-						} else throw ERROR( "Empty word list; Assign new words from text mode!" );
-						break;
-					}
-					case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
-					{
-						Lesson* lesson = lesson_menu_choice.lesson;
-						if( !lesson )
-							throw ERROR( "LessonMenu returned no lesson" );
-						config.save_position( lesson, true );
-						TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
-						if( !texts.size() )
-						{
-							lesson->parse_text( ".grammar", lesson->grammar_texts );
-						}
-						if( texts.size() )
-						{
-							TextView text_view( /*ui_language, */*ft, library, *texts[0], &config );
-							text_view.run_until_exit();
-						} else throw ERROR( "No grammar description available for this lesson" );
-						break;
-					}
-					case LessonMenuChoice::CONTENT_TYPE_TEXT:
-					{
-						Lesson* lesson = lesson_menu_choice.lesson;
-						if( !lesson )
-							throw ERROR( "LessonMenu returned no lesson" );
-						config.save_position( lesson, true );
-						TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
-						if( !texts.size() )
-						{
-							lesson->parse_text( ".text", lesson->lesson_texts );
-						}
-						if( texts.size() )
-						{
-							TextView text_view( /*ui_language, */*ft, library, *texts[0], &config );
-							text_view.run_until_exit();
-						} else throw ERROR( "No lesson text available" );
-						break;
-					}
-					case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
-					{
-						Lesson* lesson = lesson_menu_choice.lesson;
-						if( !lesson )
-							throw ERROR( "LessonMenu returned no lesson" );
-						config.save_position( lesson, true );
-						TextVector& texts = lesson_menu_choice.lesson->exercises;
-						if( !texts.size() )
-						{
-							lesson->parse_text( ".exercise", lesson->exercises );
-						}
-						if( texts.size() )
-						{
-							TextView text_view( /*ui_language, */*ft, library, *texts[0], &config );
-							text_view.run_until_exit();
-						} else throw ERROR( "No exercises available for this lesson" );
-						break;
-					}
-					case LessonMenuChoice::CONTENT_TYPE_SEARCH:
-					{
-						FulltextSearch fulltext_search( ui_language, *ft, library );
-						fulltext_search.run_until_exit();
-						break;
-					}
-					default: throw ERROR( "LessonMenu returned invalid content type" );
-				}
-			}
-			catch( Error& e )
-			{
-				RenderScreen error_screen;
-				ft->init_screen( SCREEN_MAIN, error_screen );
-				error_screen.clear();
-				ft->render( error_screen, e.what(), ft->latin_face, 8, 3, 3 );
-				error_stream << "caught " << e.what() << std::endl;
-				for( int i=0; i<500; i++ ) swiWaitForVBlank();
-			}
-		}
+int main()
+{
+	defaultExceptionHandler();
+	try
+	{
+		Program program;
+		program.run();
 	}
 	catch( Error& e )
 	{
@@ -244,5 +240,5 @@ int main()
 		ErrorConsole::init_screen();
 		ErrorConsole::dump();
 	}
-    return 0;
+	return 0;
 }

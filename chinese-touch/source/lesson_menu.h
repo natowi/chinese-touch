@@ -8,6 +8,7 @@
 #include "config.h"
 #include "text_button.h"
 #include "settings_dialog.h"
+#include "chinese-touch.h"
 
 
 class LessonMenuChoice
@@ -90,15 +91,14 @@ class MenuList : public std::map<void*,MenuEntry*>
 class DictionarySynchronizer : public ActionButton
 {
 	public:
-		FreetypeRenderer& freetype_renderer;
-		Library& library;
+		Program& program;
 		RenderScreen& info_screen;
 	public:
 		DictionarySynchronizer( const std::string& _name, const std::string& _description, 
-								const std::string& _button_label, FreetypeRenderer& _freetype_renderer,
-								Library& _library, RenderScreen& _screen )
+								const std::string& _button_label, Program& _program, 
+								RenderScreen& _screen )
 			: ActionButton( _name, _description, _button_label ), 
-			freetype_renderer(_freetype_renderer), library(_library), info_screen(_screen)
+			program(_program), info_screen(_screen)
 		{}
 		virtual void run_action();
 };
@@ -107,9 +107,7 @@ class DictionarySynchronizer : public ActionButton
 class LessonMenu
 {
 public:
-	FreetypeRenderer& freetype_renderer;
-	Library& library;
-	Config& config;
+	Program& program;
 	RenderScreen info_screen, menu_screen;
 	MenuList menu_list;
 	int y_offset;
@@ -126,7 +124,7 @@ public:
 	static int MAX_ACCELERATION_FACTOR;
 	Settings settings;
 public:
-	LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config );
+	LessonMenu( Program& program );
 	void init_subscreen();
 	~LessonMenu();
 	void render( Screen screen );

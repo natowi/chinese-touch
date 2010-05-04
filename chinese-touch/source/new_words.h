@@ -1,6 +1,7 @@
 #ifndef NEW_WORDS_H
 #define NEW_WORDS_H
 
+#include "chinese-touch.h"
 #include "freetype_renderer.h"
 #include "lesson_menu.h"
 #include "drawing_pad.h"
@@ -53,12 +54,10 @@ class WordListBrowser : public ButtonProvider
 class NewWordsViewer : public Mode
 {
 	public:
-		//UILanguage& ui_language;
+		bool save_position;
 		RenderScreen word_screen, drawing_screen;
 		WordListBrowser word_browser;
 		DrawingPad drawing_pad;
-		Library& library;
-		Config* config;
 		TextButton exit_button, clear_button, settings_button;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;
@@ -66,7 +65,7 @@ class NewWordsViewer : public Mode
 		int old_distance;
 		int pixels_drawn;
 	public:
-		NewWordsViewer( /*UILanguage& _ui_language, */FreetypeRenderer& _freetype_renderer, NewWordList& _words, Library& _library, Config* _config=0 );
+		NewWordsViewer( Program& _program, NewWordList& _words, bool _save_position );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();

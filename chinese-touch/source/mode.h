@@ -12,6 +12,7 @@
 #define BUTTON_ACTION_EXIT_MODE (1 << 4)
 #define BUTTON_ACTION_SCREEN_SUB (1 << 5)
 #define BUTTON_ACTION_SCREEN_MAIN (1 << 6)
+#include "chinese-touch.h"
 
 typedef int ButtonAction;
 
@@ -59,11 +60,11 @@ public:
 class Mode : public GlobalButtonHandler
 {
 public:
-	FreetypeRenderer& mode_ft;
+	Program& program;
 	ButtonProviderList button_provider_list;
 public:
-	Mode( FreetypeRenderer& _freetype_renderer ) 
-		: GlobalButtonHandler( _freetype_renderer ), mode_ft(_freetype_renderer) 
+	Mode( Program& _program ) 
+		: GlobalButtonHandler( *_program.ft ), program(_program) 
 	{
 		// Modes itself in its role as GlobalButtonHandler needs to be inserted manually, 
 		// as it needs to be constructed before its button_provider_list is available

@@ -14,13 +14,13 @@
 #include <small_top_button_active.h>
 
 
-FulltextSearch::FulltextSearch( UILanguage& _ui_language, FreetypeRenderer& _freetype_renderer, Library& _library )
-	: Mode(_freetype_renderer), ui_language(_ui_language), library(_library), 
-		touch_keyboard(button_provider_list, _ui_language, _freetype_renderer, keyboard_screen), 
-		word_browser(button_provider_list, _freetype_renderer, current_words, keyboard_screen, _library),
-		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_freetype_renderer.latin_face,10,1,1),
-		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_freetype_renderer.han_face,14,0,4),
-		clear_button(&oamSub,"c",SpriteSize_16x16,keyboard_screen.res_x-44-16,0,_freetype_renderer.latin_face,10,1,-1)
+FulltextSearch::FulltextSearch( Program& _program )
+	: Mode(_program), 
+		touch_keyboard(button_provider_list, *_program.ui_lang, *_program.ft, keyboard_screen), 
+		word_browser(button_provider_list, *_program.ft, current_words, keyboard_screen, *_program.library),
+		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_program.ft->han_face,14,0,4),
+		clear_button(&oamSub,"c",SpriteSize_16x16,keyboard_screen.res_x-44-16,0,_program.ft->latin_face,10,1,-1)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
@@ -36,12 +36,12 @@ FulltextSearch::FulltextSearch( UILanguage& _ui_language, FreetypeRenderer& _fre
 
 void FulltextSearch::init_mode()
 {
-	this->mode_ft.init_screen( SCREEN_MAIN, this->word_screen );
+	this->program.ft->init_screen( SCREEN_MAIN, this->word_screen );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 	bgHide( this->word_screen.bg_id );
 
-	this->mode_ft.init_screen( SCREEN_SUB, this->keyboard_screen );
+	this->program.ft->init_screen( SCREEN_SUB, this->keyboard_screen );
 	this->keyboard_screen.clear();
 	
 	this->Mode::init_mode();
@@ -72,7 +72,7 @@ void FulltextSearch::render( Screen screen )
 		this->word_screen.clear();
 		if( this->word_browser.words.size() && this->word_browser.current_word != this->word_browser.words.end() )
 		{
-			(*this->word_browser.current_word)->render( this->mode_ft, this->word_screen, this->word_browser, this->library );
+			(*this->word_browser.current_word)->render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
 		}
 	}
 	else if( screen == SCREEN_SUB )
@@ -84,9 +84,9 @@ void FulltextSearch::render( Screen screen )
 			this->keyboard_screen.clear();
 			RenderStyle render_style;
 			render_style.center_x = true;
-			RenderInfo render_info = this->mode_ft.render( 
+			RenderInfo render_info = this->program.ft->render( 
 				this->keyboard_screen, this->touch_keyboard.written_text, 
-				this->mode_ft.han_face, 12, 0, top, &render_style );
+				this->program.ft->han_face, 12, 0, top, &render_style );
 			this->prev_rendered_text = this->touch_keyboard.written_text;
 		}
 		top = 45;
@@ -105,7 +105,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( /*this->ui_language, */this->mode_ft, this->library, *this->word_browser.current_word, 0 );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word );
 		this->prev_rendered_text=""; // force rerendering of current search text
 		this->init_mode();
 		this->init_vram();
@@ -117,7 +117,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->word_browser.current_word = this->word_browser.words.begin();
 		// query available static book databases
 		std::string sql_cond = "pattern='"+this->touch_keyboard.written_text+"'";
-		for( Library::iterator book_it = this->library.begin(); book_it != this->library.end(); book_it++ )
+		for( Library::iterator book_it = this->program.library->begin(); book_it != this->program.library->end(); book_it++ )
 		{
 			if( book_it->second 
 				&& book_it->second->dictionary_lesson
@@ -129,7 +129,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 					static_db->open( book_it->second->static_words_db_path );
 					try
 					{
-						static_db->query_static_fulltext( this->library, sql_cond, this->word_browser.words, book_it->second->dictionary_lesson );
+						static_db->query_static_fulltext( *this->program.library, sql_cond, this->word_browser.words, book_it->second->dictionary_lesson );
 					}
 					catch( Error& e )
 					{

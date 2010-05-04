@@ -174,7 +174,7 @@ void DictionarySynchronizer::run_action()
 	for( int run=1; run<=2; run++ )
 	{
 		int run_count = 0;
-		for( Library::iterator book_it = this->library.begin(); book_it != this->library.end(); book_it++ )
+		for( Library::iterator book_it = this->program.library->begin(); book_it != this->program.library->end(); book_it++ )
 		{
 			for( Book::iterator lesson_it = book_it->second->begin(); lesson_it != book_it->second->end(); lesson_it++ )
 			{
@@ -192,38 +192,38 @@ void DictionarySynchronizer::run_action()
 				{
 					prev_progress = new_progress;
 					info_screen.clear();
-					this->freetype_renderer.render( this->info_screen, progress.str(), this->freetype_renderer.latin_face, 14, 0, info_screen.res_y/2-30, &style );
+					this->program.ft->render( this->info_screen, progress.str(), this->program.ft->latin_face, 14, 0, info_screen.res_y/2-30, &style );
 				}
 			}
 		}
 		prev_run_count = run_count;
 	}
-	this->freetype_renderer.render( this->info_screen, "\n\n\ndone", this->freetype_renderer.latin_face, 14, 0, info_screen.res_y-30, &style );
+	this->program.ft->render( this->info_screen, "\n\n\ndone", this->program.ft->latin_face, 14, 0, info_screen.res_y-30, &style );
 }
 
 
-LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library, Config& _config )
-	: freetype_renderer(_freetype_renderer), library(_library), config(_config), 
+LessonMenu::LessonMenu( Program& _program )
+	: program(_program),
 		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
-		book_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,freetype_renderer.latin_face,9), 
-		lesson_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,freetype_renderer.latin_face,9),
-		new_words_button(&oamSub,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1),
-		grammar_button(&oamSub,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		text_button(&oamSub,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		exercises_button(&oamSub,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1),
-		explode_button(&oamSub,"open",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,6,1,2),
-		implode_button(&oamSub,"close",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,6,1,2),
-		rating_bar(&oamSub,"",SpriteSize_64x32,MenuEntry::RATED_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
-		rating_easy(&oamSub,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
-		rating_medium(&oamSub,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
-		rating_hard(&oamSub,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,freetype_renderer.latin_face,7),
-		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,freetype_renderer.han_face,9,1,1),
-		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,freetype_renderer.latin_face,10,1,1),
-		search_button(&oamSub,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,freetype_renderer.han_face,9,0,1)
+		book_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
+		lesson_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
+		new_words_button(&oamSub,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		grammar_button(&oamSub,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		text_button(&oamSub,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		exercises_button(&oamSub,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		explode_button(&oamSub,"open",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
+		implode_button(&oamSub,"close",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
+		rating_bar(&oamSub,"",SpriteSize_64x32,MenuEntry::RATED_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_easy(&oamSub,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_medium(&oamSub,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_hard(&oamSub,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
+		search_button(&oamSub,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1)
 {
-	this->freetype_renderer.init_screen( SCREEN_MAIN, this->info_screen );
+	this->program.ft->init_screen( SCREEN_MAIN, this->info_screen );
 	//ErrorConsole::init_screen( SCREEN_MAIN );
 	dmaCopy( bg_dragonBitmap, this->info_screen.bg_base_address, sizeof(bg_dragonBitmap) );
 	set_16bpp_sprite_opague( this->info_screen.bg_base_address, 256, 192 );
@@ -232,7 +232,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new DictionarySynchronizer("0_synchronize_dictionary", "Synchronize Word Database", "sync",
-		this->freetype_renderer, this->library, this->info_screen) );
+		this->program, this->info_screen) );
 	
 	// store list of interactive buttons in instance:
 	this->lesson_buttons.push_back( &this->new_words_button );
@@ -261,15 +261,15 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 	this->init_subscreen();
 	
 	// Menü zur gespeicherten Position bewegen:
-	std::string config_book_name = this->config.get_current_book_name();
-	int config_lesson_number = this->config.get_current_lesson_number();
+	std::string config_book_name = this->program.config->get_current_book_name();
+	int config_lesson_number = this->program.config->get_current_lesson_number();
 	if( config_book_name.length() )
 	{
 		bool found = false;
 		// tatsächlichen Wert nur verändern, wenn wir auch was finden:
 		int _y_offset = 0;
-		for( Library::iterator book_it=this->library.begin();
-			book_it!=this->library.end(); 
+		for( Library::iterator book_it=this->program.library->begin();
+			book_it!=this->program.library->end(); 
 			book_it++, _y_offset-=MenuEntry::BASE_HEIGHT )
 		{
 			// geht davon aus, dass nur das selektierte Buch ausgeklappt ist:
@@ -307,7 +307,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 				entry->book = book_it->second;
 				if( config_lesson_number ) entry->exploded = true;
 				this->menu_list[ static_cast<void*>(entry->book) ] = entry;
-				entry->render_text( this->freetype_renderer, entry->book->title );
+				entry->render_text( *this->program.ft, entry->book->title );
 				break;
 			}
 		}
@@ -317,7 +317,7 @@ LessonMenu::LessonMenu( FreetypeRenderer& _freetype_renderer, Library& _library,
 
 void LessonMenu::init_subscreen()
 {
-	this->freetype_renderer.init_screen( SCREEN_SUB, this->menu_screen );
+	this->program.ft->init_screen( SCREEN_SUB, this->menu_screen );
 	this->menu_screen.clear();
 	// Farbindex 0 der Hintergrundpalette auf hellblau für's Highlight setzen:
 	this->menu_screen.palette[0] = 31<<10|28<<5|28;
@@ -381,7 +381,7 @@ void LessonMenu::init_subscreen()
 	
 	for( TextButtonList::iterator i=this->init_button_list.begin(); i!=this->init_button_list.end(); i++ )
 	{
-		(*i)->init_text_layer( this->freetype_renderer );
+		(*i)->init_text_layer( *this->program.ft );
 	}
 
 	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
@@ -444,12 +444,12 @@ void LessonMenu::render( Screen screen )
 			description = "Lesson Menu: Please select a book or lesson on the touchscreen!";
 			std::stringstream stats_stream;
 			int lesson_count = 0;
-			for( Library::iterator book_it = this->library.begin();
-				book_it != this->library.end(); book_it++ )
+			for( Library::iterator book_it = this->program.library->begin();
+				book_it != this->program.library->end(); book_it++ )
 			{
 				lesson_count += book_it->second->size();
 			}
-			stats_stream << "" << lesson_count << " lessons from " << this->library.size() << " books loaded." ;
+			stats_stream << "" << lesson_count << " lessons from " << this->program.library->size() << " books loaded." ;
 			stats_text = stats_stream.str();
 		}
 		int top = 0;
@@ -459,38 +459,38 @@ void LessonMenu::render( Screen screen )
 		{
 			RenderStyle render_style;
 			render_style.center_x = true;
-			rect = this->freetype_renderer.render( this->info_screen, author, 
-				this->freetype_renderer.latin_face, 10, 0, top, &render_style );
+			rect = this->program.ft->render( this->info_screen, author, 
+				this->program.ft->latin_face, 10, 0, top, &render_style );
 			top += rect.height+15;
 		}
 		if( title.length() )
 		{
 			RenderStyle render_style;
 			render_style.center_x = true;
-			rect = this->freetype_renderer.render( this->info_screen, title, 
-				this->freetype_renderer.latin_face, 14, 0, top, &render_style );
+			rect = this->program.ft->render( this->info_screen, title, 
+				this->program.ft->latin_face, 14, 0, top, &render_style );
 			top += rect.height+15;
 		} else top += 24+15;
 		if( publisher.length() )
 		{
 			RenderStyle render_style;
 			render_style.center_x = true;
-			rect = this->freetype_renderer.render( this->info_screen, publisher, 
-				this->freetype_renderer.latin_face, 7, 0, top, &render_style );
+			rect = this->program.ft->render( this->info_screen, publisher, 
+				this->program.ft->latin_face, 7, 0, top, &render_style );
 			top += rect.height+15;
 		}
 		if( description.length() )
 		{
 			RenderStyle render_style;
-			rect = this->freetype_renderer.render( this->info_screen, description, 
-				this->freetype_renderer.latin_face, 8, 3, top, &render_style );
+			rect = this->program.ft->render( this->info_screen, description, 
+				this->program.ft->latin_face, 8, 3, top, &render_style );
 			top += rect.height+15;
 		}
 		if( stats_text.length() )
 		{
 			RenderStyle render_style;
-			rect = this->freetype_renderer.render( this->info_screen, stats_text, 
-				this->freetype_renderer.latin_face, 7, 3, top, &render_style );
+			rect = this->program.ft->render( this->info_screen, stats_text, 
+				this->program.ft->latin_face, 7, 3, top, &render_style );
 			top += rect.height+15;
 		}
 	}
@@ -503,8 +503,8 @@ void LessonMenu::render( Screen screen )
 		this->settings_button.render_to( oam_entry );
 		this->search_button.render_to( oam_entry );
 		
-		for( Library::iterator book_it = this->library.begin(); 
-			book_it != this->library.end() && top < this->menu_screen.res_y; 
+		for( Library::iterator book_it = this->program.library->begin(); 
+			book_it != this->program.library->end() && top < this->menu_screen.res_y; 
 			book_it++ )
 		{
 			void* book_id = static_cast<void*>( book_it->second );
@@ -528,7 +528,7 @@ void LessonMenu::render( Screen screen )
 					book_entry = new MenuEntry();
 					book_entry->book = book_it->second;
 					this->menu_list[ book_id ] = book_entry;
-					book_entry->render_text( this->freetype_renderer, book_it->second->title );
+					book_entry->render_text( *this->program.ft, book_it->second->title );
 				}
 				book_entry->top = top;
 				book_entry->last_frame_rendered = this->frame_count;
@@ -571,7 +571,7 @@ void LessonMenu::render( Screen screen )
 							lesson_entry = new MenuEntry();
 							lesson_entry->lesson = lesson_it->second;
 							this->menu_list[ lesson_id ] = lesson_entry;
-							lesson_entry->render_text( this->freetype_renderer, lesson_it->second->title );
+							lesson_entry->render_text( *this->program.ft, lesson_it->second->title );
 						}
 						lesson_entry->top = top;
 						lesson_entry->last_frame_rendered = this->frame_count;
@@ -1045,7 +1045,7 @@ bool LessonMenu::get_activation_by_content_type( LessonMenuChoice::ContentType c
 void LessonMenu::show_settings()
 {
 	this->init_button_list.free_all();
-	SettingsDialog* settings_dialog = new SettingsDialog( this->freetype_renderer, this->settings, "Program Settings" );
+	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->settings, "Program Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
 	this->init_subscreen();

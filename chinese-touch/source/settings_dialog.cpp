@@ -62,8 +62,8 @@ bool Settings::get_boolean_setting( const std::string& name )
 #include "menu_button_inactive.h"
 
 
-SettingsDialog::SettingsDialog( Program& _program, Settings& _settings, const std::string& _title )
-	: Mode(_program), settings(_settings), title(_title),
+SettingsDialog::SettingsDialog( Program& _program, int _recursion_depth, Settings& _settings, const std::string& _title )
+	: Mode(_program, _recursion_depth), settings(_settings), title(_title),
 		ok_button(&oamSub,"OK",SpriteSize_32x32,settings_screen.res_x-32,settings_screen.res_y-32,_program.ft->latin_face,12,0,8),
 		dummy_checkbox(&oamSub,"",SpriteSize_16x16,0,0,_program.ft->latin_face,8,1,1),
 		dummy_start_button(&oamSub,"",SpriteSize_32x16,0,0,_program.ft->latin_face,8,1,1)

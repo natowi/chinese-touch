@@ -108,6 +108,7 @@ class LessonMenu
 {
 public:
 	Program& program;
+	int recursion_depth;
 	RenderScreen info_screen, menu_screen;
 	MenuList menu_list;
 	int y_offset;
@@ -124,7 +125,7 @@ public:
 	static int MAX_ACCELERATION_FACTOR;
 	Settings settings;
 public:
-	LessonMenu( Program& program );
+	LessonMenu( Program& _program, int _recursion_depth );
 	void init_subscreen();
 	~LessonMenu();
 	void render( Screen screen );

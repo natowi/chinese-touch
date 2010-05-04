@@ -202,8 +202,8 @@ void DictionarySynchronizer::run_action()
 }
 
 
-LessonMenu::LessonMenu( Program& _program )
-	: program(_program),
+LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
+	: program(_program), recursion_depth(_recursion_depth+1),
 		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
 		book_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
 		lesson_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
@@ -1045,7 +1045,7 @@ bool LessonMenu::get_activation_by_content_type( LessonMenuChoice::ContentType c
 void LessonMenu::show_settings()
 {
 	this->init_button_list.free_all();
-	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->settings, "Program Settings" );
+	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->recursion_depth, this->settings, "Program Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
 	this->init_subscreen();

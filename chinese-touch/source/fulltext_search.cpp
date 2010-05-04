@@ -14,8 +14,8 @@
 #include <small_top_button_active.h>
 
 
-FulltextSearch::FulltextSearch( Program& _program )
-	: Mode(_program), 
+FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth )
+	: Mode(_program, _recursion_depth), 
 		touch_keyboard(button_provider_list, *_program.ui_lang, *_program.ft, keyboard_screen), 
 		word_browser(button_provider_list, *_program.ft, current_words, keyboard_screen, *_program.library),
 		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
@@ -25,10 +25,19 @@ FulltextSearch::FulltextSearch( Program& _program )
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
 	this->text_buttons.push_back( &this->clear_button );
+	
 	// disable currently unused settings button:
 	this->settings_button.hidden = this->settings_button.disabled = true;
+	
 	// disable word_browsers redundant search_button:
 	this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+	
+	// disable child mode buttons when recursion limit is reached:
+	if( this->recursion_depth>=10 )
+	{
+		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
+		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+	}
 	
 	this->init_mode();
 	this->init_vram();
@@ -105,7 +114,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->recursion_depth );
 		this->prev_rendered_text=""; // force rerendering of current search text
 		this->init_mode();
 		this->init_vram();

@@ -40,7 +40,6 @@ public:
 	static int LINE_HEIGHT;
 	ContextMode context_mode;
 	RenderChar* context_render_char;
-	int recursion_depth;
 	TextButton exit_button, settings_button, up_button;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
@@ -55,7 +54,7 @@ public:
 	int old_abs_y_diff; //!< used for scrolling
 	int pixels_scrolled; //!< used for scrolling
 public:
-	TextView( Program& _program, Text& _text );
+	TextView( Program& _program, int _recursion_depth, Text& _text );
 	void init_mode();
 	void init_vram();
 	void init_button_vram();
@@ -67,7 +66,7 @@ public:
 	virtual ButtonAction handle_touch_drag( touchPosition touch );
 	virtual ButtonAction handle_touch_end( touchPosition touch );
 	virtual ButtonAction handle_idle_cycles();
-	static void show_word_as_text( Program& program, NewWord* word, int recursion_depth = 0 );
+	static void show_word_as_text( Program& program, NewWord* word, int recursion_depth );
 	void show_settings();
 	void restore_init_settings();
 };

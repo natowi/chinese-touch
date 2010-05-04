@@ -10,7 +10,7 @@
 class FulltextSearch : public Mode
 {
 public:
-	FulltextSearch( Program& _program );
+	FulltextSearch( Program& _program, int _recursion_depth );
 	virtual void init_mode();
 	virtual void init_vram();
 	virtual void init_button_vram();

@@ -67,7 +67,7 @@ void Program::run()
 		try
 		{
 			LOG( "initializing lesson menu" );
-			LessonMenu* lesson_menu = new LessonMenu( *this );
+			LessonMenu* lesson_menu = new LessonMenu( *this, 0 );
 			if( first_run && !sync_done )
 			{
 				DictionarySynchronizer* dict_sync = new DictionarySynchronizer( "","","", *this, lesson_menu->menu_screen );
@@ -115,7 +115,7 @@ void Program::run()
 					else config->save_position( lesson_menu_choice.book, true );
 					if( words.size() )
 					{
-						NewWordsViewer* new_words = new NewWordsViewer( *this, words, false );
+						NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, false );
 						new_words->run_until_exit();
 						delete new_words;
 					} else throw ERROR( "Empty word list; Assign new words from text mode!" );
@@ -134,7 +134,7 @@ void Program::run()
 					this->words_db->query_words( *this->library, condition.str(), words, "file_offset" );
 					if( words.size() )
 					{
-						NewWordsViewer* new_words = new NewWordsViewer( *this, words, true );
+						NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, true );
 						new_words->run_until_exit();
 						delete new_words;
 					} else throw ERROR( "Empty word list; Assign new words from text mode!" );
@@ -153,7 +153,7 @@ void Program::run()
 					}
 					if( texts.size() )
 					{
-						TextView *text_view = new TextView( *this, *texts[0] );
+						TextView *text_view = new TextView( *this, 0, *texts[0] );
 						text_view->run_until_exit();
 						delete text_view;
 					} else throw ERROR( "No grammar description available for this lesson" );
@@ -172,7 +172,7 @@ void Program::run()
 					}
 					if( texts.size() )
 					{
-						TextView *text_view = new TextView( *this, *texts[0] );
+						TextView *text_view = new TextView( *this, 0, *texts[0] );
 						text_view->run_until_exit();
 						delete text_view;
 					} else throw ERROR( "No lesson text available" );
@@ -191,7 +191,7 @@ void Program::run()
 					}
 					if( texts.size() )
 					{
-						TextView *text_view = new TextView( *this, *texts[0] );
+						TextView *text_view = new TextView( *this, 0, *texts[0] );
 						text_view->run_until_exit();
 						delete text_view;
 					} else throw ERROR( "No exercises available for this lesson" );
@@ -199,7 +199,7 @@ void Program::run()
 				}
 				case LessonMenuChoice::CONTENT_TYPE_SEARCH:
 				{
-					FulltextSearch *fulltext_search = new FulltextSearch( *this );
+					FulltextSearch *fulltext_search = new FulltextSearch( *this, 0 );
 					fulltext_search->run_until_exit();
 					delete fulltext_search;
 					break;

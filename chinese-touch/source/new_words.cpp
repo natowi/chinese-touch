@@ -381,8 +381,8 @@ ButtonAction WordListBrowser::handle_console_button_event( int pressed, int held
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( Program& _program, NewWordList& _words, bool _save_position )
-	: Mode(_program), save_position(_save_position),
+NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position )
+	: Mode(_program, _recursion_depth), save_position(_save_position),
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
@@ -390,6 +390,13 @@ NewWordsViewer::NewWordsViewer( Program& _program, NewWordList& _words, bool _sa
 		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		pixels_drawn(0)
 {
+	// disable child mode buttons when recursion limit is reached:
+	if( this->recursion_depth>=10 )
+	{
+		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
+		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+	}
+	
 	// In this mode we want to restore visibility settings on switch by default:
 	// FIXME: make default configurable somewhere
 	this->word_browser.restore_on_switch = true;
@@ -456,7 +463,7 @@ void NewWordsViewer::init_button_vram()
 void NewWordsViewer::show_settings()
 {
 	this->free_vram();
-	SettingsDialog settings_dialog( this->program, this->settings, "Word List Settings" );
+	SettingsDialog settings_dialog( this->program, this->recursion_depth, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
 	this->word_browser.restore_init_settings();
 	this->init_mode();
@@ -507,16 +514,15 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->recursion_depth );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->word_browser.search_button
-		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	if( text_button == &this->word_browser.search_button )
 	{
 		this->free_vram();
-		FulltextSearch *fulltext_search = new FulltextSearch( this->program );
+		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth );
 		fulltext_search->run_until_exit();
 		delete fulltext_search;
 		this->init_mode();

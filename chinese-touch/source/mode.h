@@ -62,9 +62,10 @@ class Mode : public GlobalButtonHandler
 public:
 	Program& program;
 	ButtonProviderList button_provider_list;
+	int recursion_depth;
 public:
-	Mode( Program& _program ) 
-		: GlobalButtonHandler( *_program.ft ), program(_program) 
+	Mode( Program& _program, int _recursion_depth ) 
+		: GlobalButtonHandler( *_program.ft ), program(_program), recursion_depth(_recursion_depth+1)
 	{
 		// Modes itself in its role as GlobalButtonHandler needs to be inserted manually, 
 		// as it needs to be constructed before its button_provider_list is available

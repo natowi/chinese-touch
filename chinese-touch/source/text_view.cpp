@@ -24,12 +24,12 @@ int TextView::LINE_HEIGHT = 16;
 int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
-TextView::TextView( Program& _program, Text& _text )
-	: Mode(_program), text(_text),
+TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
+	: Mode(_program, _recursion_depth), text(_text),
 		word_browser(button_provider_list, *_program.ft, current_words, text_screen, *_program.library),
 		y_offset(5), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
-		context_render_char(0), recursion_depth(0),
+		context_render_char(0),
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
@@ -51,7 +51,13 @@ TextView::TextView( Program& _program, Text& _text )
 	this->text_buttons.push_back( &this->up_button );
 	
 	// Up-Button is hidden by default (can be explicitly enabled by caller)
-	this->up_button.hidden = true;
+	this->up_button.hidden = this->up_button.disabled = true;
+	// disable child mode buttons when recursion limit is reached:
+	if( this->recursion_depth>=10 )
+	{
+		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
+		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+	}
 	
 	this->restore_init_settings();
 	
@@ -253,16 +259,15 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->recursion_depth );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->word_browser.search_button
-		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	if( text_button == &this->word_browser.search_button )
 	{
 		this->free_vram();
-		FulltextSearch *fulltext_search = new FulltextSearch( this->program );
+		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth );
 		fulltext_search->run_until_exit();
 		delete fulltext_search;
 		this->init_mode();
@@ -455,11 +460,9 @@ void TextView::show_word_as_text( Program& program, NewWord* word, int recursion
 		new_text += di->second->comment + "\n\n";
 		new_text += di->second->example + "\n\n";
 	}
-	TextView* text_view = new TextView( program, new_text );
-	text_view->recursion_depth = recursion_depth+1;
-	if( text_view->recursion_depth>=10 )
-		text_view->word_browser.down_button.hidden = true;
-	text_view->up_button.hidden = false;
+	TextView* text_view = new TextView( program, recursion_depth, new_text );
+	// explicitly enable up_button, as an alternative to return from child mode
+	text_view->up_button.hidden = text_view->up_button.disabled = false;
 	text_view->run_until_exit();
 	delete text_view;
 }
@@ -467,7 +470,7 @@ void TextView::show_word_as_text( Program& program, NewWord* word, int recursion
 void TextView::show_settings()
 {
 	this->free_vram();
-	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->settings, "Text Viewer Settings" );
+	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->recursion_depth, this->settings, "Text Viewer Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
 	this->restore_init_settings();

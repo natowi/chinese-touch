@@ -65,7 +65,7 @@ class NewWordsViewer : public Mode
 		int old_distance;
 		int pixels_drawn;
 	public:
-		NewWordsViewer( Program& _program, NewWordList& _words, bool _save_position );
+		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();

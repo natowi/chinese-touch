@@ -391,7 +391,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		pixels_drawn(0)
 {
 	// disable child mode buttons when recursion limit is reached:
-	if( this->recursion_depth>=10 )
+	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
 		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;

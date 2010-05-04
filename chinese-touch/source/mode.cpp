@@ -15,6 +15,8 @@ ButtonProvider::ButtonProvider( ButtonProviderList& button_povider_list, Freetyp
 }
 
 
+int Mode::MAX_RECURSION_DEPTH = 10;
+
 void Mode::init_mode()
 {
 	// prepare lower screen for sprite usage

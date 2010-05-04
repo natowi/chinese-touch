@@ -53,7 +53,7 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 	// Up-Button is hidden by default (can be explicitly enabled by caller)
 	this->up_button.hidden = this->up_button.disabled = true;
 	// disable child mode buttons when recursion limit is reached:
-	if( this->recursion_depth>=10 )
+	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
 		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;

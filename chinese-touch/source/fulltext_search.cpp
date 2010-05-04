@@ -33,7 +33,7 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth )
 	this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
 	
 	// disable child mode buttons when recursion limit is reached:
-	if( this->recursion_depth>=10 )
+	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
 		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;

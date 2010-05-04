@@ -63,6 +63,7 @@ public:
 	Program& program;
 	ButtonProviderList button_provider_list;
 	int recursion_depth;
+	static int MAX_RECURSION_DEPTH;
 public:
 	Mode( Program& _program, int _recursion_depth ) 
 		: GlobalButtonHandler( *_program.ft ), program(_program), recursion_depth(_recursion_depth+1)

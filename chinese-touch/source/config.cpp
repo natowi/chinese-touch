@@ -55,7 +55,6 @@ void Config::save_position( Lesson* lesson, bool force )
 	}
 	this->previous_word = 0;
 	this->changed = true;
-	this->data.config.current_word_id = 0;
 	this->data.config.current_lesson_number = lesson->number;
 	const std::string& book_name = lesson->book->name;
 	memset( (void*)&this->data.config.current_book_name, 0, CONFIG_STRING_SIZE );

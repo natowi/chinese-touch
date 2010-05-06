@@ -514,7 +514,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->recursion_depth );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word, (*this->word_browser.current_word)->lesson, this->recursion_depth );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -522,7 +522,9 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->word_browser.search_button )
 	{
 		this->free_vram();
-		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth );
+		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth, 
+				(this->word_browser.current_word!=this->word_browser.words.end() ? 
+					(*this->word_browser.current_word)->lesson : 0) );
 		fulltext_search->run_until_exit();
 		delete fulltext_search;
 		this->init_mode();

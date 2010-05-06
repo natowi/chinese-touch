@@ -199,7 +199,7 @@ void Program::run()
 				}
 				case LessonMenuChoice::CONTENT_TYPE_SEARCH:
 				{
-					FulltextSearch *fulltext_search = new FulltextSearch( *this, 0 );
+					FulltextSearch *fulltext_search = new FulltextSearch( *this, 0, 0 );
 					fulltext_search->run_until_exit();
 					delete fulltext_search;
 					break;

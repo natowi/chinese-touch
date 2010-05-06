@@ -259,7 +259,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->recursion_depth );
+		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->text.lesson, this->recursion_depth );
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -267,7 +267,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->word_browser.search_button )
 	{
 		this->free_vram();
-		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth );
+		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth, this->text.lesson );
 		fulltext_search->run_until_exit();
 		delete fulltext_search;
 		this->init_mode();
@@ -287,6 +287,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		new_word->duplicate_id = 1000;
 		this->program.words_db->add_or_write_word( *new_word );
 		this->program.words_db->read_word( *new_word );
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );
@@ -447,11 +448,11 @@ ButtonAction TextView::handle_idle_cycles()
 	return Mode::handle_idle_cycles();
 }
 
-void TextView::show_word_as_text( Program& program, NewWord* word, int recursion_depth )
+void TextView::show_word_as_text( Program& program, NewWord* word, Lesson* lesson, int recursion_depth )
 {
 	if( !word )
 		return;
-	Text new_text( "Word Entry", word->lesson );
+	Text new_text( "Word Entry", lesson );
 	new_text += word->hanzi+" \t(" + word->pinyin + ")\n\n";
 	for( Definitions::iterator di = word->definitions.begin(); di != word->definitions.end(); di++ )
 	{

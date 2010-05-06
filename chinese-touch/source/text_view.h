@@ -66,7 +66,7 @@ public:
 	virtual ButtonAction handle_touch_drag( touchPosition touch );
 	virtual ButtonAction handle_touch_end( touchPosition touch );
 	virtual ButtonAction handle_idle_cycles();
-	static void show_word_as_text( Program& program, NewWord* word, int recursion_depth );
+	static void show_word_as_text( Program& program, NewWord* word, Lesson* lesson, int recursion_depth );
 	void show_settings();
 	void restore_init_settings();
 };

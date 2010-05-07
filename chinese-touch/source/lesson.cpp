@@ -190,6 +190,35 @@ void Library::find_words_by_characters( const std::string& characters, NewWordLi
 	if( extra_sql_cond.length() )
 		sql_cond += " and ("+extra_sql_cond+")";
 	this->words_db.query_words( *this, sql_cond, result );
+	// query single character entries from available static book databases
+	sql_cond = "word='"+characters+"'";
+	for( Library::iterator book_it = this->begin(); book_it != this->end(); book_it++ )
+	{
+		if( book_it->second 
+			&& book_it->second->dictionary_lesson
+			&& book_it->second->static_words_db_path.length() )
+		{
+			WordsDB* static_db = new WordsDB();
+			try
+			{
+				static_db->open( book_it->second->static_words_db_path );
+				try
+				{
+					static_db->query_static_words( *this, sql_cond, result, book_it->second->dictionary_lesson );
+				}
+				catch( Error& e )
+				{
+					WARN( e.what() );
+				}
+				static_db->close();
+			}
+			catch( Error& e )
+			{
+				WARN( e.what() );
+			}
+			delete static_db;
+		}
+	}
 	result.sort( hanzi_min_length_sort_predicate );
 }
 

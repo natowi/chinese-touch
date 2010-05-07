@@ -4,6 +4,9 @@
 #include <sqlite3.h>
 #include <string>
 
+#include "unicode.h"
+
+
 class Book;
 class Lesson;
 class NewWord;
@@ -30,7 +33,7 @@ public:
 	void delete_word( NewWord& );
 	void query_words( Library& library, const std::string& condition, NewWordList& result_list, const std::string& ordering="" );
 	void query_static_words( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );
-	void query_static_fulltext( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );
+	void query_static_fulltext( Library& library, const StringList& patterns, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );
 	int get_file_id( const std::string& file_path );
 	int get_file_mtime( const std::string& file_path );
 	void set_file_mtime( const std::string& file_path, int new_mtime );

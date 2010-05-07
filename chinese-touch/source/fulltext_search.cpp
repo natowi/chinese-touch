@@ -122,6 +122,19 @@ void FulltextSearch::render( Screen screen )
 	Mode::render( screen );
 }
 
+void extract_words( const std::string& text, StringList& patterns )
+{
+	size_t start = 0;
+	size_t pos = 0;
+	do
+	{
+		pos = text.find_first_of( ' ', start );
+		int len = (pos != std::string::npos) ? pos-start : pos;
+		patterns.push_back( text.substr(start, len) );
+		start = pos+1;
+	} while( pos!=std::string::npos );
+}
+
 ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 {
 	if( text_button == &this->word_browser.down_button
@@ -139,7 +152,8 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->word_browser.words.clear();
 		this->word_browser.current_word = this->word_browser.words.begin();
 		// query available static book databases
-		std::string sql_cond = "pattern='"+this->touch_keyboard.written_text+"'";
+		StringList patterns;
+		extract_words( this->touch_keyboard.written_text, patterns );
 		for( Library::iterator book_it = this->program.library->begin(); book_it != this->program.library->end(); book_it++ )
 		{
 			if( book_it->second 
@@ -152,7 +166,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 					static_db->open( book_it->second->static_words_db_path );
 					try
 					{
-						static_db->query_static_fulltext( *this->program.library, sql_cond, this->word_browser.words, book_it->second->dictionary_lesson );
+						static_db->query_static_fulltext( *this->program.library, patterns, this->word_browser.words, book_it->second->dictionary_lesson );
 					}
 					catch( Error& e )
 					{

@@ -491,16 +491,26 @@ void WordsDB::query_static_words( Library& library, const std::string& condition
 	}
 }
 
-void WordsDB::query_static_fulltext( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering )
+void WordsDB::query_static_fulltext( Library& library, const StringList& patterns, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering )
 {
 	MapList map_list;
 	std::stringstream statement_stream;
 	statement_stream << "select words.id as id, word, pronunciation, type, definition, comment"
 			<< ", rating, lesson_id, duplicate_id, atime, file_id, file_offset"
-		<< " from words"
-		<< " inner join ft_matches on words.id=word_id"
-		<< " inner join ft_patterns on ft_patterns.id=pattern_id"
-		<< " where " << condition;
+		<< " from words";
+	int count = 0;
+	std::stringstream condition;
+	for( StringList::const_iterator s_it=patterns.begin(); s_it!=patterns.end(); s_it++, count++ )
+	{
+		statement_stream 
+			<< " inner join ft_matches as m" << count 
+				<< " on words.id=m" << count << ".word_id"
+			<< " inner join ft_patterns as p" << count 
+				<< " on p" << count << ".id=m" << count <<".pattern_id";
+		if( count ) condition << " and ";
+		condition << "p" << count << ".pattern='" << *s_it << "'";
+	}
+	statement_stream << " where " << condition.str();
 	if( ordering.length() )
 		statement_stream << " order by " << ordering;
 	std::string statement = statement_stream.str();

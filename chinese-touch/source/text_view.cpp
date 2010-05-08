@@ -453,13 +453,21 @@ void TextView::show_word_as_text( Program& program, NewWord* word, Lesson* lesso
 	if( !word )
 		return;
 	Text new_text( "Word Entry", lesson );
-	new_text += word->hanzi+" \t(" + word->pinyin + ")\n\n";
+	new_text += word->hanzi;
+	if( word->hanzi.length() > 30 ) // n bytes, not characters
+		new_text += "\n\n";
+	new_text += " \t("+ word->pinyin + ")\n\n";
 	for( Definitions::iterator di = word->definitions.begin(); di != word->definitions.end(); di++ )
 	{
 		//new_text += "\nDefinition (" + di->second->lang + "):\n";
-		new_text += "[" + di->second->word_type + "] \t" + di->second->translation + "\n\n";
-		new_text += di->second->comment + "\n\n";
-		new_text += di->second->example + "\n\n";
+		if( di->second->word_type.length() && di->second->word_type.find_first_not_of(" \t\n\r")!=std::string::npos )
+			new_text += "-\t[" + di->second->word_type + "]\n\n";
+		if( di->second->translation.length() && di->second->translation.find_first_not_of(" \t\n\r")!=std::string::npos )
+			new_text += "*\t"+di->second->translation + "\n\n";
+		if( di->second->comment.length() && di->second->comment.find_first_not_of(" \t\n\r")!=std::string::npos )
+			new_text += "+\t"+di->second->comment + "\n\n";
+		if( di->second->example.length() && di->second->example.find_first_not_of(" \t\n\r")!=std::string::npos )
+			new_text += "#\t"+di->second->example + "\n\n";
 	}
 	TextView* text_view = new TextView( program, recursion_depth, new_text );
 	// explicitly enable up_button, as an alternative to return from child mode

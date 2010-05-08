@@ -6,6 +6,8 @@
 #include <nds.h>
 #include <fat.h>
 #include <sqlite3.h>
+#include <time.h> // srand
+#include <stdlib.h> // srand
 
 #include "chinese-touch.h"
 #include "freetype_renderer.h"
@@ -61,6 +63,7 @@ Program::Program()
 
 void Program::run()
 {
+	srand( time(0) ); // initialize random seed
 	bool sync_done = false;
 	while( true )
 	{

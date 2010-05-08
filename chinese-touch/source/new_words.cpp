@@ -5,7 +5,8 @@
 #include <nds/arm9/sprite.h>
 #include <nds/arm9/background.h>
 #include <nds/arm9/input.h>
-#include <time.h>
+#include <time.h> // word access times
+#include <stdlib.h> // rand()
 
 #include "new_words.h"
 #include "config.h"
@@ -78,7 +79,9 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordLis
 	top += 10;
 
 	// render pinyin centered
-	size = 14;
+	size = 12;
+	if( this->pinyin.length()>20 ) size = 10;
+	if( this->pinyin.length()>40 ) size = 8;
 	if( render_settings.render_pronuciation )
 	{
 		RenderInfo rect = ft.render( render_screen, this->pinyin, ft.han_face, size, 0, top, &render_style );
@@ -150,7 +153,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		button_screen(_button_screen), library(_library),
 		render_foreign_word(true), render_pronuciation(true), render_translation(true),
 		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
-		restore_on_switch(false), clear_on_switch(false),
+		restore_on_switch(false),
 		left_button(&oamSub,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(&oamSub,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
 		foreign_word_tab(&oamSub,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
@@ -374,9 +377,32 @@ ButtonAction WordListBrowser::handle_console_button_event( int pressed, int held
 	return ButtonProvider::handle_console_button_event( pressed, held, released );
 }
 
+void WordListBrowser::restore_init_settings()
+{
+	this->render_foreign_word = this->init_render_foreign_word;
+	this->render_pronuciation = this->init_render_pronuciation;
+	this->render_translation = this->init_render_translation;
+}
+
+void WordListBrowser::restore_init_settings_if_needed()
+{ 
+	if( this->restore_on_switch ) 
+		this->restore_init_settings();
+}
+
+bool random_sort_predicate( NewWord* left, NewWord* right )
+{
+	return rand() > RAND_MAX/2;
+}
+
+void WordListBrowser::randomize_list()
+{
+	this->words.sort( random_sort_predicate );
+	this->current_word = this->words.begin();
+}
 
 
-
+// --------------------------------------------------------------------------------------------------------
 
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
@@ -388,7 +414,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
 		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
-		pixels_drawn(0)
+		pixels_drawn(0), clear_on_switch(true), randomize_list(false)
 {
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
@@ -400,14 +426,14 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	// In this mode we want to restore visibility settings on switch by default:
 	// FIXME: make default configurable somewhere
 	this->word_browser.restore_on_switch = true;
-	this->word_browser.clear_on_switch = true;
 	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new BooleanSetting("0_show_foreign_word","Show Foreign Word",this->word_browser.init_render_foreign_word) );
 	this->settings.add_setting( new BooleanSetting("1_show_pronunciation","Show Pronunciation",this->word_browser.init_render_pronuciation) );
 	this->settings.add_setting( new BooleanSetting("2_show_translation","Show Translation",this->word_browser.init_render_translation) );
 	this->settings.add_setting( new BooleanSetting("3_restore_state","Restore Above Settings on Switch",this->word_browser.restore_on_switch) );
-	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Writing Screen on Switch",this->word_browser.clear_on_switch) );
+	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Writing Screen on Switch",this->clear_on_switch) );
+	this->settings.add_setting( new BooleanSetting("5_randomize_list","Randomize List Now",this->randomize_list) );
 	
 	this->text_buttons.push_back( &this->exit_button );
 	this->text_buttons.push_back( &this->clear_button );
@@ -465,7 +491,16 @@ void NewWordsViewer::show_settings()
 	this->free_vram();
 	SettingsDialog settings_dialog( this->program, this->recursion_depth, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
+	// TODO: store all but randomize_list initial settings now
+	// TODO: store randomize_list setting now, but only if this is the initial settings screen
 	this->word_browser.restore_init_settings();
+	if( this->randomize_list )
+	{
+		this->word_browser.randomize_list();
+		// disable randomization to prevent unvoluntary execution,
+		// when the user calls the settings menu next time:
+		this->randomize_list = false;
+	}
 	this->init_mode();
 	this->init_vram();
 }
@@ -531,7 +566,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( this->word_browser.clear_on_switch
+	if( this->clear_on_switch
 		&& (text_button == &this->word_browser.left_button
 			|| text_button == &this->word_browser.right_button) )
 	{

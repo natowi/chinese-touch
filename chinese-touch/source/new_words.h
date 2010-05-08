@@ -20,7 +20,7 @@ class WordListBrowser : public ButtonProvider
 		Library& library;
 		bool render_foreign_word, render_pronuciation, render_translation;
 		bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
-		bool restore_on_switch, clear_on_switch;
+		bool restore_on_switch;
 		TextButton left_button, right_button, 
 			foreign_word_tab, pronunciation_tab, translation_tab, 
 			rating_bar, 
@@ -35,19 +35,15 @@ class WordListBrowser : public ButtonProvider
 		void toggle_foreign_word() { this->render_foreign_word = !this->render_foreign_word; }
 		void toggle_pronunciation() { this->render_pronuciation = !this->render_pronuciation; }
 		void toggle_translation() { this->render_translation = !this->render_translation; }
-		void restore_init_settings()
-		{
-			this->render_foreign_word = this->init_render_foreign_word;
-			this->render_pronuciation = this->init_render_pronuciation;
-			this->render_translation = this->init_render_translation;
-		}
-		void restore_init_settings_if_needed() { if(this->restore_on_switch) this->restore_init_settings(); }
+		void restore_init_settings();
+		void restore_init_settings_if_needed();
 		virtual void init_button_vram();
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
 		bool switch_forward();
 		bool switch_backwards();
 		virtual ButtonAction handle_console_button_event( int pressed, int held, int released );
+		void randomize_list();
 };
 
 
@@ -64,6 +60,7 @@ class NewWordsViewer : public Mode
 		touchPosition old_touch;
 		int old_distance;
 		int pixels_drawn;
+		bool clear_on_switch, randomize_list;
 	public:
 		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position );
 		void init_mode();

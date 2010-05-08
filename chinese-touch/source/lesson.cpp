@@ -468,13 +468,17 @@ int Lesson::parse_dictionary_if_needed( bool count_only )
     {
         dict_file.getline( line_buffer, sizeof(line_buffer) );
         std::string line = line_buffer;
-        if( line.substr(0, 2) == "|-"  //! "|-" At the beginning of a line marks the begin of a new word row.
+		// remove nowiki tags from the odt export:
+		line = replace_pattern( line, "<nowiki>", "" );
+		line = replace_pattern( line, "</nowiki>", "" );
+        if( line.substr(0, 2) == "{|" /*! "{|" At the beginning of a line marks the begin of the dictionary table. */
+			|| line.substr(0, 2) == "|-"  //! "|-" At the beginning of a line marks the begin of a new word row.
 			|| line.substr(0, 2) == "|}" ) /*! "|}" At the beginning of a line marks the 
 																end of the dictionary table. */
         {
             if( word_count )
             {
-				if( !count_only )
+				if( hanzi.length() && !count_only )
 				{
 					NewWord* word = new NewWord( hanzi, pinyin, this );
 					word->definitions[ definition.lang ] = new Definition( definition );
@@ -495,7 +499,13 @@ int Lesson::parse_dictionary_if_needed( bool count_only )
             word_count++;
             column = 0;
         }
-        else if( line.substr(0, 2) == "| " ) /*! "| " The pipe the beginning of a line, followed by a space and 
+        else if( line.substr(0, 2) == "! " ) /*! "! " Lines starting with the explanation 
+												mark followed by a space are used for table headers
+												and will be ignored completely */
+		{
+			continue;
+		}
+        else if( line.substr(0, 2) == "| " ) /*! "| " The pipe followed by a space and 
 												arbitrary text defines a column of a word row. */
         {
             column++;

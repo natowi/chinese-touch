@@ -11,6 +11,8 @@
 
 #include "unicode.h"
 #include "screen.h"
+#include "../freetype/include/freetype/fttypes.h"
+#include "../freetype/include/freetype/freetype.h"
 
 
 typedef std::map<int,const char*> ErrorMap;
@@ -120,7 +122,7 @@ class FreetypeRenderer
 {
 public:
     FreetypeRenderer( const std::string& han_font, 
-                    const std::string& latin_font );
+                    const std::string& latin_font, const std::string& jp_font );
     ~FreetypeRenderer();
 	void init_screen( Screen screen, RenderScreen& render_screen );
     RenderInfo render( const RenderScreen& render_screen, const std::string& text, FT_Face face, int pixel_size, 
@@ -129,7 +131,7 @@ public:
                 int x, int y, RenderStyle* render_style=0, RenderCharList* render_char_list=0 );
 public:
     FT_Error error;
-    FT_Face han_face, latin_face;
+    FT_Face han_face, latin_face, jp_face;
     FT_Library library;
     int dpi_x, dpi_y;
 };

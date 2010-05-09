@@ -54,7 +54,7 @@ Program::Program()
 	this->ui_lang = new UILanguage( "en" );
 	
 	LOG( "initializing Freetype" );
-	this->ft = new FreetypeRenderer( "ukai.ttc", "VeraSe.ttf" );
+	this->ft = new FreetypeRenderer( "ukai.ttc", "VeraSe.ttf", "togoshi-mincho.ttf" );
 	
 	this->config = new Config();
 	LOG( "loading config" );

@@ -15,8 +15,8 @@
 
 
 FreetypeRenderer::FreetypeRenderer( const std::string& han_font, 
-	const std::string& latin_font ) 
-		: dpi_x(100), dpi_y(100)
+	const std::string& latin_font, const std::string& jp_font ) 
+		: han_face(0), latin_face(0), jp_face(0), dpi_x(100), dpi_y(100)
 {	
     FT_Init_Errors();
     LOG( "ft_errors.size(): " << ft_errors.size() );
@@ -29,6 +29,7 @@ FreetypeRenderer::FreetypeRenderer( const std::string& han_font,
     }
     std::string _han_font = BASE_DIR + han_font;
     std::string _latin_font = BASE_DIR + latin_font;
+	std::string _jp_font = BASE_DIR + jp_font;
     this->error = FT_New_Face( this->library, _han_font.c_str(), 0, &this->han_face );
     if( this->error )
     {
@@ -45,6 +46,14 @@ FreetypeRenderer::FreetypeRenderer( const std::string& han_font,
                 << ft_errors[this->error] << ")";
         throw ERROR( msg.str() );
     }
+    this->error = FT_New_Face( this->library, _jp_font.c_str(), 0, &this->jp_face );
+    if( this->error )
+    {
+		std::stringstream msg;
+        msg << "error loading japanese font: " << _jp_font << " (" 
+                << ft_errors[this->error] << ")";
+        WARN( msg.str() );
+    }
 #if 0
     // Select charmap
     this->error = FT_Select_Charmap( this->han_face, FT_ENCODING_UNICODE );
@@ -59,8 +68,9 @@ FreetypeRenderer::FreetypeRenderer( const std::string& han_font,
 
 FreetypeRenderer::~FreetypeRenderer()
 {
-    FT_Done_Face( this->han_face );
-    FT_Done_Face( this->latin_face );
+    if( this->han_face ) FT_Done_Face( this->han_face );
+    if( this->latin_face ) FT_Done_Face( this->latin_face );
+    if( this->jp_face ) FT_Done_Face( this->latin_face );
     FT_Done_FreeType( this->library );
 }
 
@@ -191,6 +201,16 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 		msg << "error setting pixel size: " << ft_errors[error];
 		throw ERROR( msg.str() );
     }
+    if( this->jp_face )
+	{
+		error = FT_Set_Char_Size( this->jp_face, 0, han_pixel_size*64, this->dpi_x, this->dpi_y );
+		if( error )
+		{
+			std::stringstream msg;
+			msg << "error setting pixel size: " << ft_errors[error];
+			throw ERROR( msg.str() );
+		}
+	}
     
     int line_height = pixel_size+1;
 	int indentation_offset = render_style->indentation_offset;
@@ -211,23 +231,34 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
         FT_UInt glyph_index = FT_Get_Char_Index( current_face, input_char_it->code_point );
 		if( !glyph_index && render_style->autofallback && current_face != this->han_face )
 		{
+			WARN( "fallback to han face" );
 			glyph_index = FT_Get_Char_Index( this->han_face, input_char_it->code_point );
 			if( glyph_index )
 			{
 				current_face = this->han_face;
-			}
+			} else WARN( "failed" );
 		}
-		else if( !glyph_index && render_style->autofallback && current_face != this->latin_face )
+		if( !glyph_index && render_style->autofallback && current_face != this->latin_face )
 		{
+			WARN( "fallback to lating face" );
 			glyph_index = FT_Get_Char_Index( this->latin_face, input_char_it->code_point );
 			if( glyph_index )
 			{
 				current_face = this->latin_face;
-			}
+			} else WARN( "failed" );
+		}
+		if( !glyph_index && render_style->autofallback && this->jp_face && current_face != this->jp_face )
+		{
+			WARN( "fallback to japanese face" );
+			glyph_index = FT_Get_Char_Index( this->jp_face, input_char_it->code_point );
+			if( glyph_index )
+			{
+				current_face = this->jp_face;
+			} else WARN( "failed" );
 		}
         if( !glyph_index )
         {
-			if( input_char_it->code_point==10 )
+			if( input_char_it->code_point==0x0a )
 			{
 				// Reset tab/indentation offset at line breaks, but only if the line break is not
 				// immediately followed by one or more new tab characters. Those are interpreted 
@@ -285,8 +316,19 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 				}
 				continue;
 			}
+			else if( input_char_it->code_point==9
+					|| input_char_it->code_point==0x0d )
+			{
+				continue;
+			}
 			WARN(  "error translating character code: " << input_char_it->code_point );
-			continue;
+			glyph_index = FT_Get_Char_Index( this->han_face, 0xbf /*¿*/ );
+			if( glyph_index )
+			{
+				current_face = this->han_face;
+				WARN( "rendering replacement character" );
+			}
+			else continue;
         }
 		ignore_tabs = false;
         FT_Set_Transform( current_face, 0, &pen );
@@ -371,10 +413,10 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 				prev_whitespace_it = rchar_it;
 			}
 			if( (*rchar_it)->x+(*rchar_it)->width > render_screen.res_x 
-				|| ( (*rchar_it)->uc_char.code_point == 10 
+				|| ( (*rchar_it)->uc_char.code_point == 0x0a
 					&& (*rchar_it)->x > x /*prevent endless loop*/ ) )
 			{
-				if( (*rchar_it)->uc_char.code_point == 10 )
+				if( (*rchar_it)->uc_char.code_point == 0x0a )
 				{
 					// prevent successive line breaks at this position:
 					prev_whitespace_it = render_char_list->end();
@@ -405,7 +447,7 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 				// delete/reject characters after line break, when not in multiline mode
 				if( !render_style->multiline )
 				{
-					while( (*rchar_it)->uc_char.code_point==10 
+					while( (*rchar_it)->uc_char.code_point==0x0a
 						|| (*rchar_it)->uc_char.code_point==32 )
 					{
 						// consume (not reject) whitespaces

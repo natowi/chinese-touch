@@ -28,7 +28,8 @@ GRAPHICS	:=	graphics
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-ggdb -Wall -O2\
+# -ggdb -O0
+CFLAGS	:=	-Wall -Os\
  		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
 		-ffast-math \
 		$(ARCH)

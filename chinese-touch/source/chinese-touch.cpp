@@ -25,7 +25,7 @@
 
 
 Program::Program()
-	: first_run( false )
+	: first_run( false ), words_db( new WordsDB() )
 {
 	LOG( "initializing fat driver" );
 	if( !fatInitDefault() )
@@ -65,6 +65,29 @@ void Program::run()
 {
 	srand( time(0) ); // initialize random seed
 	bool sync_done = false;
+	
+	for( Library::iterator lib_it = this->library->begin(); lib_it != this->library->end(); lib_it++ )
+	{
+		Book* book = lib_it->second;
+		if( book->title=="Testfälle" )
+		{
+			if( book->begin()==book->end() ) break;
+			Lesson* lesson = book->begin()->second;
+			TextVector& texts = lesson->lesson_texts;
+			if( !texts.size() )
+			{
+				lesson->parse_text( ".text", lesson->lesson_texts );
+			}
+			if( texts.size() )
+			{
+				TextView *text_view = new TextView( *this, 0, *texts[0] );
+				text_view->run_until_exit();
+				delete text_view;
+			} else throw ERROR( "No lesson text available" );
+			break;
+		}
+	}
+	
 	while( true )
 	{
 		try

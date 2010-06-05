@@ -2,7 +2,7 @@
 #define CHINESE_TOUCH_H
 
 #ifndef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 #include "ui_language.h"

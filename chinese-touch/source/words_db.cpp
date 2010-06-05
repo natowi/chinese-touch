@@ -17,7 +17,7 @@ std::string replace_pattern( std::string src, const std::string& pattern, const 
 
 void WordsDB::open( const std::string& file_name, bool create_db )
 {
-	if( this->db ) throw ERROR( "WordsDB already opened" );
+	if( this->db ) throw ERROR( "WordsDB ("+file_name+") already opened or not initialized" );
 	int rc;
 	int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX;
 	if( create_db ) flags |= SQLITE_OPEN_CREATE;

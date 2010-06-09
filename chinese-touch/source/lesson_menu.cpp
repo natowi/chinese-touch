@@ -203,27 +203,27 @@ void DictionarySynchronizer::run_action()
 
 
 LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
-	: program(_program), recursion_depth(_recursion_depth+1),
+	: program(_program), recursion_depth(_recursion_depth+1), info_screen(SCREEN_MAIN), menu_screen(SCREEN_SUB),
 		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
-		book_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
-		lesson_icon(&oamSub,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
-		new_words_button(&oamSub,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
-		grammar_button(&oamSub,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		text_button(&oamSub,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		exercises_button(&oamSub,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
-		explode_button(&oamSub,"open",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
-		implode_button(&oamSub,"close",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
-		rating_bar(&oamSub,"",SpriteSize_64x32,MenuEntry::RATED_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
-		rating_easy(&oamSub,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
-		rating_medium(&oamSub,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
-		rating_hard(&oamSub,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
-		jump_down_button(&oamSub,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		jump_up_button(&oamSub,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		settings_button(&oamSub,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
-		search_button(&oamSub,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1)
+		book_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
+		lesson_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
+		new_words_button(menu_screen,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		grammar_button(menu_screen,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		text_button(menu_screen,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		exercises_button(menu_screen,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		explode_button(menu_screen,"open",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
+		implode_button(menu_screen,"close",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
+		rating_bar(menu_screen,"",SpriteSize_64x32,MenuEntry::RATED_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_easy(menu_screen,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_medium(menu_screen,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_hard(menu_screen,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_impossible(menu_screen,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		jump_down_button(menu_screen,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		jump_up_button(menu_screen,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
+		settings_button(menu_screen,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
+		search_button(menu_screen,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1)
 {
-	this->program.ft->init_screen( SCREEN_MAIN, this->info_screen );
+	this->program.ft->init_screen( this->info_screen );
 	//ErrorConsole::init_screen( SCREEN_MAIN );
 	dmaCopy( bg_dragonBitmap, this->info_screen.bg_base_address, sizeof(bg_dragonBitmap) );
 	set_16bpp_sprite_opague( this->info_screen.bg_base_address, 256, 192 );
@@ -317,7 +317,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
 
 void LessonMenu::init_subscreen()
 {
-	this->program.ft->init_screen( SCREEN_SUB, this->menu_screen );
+	this->program.ft->init_screen( this->menu_screen );
 	this->menu_screen.clear();
 	// Farbindex 0 der Hintergrundpalette auf hellblau für's Highlight setzen:
 	this->menu_screen.palette[0] = 31<<10|28<<5|28;

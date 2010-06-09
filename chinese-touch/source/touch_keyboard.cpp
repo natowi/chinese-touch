@@ -11,8 +11,8 @@
 
 TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen )  
 	: ButtonProvider(button_provider_list, _freetype_renderer), ui_lang(_ui_lang), keyboard_screen(_keyboard_screen),
-		reference_key(&oamSub,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2),
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,button_ft.latin_face,10,-1,1)
+		reference_key(keyboard_screen,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2),
+		exit_button(keyboard_screen,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,button_ft.latin_face,10,-1,1)
 {
 	this->text_buttons.push_back( &this->reference_key );
 	this->text_buttons.push_back( &this->exit_button );

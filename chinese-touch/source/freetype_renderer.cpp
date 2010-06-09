@@ -74,10 +74,10 @@ FreetypeRenderer::~FreetypeRenderer()
     FT_Done_FreeType( this->library );
 }
 
-void FreetypeRenderer::init_screen( Screen screen, RenderScreen& render_screen )
+void FreetypeRenderer::init_screen( RenderScreen& render_screen )
 {
     // set the mode for 2 text layers and two extended background layers
-	if( screen == SCREEN_MAIN )
+	if( render_screen.screen == SCREEN_MAIN )
 	{
 		videoSetMode(MODE_5_2D);
 		vramSetBankA(VRAM_A_MAIN_BG);
@@ -86,7 +86,7 @@ void FreetypeRenderer::init_screen( Screen screen, RenderScreen& render_screen )
 		render_screen.palette = BG_PALETTE;
 		render_screen.init_bg( bgInit(2, BgType_Bmp16, BgSize_B16_256x256, 3, 0) );
 	}
-	else /*if( screen == SCREEN_SUB )*/
+	else if( render_screen.screen == SCREEN_SUB )
 	{
 		videoSetModeSub(MODE_5_2D);
 		vramSetBankC(VRAM_C_SUB_BG_0x06200000);

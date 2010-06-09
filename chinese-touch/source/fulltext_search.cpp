@@ -15,12 +15,12 @@
 
 
 FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson* _lesson )
-	: Mode(_program, _recursion_depth), lesson(_lesson),
+	: Mode(_program, _recursion_depth), lesson(_lesson), word_screen(SCREEN_MAIN), keyboard_screen(SCREEN_SUB),
 		touch_keyboard(button_provider_list, *_program.ui_lang, *_program.ft, keyboard_screen), 
 		word_browser(button_provider_list, *_program.ft, current_words, keyboard_screen, *_program.library),
-		settings_button(&oamSub,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
-		search_button(&oamSub,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_program.ft->han_face,14,0,4),
-		clear_button(&oamSub,"c",SpriteSize_16x16,keyboard_screen.res_x-44-16,0,_program.ft->latin_face,10,1,-1)
+		settings_button(keyboard_screen,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		search_button(keyboard_screen,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_program.ft->han_face,14,0,4),
+		clear_button(keyboard_screen,"c",SpriteSize_16x16,keyboard_screen.res_x-44-16,0,_program.ft->latin_face,10,1,-1)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
@@ -45,12 +45,12 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson*
 
 void FulltextSearch::init_mode()
 {
-	this->program.ft->init_screen( SCREEN_MAIN, this->word_screen );
+	this->program.ft->init_screen( this->word_screen );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 	bgHide( this->word_screen.bg_id );
 
-	this->program.ft->init_screen( SCREEN_SUB, this->keyboard_screen );
+	this->program.ft->init_screen( this->keyboard_screen );
 	this->keyboard_screen.clear();
 	
 	this->Mode::init_mode();

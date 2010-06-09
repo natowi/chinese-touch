@@ -49,6 +49,10 @@ void ErrorConsole::init_screen( Screen screen )
 			error_stream << "main console intialized" << std::endl;
 			break;
 		}
+		case SCREEN_NONE:
+		{
+			break;
+		}
 	}
 	std::cout << error_stream.str();
 }

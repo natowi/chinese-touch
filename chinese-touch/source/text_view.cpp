@@ -25,14 +25,14 @@ int TextView::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int TextView::MAX_ACCELERATION_FACTOR = 10;
 
 TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
-	: Mode(_program, _recursion_depth), text(_text),
+	: Mode(_program, _recursion_depth), word_screen(SCREEN_MAIN), text_screen(SCREEN_SUB), text(_text),
 		word_browser(button_provider_list, *_program.ft, current_words, text_screen, *_program.library),
 		y_offset(5), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
-		settings_button(&oamSub,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
-		up_button(&oamSub,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
+		exit_button(text_screen,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
+		settings_button(text_screen,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		up_button(text_screen,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
 		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
@@ -97,13 +97,13 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 
 void TextView::init_mode()
 {
-	this->program.ft->init_screen( SCREEN_MAIN, this->word_screen );
+	this->program.ft->init_screen( this->word_screen );
 	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
 	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
 	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 
-	this->program.ft->init_screen( SCREEN_SUB, this->text_screen );
+	this->program.ft->init_screen( this->text_screen );
 	this->text_screen.clear();
 	
 	Mode::init_mode();

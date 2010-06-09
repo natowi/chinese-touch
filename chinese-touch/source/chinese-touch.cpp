@@ -235,8 +235,8 @@ void Program::run()
 		}
 		catch( Error& e )
 		{
-			RenderScreen error_screen;
-			this->ft->init_screen( SCREEN_MAIN, error_screen );
+			RenderScreen error_screen( SCREEN_MAIN );
+			this->ft->init_screen( error_screen );
 			error_screen.clear();
 			this->ft->render( error_screen, e.what(), this->ft->latin_face, 8, 3, 3 );
 			error_stream << "caught " << e.what() << std::endl;

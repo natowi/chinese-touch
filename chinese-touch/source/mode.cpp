@@ -63,7 +63,7 @@ void ButtonProvider::render_buttons( OamState* target_oam, int& oam_entry )
 {
 	for( TextButtonList::iterator ki = this->text_buttons.begin(); ki != this->text_buttons.end(); ki++ )
 	{
-		if( (*ki)->oam == target_oam )
+		if( (*ki)->get_oam() == target_oam )
 			(*ki)->render_to( oam_entry );
 	}
 }

@@ -44,8 +44,8 @@ public:
 class RenderScreen
 {
 public:
-	RenderScreen( int _res_x=256, int _res_y=192 ) 
-		: id(0), base_address(0), palette(0), 
+	RenderScreen( Screen _screen, int _res_x=256, int _res_y=192 ) 
+		: screen(_screen), id(0), base_address(0), palette(0), 
 			res_x(_res_x), res_y(_res_y) {}
 	void init( int _id )
 	{
@@ -61,6 +61,7 @@ public:
 	}
 	void clear( int color=0 );
 public:
+	Screen screen;
 	int id;
 	u16* base_address;
 	u16* palette;
@@ -74,7 +75,7 @@ class RenderScreenBuffer : public RenderScreen
 {
 public:
 	RenderScreenBuffer( int _res_x, int _res_y )
-		: RenderScreen( _res_x, _res_y )
+		: RenderScreen( SCREEN_NONE, _res_x, _res_y )
 	{
 		int size = this->res_x*this->res_y*1;
 		this->base_address = (u16*)malloc( size );
@@ -124,7 +125,7 @@ public:
     FreetypeRenderer( const std::string& han_font, 
                     const std::string& latin_font, const std::string& jp_font );
     ~FreetypeRenderer();
-	void init_screen( Screen screen, RenderScreen& render_screen );
+	void init_screen( RenderScreen& render_screen );
     RenderInfo render( const RenderScreen& render_screen, const std::string& text, FT_Face face, int pixel_size, 
                 int x, int y, RenderStyle* render_style=0, RenderCharList* render_char_list=0 );
     RenderInfo render( const RenderScreen& render_screen, UCCharList& char_list, FT_Face face, int pixel_size, 

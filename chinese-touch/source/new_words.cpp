@@ -154,20 +154,20 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		render_foreign_word(true), render_pronuciation(true), render_translation(true),
 		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
 		restore_on_switch(false),
-		left_button(&oamSub,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
-		right_button(&oamSub,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
-		foreign_word_tab(&oamSub,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
-		pronunciation_tab(&oamSub,"拼音",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
-		translation_tab(&oamSub,"latin",SpriteSize_32x16,button_screen.res_x/2+16+8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
-		rating_bar(&oamSub,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		rating_easy(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		rating_medium(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		rating_hard(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		rating_impossible(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		down_button(&oamSub,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
-		add_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
-		remove_button(&oamSub,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
-		search_button(&oamSub,"词典",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1)
+		left_button(_button_screen,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
+		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
+		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
+		pronunciation_tab(_button_screen,"拼音",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
+		translation_tab(_button_screen,"latin",SpriteSize_32x16,button_screen.res_x/2+16+8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		rating_bar(_button_screen,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_easy(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_medium(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_hard(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		rating_impossible(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
+		down_button(_button_screen,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
+		add_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
+		remove_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
+		search_button(_button_screen,"词典",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1)
 {
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -408,12 +408,12 @@ void WordListBrowser::randomize_list()
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
 NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position )
-	: Mode(_program, _recursion_depth), save_position(_save_position),
+	: Mode(_program, _recursion_depth), save_position(_save_position), word_screen(SCREEN_MAIN), drawing_screen(SCREEN_SUB),
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
-		exit_button(&oamSub,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
-		clear_button(&oamSub,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
-		settings_button(&oamSub,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		exit_button(drawing_screen,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
+		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
+		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		pixels_drawn(0), clear_on_switch(true), randomize_list(false)
 {
 	// disable child mode buttons when recursion limit is reached:
@@ -459,11 +459,11 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 
 void NewWordsViewer::init_mode()
 {
-	this->Mode::button_ft.init_screen( SCREEN_MAIN, this->word_screen );
+	this->Mode::button_ft.init_screen( this->word_screen );
 	this->word_screen.clear();
 	bgHide( this->word_screen.bg_id );
 	
-	this->Mode::button_ft.init_screen( SCREEN_SUB, this->drawing_screen );
+	this->Mode::button_ft.init_screen( this->drawing_screen );
 	this->drawing_screen.clear();
 
 	Mode::init_mode();

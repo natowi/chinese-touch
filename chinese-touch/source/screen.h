@@ -3,6 +3,7 @@
 
 typedef enum 
 {
+	SCREEN_NONE,
     SCREEN_MAIN,
     SCREEN_SUB
 } Screen;

@@ -5,11 +5,11 @@
 #include "text_button.h"
 #include "sprite_helper.h"
 
-TextButton::TextButton( OamState* _oam, const std::string& _text, 
+TextButton::TextButton( RenderScreen& _render_screen, const std::string& _text, 
 						SpriteSize _sprite_size, int _x, int _y,
 						FT_Face _face, int _font_size,
 						int _text_x_offset, int _text_y_offset )
-	: oam(_oam), text(_text), sprite_size(_sprite_size), text_sprite_size(_sprite_size), 
+	: render_screen(&_render_screen), text(_text), sprite_size(_sprite_size), text_sprite_size(_sprite_size), 
 	x(_x), y(_y), text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
 	bg_prio(1), text_prio(0),
 	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
@@ -53,24 +53,24 @@ void TextButton::free_all()
 {
 	if( this->text_vram ) 
 	{
-		oamFreeGfx( this->oam, this->text_vram );
+		oamFreeGfx( this->get_oam(), this->text_vram );
 		this->text_vram = 0;
 	}
 	if( this->owns_bg_vram )
 	{
 		if( this->bg_vram )
 		{
-			oamFreeGfx( this->oam, this->bg_vram );
+			oamFreeGfx( this->get_oam(), this->bg_vram );
 			this->bg_vram = 0;
 		}
 		if( this->bg_active_vram ) 
 		{
-			oamFreeGfx( this->oam, this->bg_active_vram );
+			oamFreeGfx( this->get_oam(), this->bg_active_vram );
 			this->bg_active_vram = 0;
 		}
 		if( this->bg_inactive_vram ) 
 		{
-			oamFreeGfx( this->oam, this->bg_inactive_vram );
+			oamFreeGfx( this->get_oam(), this->bg_inactive_vram );
 			this->bg_inactive_vram = 0;
 		}
 	}
@@ -78,7 +78,7 @@ void TextButton::free_all()
 
 void TextButton::init_vram( const void* source, u16*& vram_dest )
 {
-	vram_dest = oamAllocateGfx( this->oam, this->sprite_size, SpriteColorFormat_Bmp );
+	vram_dest = oamAllocateGfx( this->get_oam(), this->sprite_size, SpriteColorFormat_Bmp );
 	DC_FlushRange( source, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
 	dmaCopy( source, vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
 	set_16bpp_sprite_opague( vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
@@ -89,7 +89,7 @@ void TextButton::init_text_layer( FreetypeRenderer& freetype_renderer )
 	if( this->text.length() )
 	{
 		// allocate VRAM for 8bpp text layer
-		this->text_vram = oamAllocateGfx( this->oam, this->text_sprite_size, SpriteColorFormat_256Color );
+		this->text_vram = oamAllocateGfx( this->get_oam(), this->text_sprite_size, SpriteColorFormat_256Color );
 		RenderScreenBuffer button_text( this->text_width, this->text_height );
 		RenderStyle render_style;
 		render_style.center_x = true;
@@ -105,6 +105,17 @@ void TextButton::init_text_layer( FreetypeRenderer& freetype_renderer )
 	}
 }
 
+OamState* TextButton::get_oam()
+{
+	switch( this->render_screen->screen )
+	{
+		case SCREEN_MAIN: return &oamMain;
+		case SCREEN_SUB: return &oamSub;
+		case SCREEN_NONE: return 0;
+	}
+	return 0;
+}
+
 void TextButton::render_to( int& oam_entry )
 {
 	this->render_to( oam_entry, this->x, this->y );
@@ -112,26 +123,36 @@ void TextButton::render_to( int& oam_entry )
 
 void TextButton::render_to( int& oam_entry, int _x, int _y )
 {
-	if( this->hidden ) return;
 	u16* vram = this->bg_vram;
 	if( this->active && this->bg_active_vram ) vram = this->bg_active_vram;
 	if( this->disabled && this->bg_inactive_vram ) vram = this->bg_inactive_vram;
-	if( vram )
+	if( vram && this->is_visible(_x, _y, this->width, this->height) )
 	{
-		oamSet( this->oam, oam_entry++,
+		oamSet( this->get_oam(), oam_entry++,
 				_x, _y, 	// position
 				this->bg_prio, 1, this->sprite_size, SpriteColorFormat_Bmp, 
 				vram,
 				0, 0, 0, 0, 0, 0 );
 	}
-	if( this->text_vram )
+	if( this->text_vram 
+		&& this->is_visible(_x+this->text_x_offset, _y+this->text_y_offset, 
+							this->text_width, this->text_height) )
 	{
-		oamSet( this->oam, oam_entry++,
+		oamSet( this->get_oam(), oam_entry++,
 				_x+this->text_x_offset, _y+this->text_y_offset, 	// position
 				this->text_prio, 0, this->text_sprite_size, SpriteColorFormat_256Color, 
 				this->text_vram,
 				0, 0, 0, 0, 0, 0 );
 	}
+}
+
+bool TextButton::is_visible(int _x, int _y, int _width, int _height)
+{
+	return !this->hidden
+		&& (_x < this->render_screen->res_x)
+		&& (_y < this->render_screen->res_y)
+		&& ((_x+_width) >= 0)
+		&& ((_y+_height) >= 0);
 }
 
 bool TextButton::is_responsible( int ref_x, int ref_y )

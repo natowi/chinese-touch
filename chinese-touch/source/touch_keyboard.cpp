@@ -46,6 +46,7 @@ TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, UILangua
 		TextButton* new_key = new TextButton( this->reference_key );
 		new_key->hidden = false;
 		new_key->owns_bg_vram = false;
+		new_key->owns_text_vram = true;
 		new_key->text = *kci;
 		if( new_key->text == "ˇ" )
 		{

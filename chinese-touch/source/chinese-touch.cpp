@@ -93,7 +93,8 @@ void Program::run()
 		try
 		{
 			LOG( "initializing lesson menu" );
-			LessonMenu* lesson_menu = new LessonMenu( *this, 0 );
+			LessonMenuChoice lesson_menu_choice;
+			LessonMenu* lesson_menu = new LessonMenu( *this, 0, lesson_menu_choice );
 			if( first_run && !sync_done )
 			{
 				DictionarySynchronizer* dict_sync = new DictionarySynchronizer( "","","", *this, lesson_menu->menu_screen );
@@ -101,8 +102,7 @@ void Program::run()
 				delete dict_sync;
 				sync_done = true;
 			}
-			LessonMenuChoice lesson_menu_choice;
-			lesson_menu->run_for_user_choice( lesson_menu_choice );
+			lesson_menu->run_until_exit();
 			delete lesson_menu;
 			
 			switch( lesson_menu_choice.content_type )

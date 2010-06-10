@@ -106,6 +106,7 @@ SettingsDialog::SettingsDialog( Program& _program, int _recursion_depth, Setting
 		if( new_button )
 		{
 			new_button->owns_bg_vram = false;
+			new_button->owns_text_vram = true;
 			new_button->x = left;
 			new_button->y = top;
 			this->text_buttons.push_back( new_button );

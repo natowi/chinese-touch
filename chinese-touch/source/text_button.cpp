@@ -5,6 +5,14 @@
 #include "text_button.h"
 #include "sprite_helper.h"
 
+
+TextButton::TextButton( TextButton& text_button )
+{
+	*this = text_button;
+	this->owns_bg_vram = false;
+	this->owns_text_vram = false;
+}
+
 TextButton::TextButton( RenderScreen& _render_screen, const std::string& _text, 
 						SpriteSize _sprite_size, int _x, int _y,
 						FT_Face _face, int _font_size,
@@ -13,7 +21,7 @@ TextButton::TextButton( RenderScreen& _render_screen, const std::string& _text,
 	x(_x), y(_y), text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
 	bg_prio(1), text_prio(0),
 	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
-	active(false), disabled(false), owns_bg_vram(true), hidden(false),
+	active(false), disabled(false), owns_bg_vram(true), owns_text_vram(true), hidden(false),
 	face(_face), font_size(_font_size)
 {
 	this->get_dimensions_from_sprite_size( this->sprite_size, this->width, this->height );
@@ -51,7 +59,7 @@ TextButton::~TextButton()
 
 void TextButton::free_all()
 {
-	if( this->text_vram ) 
+	if( this->text_vram && this->owns_text_vram ) 
 	{
 		oamFreeGfx( this->get_oam(), this->text_vram );
 		this->text_vram = 0;
@@ -86,7 +94,7 @@ void TextButton::init_vram( const void* source, u16*& vram_dest )
 
 void TextButton::init_text_layer( FreetypeRenderer& freetype_renderer )
 {
-	if( this->text.length() )
+	if( this->text.length() && this->owns_text_vram )
 	{
 		// allocate VRAM for 8bpp text layer
 		this->text_vram = oamAllocateGfx( this->get_oam(), this->text_sprite_size, SpriteColorFormat_256Color );

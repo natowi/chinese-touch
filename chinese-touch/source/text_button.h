@@ -19,10 +19,11 @@ public:
 	SpriteSize sprite_size, text_sprite_size;
 	int width, height, sensor_width, sensor_height, text_width, text_height, x, y, text_x_offset, text_y_offset, bg_prio, text_prio;
 	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram;
-	bool active, disabled, owns_bg_vram, hidden;
+	bool active, disabled, owns_bg_vram, owns_text_vram, hidden;
 	FT_Face face;
 	int font_size;
 public:
+	TextButton( TextButton& text_button );
 	TextButton( RenderScreen& _render_screen, const std::string& _text, 
 				SpriteSize _sprite_size, int _x, int _y, 
 				FT_Face _face, int _font_size, 

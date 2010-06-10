@@ -31,6 +31,7 @@
 #include "settings_dialog.h"
 #include "bottom_center_button.h"
 #include "bottom_center_button_active.h"
+#include "fulltext_search.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -61,108 +62,6 @@ int MenuEntry::EXPLODE_BUTTON_X_OFFSET = ICON_X_OFFSET;
 
 int LessonMenu::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int LessonMenu::MAX_ACCELERATION_FACTOR = 10;
-
-void MenuEntry::render_text( FreetypeRenderer& ft, const std::string& text )
-{
-	RenderStyle render_style;
-	//render_style.linebreak = false;
-	ft.render( *this->text_surface, text,
-		ft.latin_face, MenuEntry::FONT_SIZE, 0, 0, &render_style );
-}
-
-MenuList::~MenuList()
-{
-	for( MenuList::iterator e_it=this->begin(); 
-		e_it!=this->end(); e_it++ )
-	{
-		if( e_it->second )
-		{
-			delete e_it->second;
-			e_it->second=0;
-		}
-	}
-	this->clear();
-}
-
-/*! \brief returns content type code for clicked lesson contents button */
-LessonMenuChoice::ContentType MenuEntry::get_content_type_by_pos( int x, int y )
-{
-	if( y>=this->top+MenuEntry::BUTTON_Y_OFFSET 
-		&& y<this->top+MenuEntry::BUTTON_Y_OFFSET+MenuEntry::BUTTON_HEIGHT )
-	{
-		// generic buttons:
-		if( x>=MenuEntry::EASY_WORDS_BUTTON_X_OFFSET
-			&& x<MenuEntry::EASY_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-		{
-			return LessonMenuChoice::CONTENT_TYPE_EASY_WORDS;
-		}
-		if( x>=MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET
-			&& x<MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-		{
-			return LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS;
-		}
-		if( x>=MenuEntry::HARD_WORDS_BUTTON_X_OFFSET
-			&& x<MenuEntry::HARD_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-		{
-			return LessonMenuChoice::CONTENT_TYPE_HARD_WORDS;
-		}
-		if( x>=MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET
-			&& x<MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET+SMALL_BUTTON_WIDTH )
-		{
-			return LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
-		}
-		
-		if( this->book ) // buttons only applicable to books:
-		{
-			if( !this->exploded 
-				&& x>=MenuEntry::EXPLODE_BUTTON_X_OFFSET
-				&& x<MenuEntry::EXPLODE_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_EXPLODE;
-			}
-			if( this->exploded
-				&& x>=MenuEntry::EXPLODE_BUTTON_X_OFFSET
-				&& x<MenuEntry::EXPLODE_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_IMPLODE;
-			}
-		}
-		else if( this->lesson ) // buttons only applicable to lessons:
-		{
-			if( x>=MenuEntry::NEW_WORDS_BUTTON_X_OFFSET
-				&& x<MenuEntry::NEW_WORDS_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_NEW_WORDS;
-			}
-			if( x>=MenuEntry::GRAMMAR_BUTTON_X_OFFSET
-				&& x<MenuEntry::GRAMMAR_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_GRAMMAR;
-			}
-			if( x>=MenuEntry::TEXT_BUTTON_X_OFFSET
-				&& x<MenuEntry::TEXT_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_TEXT;
-			}
-			if( x>=MenuEntry::EXERCISES_BUTTON_X_OFFSET
-				&& x<MenuEntry::EXERCISES_BUTTON_X_OFFSET+MenuEntry::BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_EXERCISES;
-			}
-			if( x>=MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET
-				&& x<MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET+MenuEntry::SMALL_BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN;
-			}
-			if( x>=MenuEntry::JUMP_UP_BUTTON_X_OFFSET
-				&& x<MenuEntry::JUMP_UP_BUTTON_X_OFFSET+MenuEntry::SMALL_BUTTON_WIDTH )
-			{
-				return LessonMenuChoice::CONTENT_TYPE_JUMP_UP;
-			}
-		}
-	}
-	return LessonMenuChoice::CONTENT_TYPE_NONE;
-}
 
 
 void DictionarySynchronizer::run_action()
@@ -202,9 +101,10 @@ void DictionarySynchronizer::run_action()
 }
 
 
-LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
-	: program(_program), recursion_depth(_recursion_depth+1), info_screen(SCREEN_MAIN), menu_screen(SCREEN_SUB),
-		y_offset(5), v_y(0), active_list_id(0), frame_count(0), 
+LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoice& _choice )
+	: Mode(_program, _recursion_depth), choice(_choice), 
+		info_screen(SCREEN_MAIN), menu_screen(SCREEN_SUB),
+		y_offset(5), v_y(0), active_list_id(0), sub_frame_count(0), 
 		book_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
 		lesson_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
 		new_words_button(menu_screen,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
@@ -221,44 +121,40 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
 		jump_down_button(menu_screen,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		jump_up_button(menu_screen,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		settings_button(menu_screen,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
-		search_button(menu_screen,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1)
+		search_button(menu_screen,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1),
+		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
 {
-	this->program.ft->init_screen( this->info_screen );
-	//ErrorConsole::init_screen( SCREEN_MAIN );
-	dmaCopy( bg_dragonBitmap, this->info_screen.bg_base_address, sizeof(bg_dragonBitmap) );
-	set_16bpp_sprite_opague( this->info_screen.bg_base_address, 256, 192 );
-	bgShow( this->info_screen.bg_id );
-	this->info_screen.clear();
+	this->init_mode();
 	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new DictionarySynchronizer("0_synchronize_dictionary", "Synchronize Word Database", "sync",
 		this->program, this->info_screen) );
 	
-	// store list of interactive buttons in instance:
-	this->lesson_buttons.push_back( &this->new_words_button );
-	this->lesson_buttons.push_back( &this->grammar_button );
-	this->lesson_buttons.push_back( &this->text_button );
-	this->lesson_buttons.push_back( &this->exercises_button );
-	this->lesson_buttons.push_back( &this->jump_down_button );
-	this->lesson_buttons.push_back( &this->jump_up_button );
-
-	this->book_buttons.push_back( &this->explode_button );
-	this->book_buttons.push_back( &this->implode_button );
-	
-	this->text_buttons.insert( this->text_buttons.end(), this->lesson_buttons.begin(), this->lesson_buttons.end() );
-	this->text_buttons.insert( this->text_buttons.end(), this->book_buttons.begin(), this->book_buttons.end() );
+	// store list of reference buttons to be initialized:
+	this->text_buttons.push_back( &this->new_words_button );
+	this->text_buttons.push_back( &this->grammar_button );
+	this->text_buttons.push_back( &this->text_button );
+	this->text_buttons.push_back( &this->exercises_button );
+	this->text_buttons.push_back( &this->jump_down_button );
+	this->text_buttons.push_back( &this->jump_up_button );
+	this->text_buttons.push_back( &this->explode_button );
+	this->text_buttons.push_back( &this->implode_button );
 	this->text_buttons.push_back( &this->rating_bar );
 	this->text_buttons.push_back( &this->rating_easy );
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
+	for( TextButtonList::iterator tbi=this->text_buttons.begin();
+		tbi!=this->text_buttons.end(); tbi++ )
+	{
+		// reference buttons are disabled and hidden
+		(*tbi)->disabled = (*tbi)->hidden = true;
+	}
+	// global lesson menu buttons:
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
-
-	this->init_button_list.insert( this->init_button_list.end(), this->text_buttons.begin(), this->text_buttons.end() );
-	init_button_list.push_back( &this->book_icon );
-	init_button_list.push_back( &this->lesson_icon );
-	this->init_subscreen();
+	
+	this->init_vram();
 	
 	// Menü zur gespeicherten Position bewegen:
 	std::string config_book_name = this->program.config->get_current_book_name();
@@ -303,8 +199,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
 				this->v_y=-5;
 				/* Menüeintrag für das enthaltende Buch anlegen und ausklappen 
 					(den Rest macht die Rendermethode...) */
-				MenuEntry* entry = new MenuEntry();
-				entry->book = book_it->second;
+				BookEntry* entry = new BookEntry( *this, book_it->second );
 				if( config_lesson_number ) entry->exploded = true;
 				this->menu_list[ static_cast<void*>(entry->book) ] = entry;
 				entry->render_text( *this->program.ft, entry->book->title );
@@ -312,22 +207,89 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth )
 			}
 		}
 	}
-	bgHide( this->info_screen.bg_id );
 }
 
-void LessonMenu::init_subscreen()
+MenuEntry::MenuEntry( LessonMenu& _lesson_menu ) 
+	: ButtonProvider( _lesson_menu.button_provider_list, *_lesson_menu.program.ft ), 
+	lesson_menu( _lesson_menu ),
+	text_surface( new RenderScreenBuffer(200, MenuEntry::BASE_HEIGHT) ),
+	exploded(false), top(0), last_frame_rendered(0),
+	rating_bar( _lesson_menu.rating_bar ),
+	rating_easy( _lesson_menu.rating_easy ),
+	rating_medium( _lesson_menu.rating_easy ),
+	rating_hard( _lesson_menu.rating_hard ),
+	rating_impossible( _lesson_menu.rating_impossible )
 {
+	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_easy );
+	this->text_buttons.push_back( &this->rating_medium );
+	this->text_buttons.push_back( &this->rating_hard );
+	this->text_buttons.push_back( &this->rating_impossible );
+	
+	this->init_button_vram();
+}
+
+BookEntry::BookEntry( LessonMenu& _lesson_menu, Book* _book )
+	: MenuEntry(_lesson_menu), book(_book),
+	book_icon( _lesson_menu.book_icon ),
+	explode_button( _lesson_menu.explode_button ),
+	implode_button( _lesson_menu.implode_button )
+{
+	this->text_buttons.push_back( &this->book_icon );
+	this->text_buttons.push_back( &this->explode_button );
+	this->text_buttons.push_back( &this->implode_button );
+	
+	this->init_button_vram();
+}
+
+LessonEntry::LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson )
+	: MenuEntry(_lesson_menu), lesson(_lesson),
+	lesson_icon( _lesson_menu.lesson_icon ),
+	new_words_button( _lesson_menu.new_words_button ),
+	grammar_button( _lesson_menu.grammar_button ),
+	text_button( _lesson_menu.text_button ),
+	exercises_button( _lesson_menu.exercises_button ),
+	jump_down_button( _lesson_menu.jump_down_button ),
+	jump_up_button( _lesson_menu.jump_up_button )
+{
+	this->text_buttons.push_back( &this->lesson_icon );
+	this->text_buttons.push_back( &this->new_words_button );
+	this->text_buttons.push_back( &this->grammar_button );
+	this->text_buttons.push_back( &this->text_button );
+	this->text_buttons.push_back( &this->exercises_button );
+	this->text_buttons.push_back( &this->jump_down_button );
+	this->text_buttons.push_back( &this->jump_up_button );
+	
+	this->init_button_vram();
+}
+
+
+void LessonMenu::init_mode()
+{
+	this->program.ft->init_screen( this->info_screen );
+	dmaCopy( bg_dragonBitmap, this->info_screen.bg_base_address, sizeof(bg_dragonBitmap) );
+	set_16bpp_sprite_opague( this->info_screen.bg_base_address, 256, 192 );
+	bgShow( this->info_screen.bg_id );
+	this->info_screen.clear();
+	
 	this->program.ft->init_screen( this->menu_screen );
 	this->menu_screen.clear();
 	// Farbindex 0 der Hintergrundpalette auf hellblau für's Highlight setzen:
 	this->menu_screen.palette[0] = 31<<10|28<<5|28;
+	
+	Mode::init_mode();
+}
 
-	// unteren Bildschirm für Spritenutzung initialisieren:
-	vramSetBankD( VRAM_D_SUB_SPRITE );
-	oamInit( &oamSub, SpriteMapping_Bmp_1D_128, 0 );
-	//oamAllocReset( &oamSub );
-	oamEnable( &oamSub );
 
+void LessonMenu::init_vram()
+{
+	bgHide( this->info_screen.bg_id );
+	
+	Mode::init_vram();
+}
+
+void LessonMenu::init_button_vram()
+{
 	// vorgerenderte Spritegrafiken laden:
 	this->book_icon.init_vram( accessories_dictionaryBitmap, this->book_icon.bg_vram );
 	this->book_icon.init_vram( accessories_dictionary_openBitmap, this->book_icon.bg_active_vram );
@@ -335,7 +297,6 @@ void LessonMenu::init_subscreen()
 	this->new_words_button.init_vram( menu_buttonBitmap, this->new_words_button.bg_vram );
 	this->new_words_button.init_vram( menu_button_activeBitmap, this->new_words_button.bg_active_vram );
 	this->new_words_button.init_vram( menu_button_inactiveBitmap, this->new_words_button.bg_inactive_vram );
-	
 	this->grammar_button.bg_vram = this->new_words_button.bg_vram;
 	this->grammar_button.bg_active_vram = this->new_words_button.bg_active_vram;
 	this->grammar_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
@@ -379,22 +340,73 @@ void LessonMenu::init_subscreen()
 	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
 	
-	for( TextButtonList::iterator i=this->init_button_list.begin(); i!=this->init_button_list.end(); i++ )
-	{
-		(*i)->init_text_layer( *this->program.ft );
-	}
-
-	// Palette für 8-Bit-Buttonbeschriftungen mit speziell vorbereiteter Palette initialisieren:
-	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
+	ButtonProvider::init_button_vram();
 }
+
+void MenuEntry::init_button_vram()
+{
+	this->rating_bar = this->lesson_menu.rating_bar;
+	this->rating_easy = this->lesson_menu.rating_easy;
+	this->rating_medium = this->lesson_menu.rating_medium;
+	this->rating_hard = this->lesson_menu.rating_hard;
+	this->rating_impossible = this->lesson_menu.rating_impossible;
+	
+	for( TextButtonList::iterator tbi=this->text_buttons.begin();
+		tbi!=this->text_buttons.end(); tbi++ )
+	{
+		(*tbi)->owns_bg_vram = (*tbi)->owns_text_vram
+		= (*tbi)->disabled = (*tbi)->hidden = false;
+	}
+	
+	// just initializes owned text vram, but we do not own any:
+	//ButtonProvider::init_button_vram();
+}
+
+void BookEntry::init_button_vram()
+{
+	this->book_icon = this->lesson_menu.book_icon;
+	this->explode_button = this->lesson_menu.explode_button;
+	this->implode_button = this->lesson_menu.implode_button;
+	
+	MenuEntry::init_button_vram();
+}
+
+void LessonEntry::init_button_vram()
+{
+	this->lesson_icon = this->lesson_menu.lesson_icon;
+	this->new_words_button = this->lesson_menu.new_words_button;
+	this->grammar_button = this->lesson_menu.grammar_button;
+	this->text_button = this->lesson_menu.text_button;
+	this->exercises_button = this->lesson_menu.exercises_button;
+	this->jump_down_button = this->lesson_menu.jump_down_button;
+	this->jump_up_button = this->lesson_menu.jump_up_button;
+	
+	MenuEntry::init_button_vram();
+}
+
 
 LessonMenu::~LessonMenu()
 {
 }
 
+MenuList::~MenuList()
+{
+	for( MenuList::iterator e_it=this->begin(); 
+		e_it!=this->end(); e_it++ )
+	{
+		if( e_it->second )
+		{
+			delete e_it->second;
+			e_it->second=0;
+		}
+	}
+	this->clear();
+}
+
+
 void LessonMenu::render( Screen screen )
 {
-	this->frame_count++;
+	this->sub_frame_count++;
 	if( screen == SCREEN_MAIN )
 	{
 		this->info_screen.clear();
@@ -402,35 +414,37 @@ void LessonMenu::render( Screen screen )
 		if( this->menu_list.count(this->active_list_id) )
 		{
 			MenuEntry* entry = this->menu_list[ this->active_list_id ];
-			if( entry->book )
+			BookEntry* book_entry = dynamic_cast<BookEntry*>( entry );
+			LessonEntry* lesson_entry = dynamic_cast<LessonEntry*>( entry );
+			if( book_entry )
 			{
-				author = entry->book->author;
-				title = entry->book->title;
-				publisher = entry->book->publisher;
-				description = entry->book->description;
+				author = book_entry->book->author;
+				title = book_entry->book->title;
+				publisher = book_entry->book->publisher;
+				description = book_entry->book->description;
 				int word_count = 0;
 				// FIXME: query SQL database:
 #if 0
-				for( Book::iterator lesson_it = entry->book->begin();
-					lesson_it != entry->book->end(); lesson_it++ )
+				for( Book::iterator lesson_it = book_entry->book->begin();
+					lesson_it != book_entry->book->end(); lesson_it++ )
 				{
 					Lesson* lesson = lesson_it->second;
 					word_count += lesson->new_words.size();
 				}
 #endif
 				std::stringstream stats_stream;
-				stats_stream << "contains " << entry->book->size() << " lessons";
+				stats_stream << "contains " << book_entry->book->size() << " lessons";
 				// FIXME: query SQL database: " and " << word_count << " words";
 				stats_text = stats_stream.str();
 			}
-			else if( entry->lesson )
+			else if( lesson_entry )
 			{
-				title = entry->lesson->title;
-				description = entry->lesson->description;
+				title = lesson_entry->lesson->title;
+				description = lesson_entry->lesson->description;
 				// FIXME: query SQL database:
 #if 0
 				std::stringstream stats_stream;
-				stats_stream << "contains " << entry->lesson->new_words.size() << " words";
+				stats_stream << "contains " << lesson_entry->lesson->new_words.size() << " words";
 				stats_text = stats_stream.str();
 #endif
 			}
@@ -493,15 +507,12 @@ void LessonMenu::render( Screen screen )
 				this->program.ft->latin_face, 7, 3, top, &render_style );
 			top += rect.height+15;
 		}
+		
+		Mode::render( screen );
 	}
 	else if( screen == SCREEN_SUB )
 	{
-		oamClear( &oamSub, 0, 0 );
 		int top = this->y_offset;
-		int oam_entry = 0;
-		
-		this->settings_button.render_to( oam_entry );
-		this->search_button.render_to( oam_entry );
 		
 		for( Library::iterator book_it = this->program.library->begin(); 
 			book_it != this->program.library->end() && top < this->menu_screen.res_y; 
@@ -517,32 +528,16 @@ void LessonMenu::render( Screen screen )
 			}
 			if( top > -MenuEntry::ACTIVE_HEIGHT )
 			{
-				if( book_entry && book_entry->exploded ) this->book_icon.active = true;
-				else this->book_icon.active = false;
-				this->book_icon.render_to( oam_entry, this->book_icon.x, top );
-				
 				// book_entry anlegen, falls nicht schon früher geschehen,
 				// da wir ihn nun wirklich brauchen:
 				if( !book_entry )
 				{
-					book_entry = new MenuEntry();
-					book_entry->book = book_it->second;
+					book_entry = new BookEntry( *this, book_it->second );
 					this->menu_list[ book_id ] = book_entry;
 					book_entry->render_text( *this->program.ft, book_it->second->title );
 				}
 				book_entry->top = top;
-				book_entry->last_frame_rendered = this->frame_count;
-				if( book_id == this->active_list_id )
-				{
-					int y = top+MenuEntry::BUTTON_Y_OFFSET;
-					if( !book_entry->exploded ) this->explode_button.render_to( oam_entry, this->explode_button.x, y );
-					else this->implode_button.render_to( oam_entry, this->implode_button.x, y );
-					this->rating_bar.render_to( oam_entry, this->rating_bar.x, y );
-					if( this->rating_easy.active ) this->rating_easy.render_to( oam_entry, this->rating_easy.x, y );
-					if( this->rating_medium.active ) this->rating_medium.render_to( oam_entry, this->rating_medium.x, y );
-					if( this->rating_hard.active ) this->rating_hard.render_to( oam_entry, this->rating_hard.x, y );
-					if( this->rating_impossible.active ) this->rating_impossible.render_to( oam_entry, this->rating_impossible.x, y );
-				}
+				book_entry->last_frame_rendered = this->sub_frame_count;
 			}
 			if( book_id == this->active_list_id )
 			{
@@ -557,46 +552,24 @@ void LessonMenu::render( Screen screen )
 					lesson_it++ )
 				{
 					void* lesson_id = static_cast<void*>( lesson_it->second );
-					MenuEntry* lesson_entry = 0;
+					LessonEntry* lesson_entry = 0;
 					if( this->menu_list.count( lesson_id ) )
 					{
-						lesson_entry = this->menu_list[ lesson_id ];
+						lesson_entry = dynamic_cast<LessonEntry*>( this->menu_list[lesson_id] );
 					}
 					if( top > -MenuEntry::ACTIVE_HEIGHT )
 					{
-						this->lesson_icon.render_to( oam_entry, this->lesson_icon.x, top );
-						
 						if( !lesson_entry )
 						{
-							lesson_entry = new MenuEntry();
-							lesson_entry->lesson = lesson_it->second;
+							lesson_entry = new LessonEntry( *this, lesson_it->second );
 							this->menu_list[ lesson_id ] = lesson_entry;
 							lesson_entry->render_text( *this->program.ft, lesson_it->second->title );
 						}
 						lesson_entry->top = top;
-						lesson_entry->last_frame_rendered = this->frame_count;
+						lesson_entry->last_frame_rendered = this->sub_frame_count;
 					}
 					if( lesson_entry && lesson_entry->lesson && (lesson_id == this->active_list_id) )
 					{
-						// FIXME: query database for dynamic assignments, if no static words exist for this lesson:
-						this->new_words_button.disabled = false; //!lesson_entry->lesson->new_words_available;
-						this->grammar_button.disabled = !lesson_entry->lesson->grammar_texts_available;
-						this->text_button.disabled = !lesson_entry->lesson->lesson_texts_available;
-						this->exercises_button.disabled = !lesson_entry->lesson->exercises_available;
-						if( top > -MenuEntry::ACTIVE_HEIGHT )
-						{
-							int y = top+MenuEntry::BUTTON_Y_OFFSET;
-							for( TextButtonList::iterator i = this->lesson_buttons.begin();
-								i != this->lesson_buttons.end(); i++ )
-							{
-								(*i)->render_to( oam_entry, (*i)->x, y );
-							}
-							this->rating_bar.render_to( oam_entry, this->rating_bar.x, y );
-							if( this->rating_easy.active ) this->rating_easy.render_to( oam_entry, this->rating_easy.x, y );
-							if( this->rating_medium.active ) this->rating_medium.render_to( oam_entry, this->rating_medium.x, y );
-							if( this->rating_hard.active ) this->rating_hard.render_to( oam_entry, this->rating_hard.x, y );
-							if( this->rating_impossible.active ) this->rating_impossible.render_to( oam_entry, this->rating_impossible.x, y );
-						}
 						top += MenuEntry::ACTIVE_HEIGHT;
 					}
 					else top += MenuEntry::BASE_HEIGHT;
@@ -604,15 +577,16 @@ void LessonMenu::render( Screen screen )
 			}
 		}
 		
-		// gepufferte Bilddaten einblenden bzw. in den VRAM kopieren:
-		swiWaitForVBlank();
-		oamUpdate( &oamSub );
+		// Basisimplementierung schon hier aufrufen, um Verwackeln zwischen Sprites und Hintergrund zu vermeiden?
+		Mode::render( screen );
+		
+		// copy buffered background data to vram:
 		this->menu_screen.clear( 1 );
 		for( MenuList::iterator entry_it = this->menu_list.begin();
 			entry_it != this->menu_list.end(); entry_it++ )
 		{
 			MenuEntry* entry = entry_it->second;
-			if( entry->last_frame_rendered == this->frame_count )
+			if( entry->last_frame_rendered == this->sub_frame_count )
 			{
 				if( entry_it->first == this->active_list_id )
 				{
@@ -649,404 +623,345 @@ void LessonMenu::render( Screen screen )
 	}
 }
 
-void LessonMenu::run_for_user_choice( LessonMenuChoice& choice )
+void MenuEntry::render_buttons( OamState* oam_state, int& oam_entry )
 {
-	this->render( SCREEN_MAIN );
-	this->render( SCREEN_SUB );
-	touchPosition old_touch;
-    touchRead( &old_touch );
-	bool touched = false;
-	int pixels_scrolled = 0;
-	int old_y_offset = this->y_offset;
-	TextButton* activated_button = 0;
-	TextButton* prev_activated_button = 0;
-	int old_abs_y_diff = 0;
-	while( true )
+	// ignore buttons on stale menu entries:
+	if( this->last_frame_rendered!=this->lesson_menu.sub_frame_count )
+		return;
+	
+	// only render buttons on selected entry:
+	bool active = this->get_entry_id()==this->lesson_menu.active_list_id;
+	this->rating_bar.hidden = this->rating_bar.disabled
+	= this->rating_easy.hidden = this->rating_easy.disabled
+	= this->rating_medium.hidden = this->rating_medium.disabled
+	= this->rating_hard.hidden = this->rating_hard.disabled
+	= this->rating_impossible.hidden = this->rating_impossible.disabled
+	= !active;
+	if( active )
 	{
-        scanKeys();
-		int pressed = keysDown();
-		int released = keysUp();
-		int held = keysHeld();
-		if( held & KEY_SELECT && pressed & KEY_UP )
+		int y = this->top + MenuEntry::BUTTON_Y_OFFSET;
+		this->rating_bar.y 
+		= this->rating_easy.y 
+		= this->rating_medium.y
+		= this->rating_hard.y
+		= this->rating_impossible.y
+		= y;
+		// hide all but currently active rating:
+		this->rating_easy.hidden = !this->rating_easy.active;
+		this->rating_medium.hidden = !this->rating_medium.active;
+		this->rating_hard.hidden = !this->rating_hard.active;
+		this->rating_impossible.hidden = !this->rating_impossible.active;
+	}
+	
+	ButtonProvider::render_buttons(oam_state, oam_entry);
+}
+
+void BookEntry::render_buttons(OamState* oam_state, int& oam_entry)
+{
+	// only render MOST buttons on selected entry:
+	bool active = this->get_entry_id()==this->lesson_menu.active_list_id;
+	this->explode_button.hidden = this->explode_button.disabled
+	= this->implode_button.hidden = this->implode_button.disabled
+	= !active;
+	
+	this->book_icon.y = this->top;
+	//if( this->exploded ) this->book_icon.active = true;
+	//else this->book_icon.active = false;
+	
+	if( active )
+	{
+		int y = this->top + MenuEntry::BUTTON_Y_OFFSET;
+		this->explode_button.y = this->implode_button.y = y;
+		this->explode_button.hidden = this->explode_button.disabled = this->exploded;
+		this->implode_button.hidden = this->implode_button.disabled = !this->exploded;
+	}
+	
+	MenuEntry::render_buttons(oam_state, oam_entry);
+}
+
+void LessonEntry::render_buttons(OamState* oam_state, int& oam_entry)
+{
+	// only render MOST buttons on selected entry:
+	bool active = this->get_entry_id()==this->lesson_menu.active_list_id;
+	this->jump_down_button.hidden = this->jump_down_button.disabled
+	= this->jump_up_button.hidden = this->jump_up_button.disabled
+	= this->new_words_button.hidden = this->new_words_button.disabled
+	= this->grammar_button.hidden = this->grammar_button.disabled
+	= this->text_button.hidden = this->text_button.disabled
+	= this->exercises_button.hidden = this->exercises_button.disabled
+	= !active;
+	
+	this->lesson_icon.y = this->top;
+	
+	if( active )
+	{
+		int y = this->top + MenuEntry::BUTTON_Y_OFFSET;
+		this->jump_down_button.y 
+		= this->jump_up_button.y
+		= this->new_words_button.y
+		= this->grammar_button.y
+		= this->text_button.y
+		= this->exercises_button.y
+		= y;
+		
+		// FIXME: query database for dynamic assignments, if no static words exist for this lesson:
+		this->new_words_button.disabled = false; //!this->lesson->new_words_available;
+		this->grammar_button.disabled = !this->lesson->grammar_texts_available;
+		this->text_button.disabled = !this->lesson->lesson_texts_available;
+		this->exercises_button.disabled = !this->lesson->exercises_available;
+	}
+	
+	MenuEntry::render_buttons(oam_state, oam_entry);
+}
+
+void MenuEntry::render_text( FreetypeRenderer& ft, const std::string& text )
+{
+	RenderStyle render_style;
+	//render_style.linebreak = false;
+	ft.render( *this->text_surface, text,
+		ft.latin_face, MenuEntry::FONT_SIZE, 0, 0, &render_style );
+}
+
+
+ButtonAction LessonMenu::handle_button_pressed(TextButton* text_button)
+{
+	if( text_button == &this->settings_button )
+	{
+		this->show_settings();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->search_button )
+	{
+		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_SEARCH;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	
+	return ButtonProvider::handle_button_pressed(text_button);
+}
+
+ButtonAction MenuEntry::handle_button_pressed(TextButton* text_button)
+{
+	// ignore buttons on stale menu entries:
+	if( this->last_frame_rendered!=this->lesson_menu.sub_frame_count )
+		return BUTTON_ACTION_UNHANDLED;
+	
+	if( text_button == &this->rating_easy )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_EASY_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->rating_medium )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->rating_hard )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_HARD_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->rating_impossible )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	
+	return ButtonProvider::handle_button_pressed(text_button);
+}
+
+ButtonAction BookEntry::handle_button_pressed(TextButton* text_button)
+{
+	// ignore buttons on stale menu entries:
+	if( this->last_frame_rendered!=this->lesson_menu.sub_frame_count )
+		return BUTTON_ACTION_UNHANDLED;
+	
+	this->lesson_menu.choice.book = this->book;
+	this->lesson_menu.choice.lesson = 0;
+	
+	if( text_button == &this->explode_button )
+	{
+		this->exploded = true;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->implode_button )
+	{
+		this->exploded = false;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	
+	return MenuEntry::handle_button_pressed(text_button);
+}
+
+ButtonAction LessonEntry::handle_button_pressed(TextButton* text_button)
+{
+	// ignore buttons on stale menu entries:
+	if( this->last_frame_rendered!=this->lesson_menu.sub_frame_count )
+		return BUTTON_ACTION_UNHANDLED;
+	
+	this->lesson_menu.choice.lesson = this->lesson;
+	this->lesson_menu.choice.book = this->lesson->book;
+	
+	if( text_button == &this->jump_down_button )
+	{
+		for( Book::iterator i=this->lesson->book->find(this->lesson->number); 
+			i!=this->lesson->book->end(); i++ )
 		{
-			ErrorConsole::init_screen( SCREEN_MAIN );
+			void* list_id = static_cast<void*>( i->second );
+			MenuList::iterator test_it = this->lesson_menu.menu_list.find( list_id );
+			if( test_it!=this->lesson_menu.menu_list.end() )
+			{
+				this->lesson_menu.active_list_id = list_id;
+				test_it->second->top;
+				this->lesson_menu.y_offset = this->lesson_menu.y_offset-test_it->second->top + this->lesson_menu.menu_screen.res_y/2;
+				this->lesson_menu.render( SCREEN_SUB );
+			}
 		}
-		if( held & KEY_SELECT && pressed & KEY_DOWN )
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->jump_up_button )
+	{
+		for( Book::iterator i=this->lesson->book->find(this->lesson->number); ; i-- )
 		{
-			ErrorConsole::init_screen( SCREEN_SUB );
+			void* list_id = static_cast<void*>( i->second );
+			MenuList::iterator test_it = this->lesson_menu.menu_list.find( list_id );
+			if( test_it!=this->lesson_menu.menu_list.end() )
+			{
+				this->lesson_menu.active_list_id = list_id;
+				test_it->second->top;
+				this->lesson_menu.y_offset = this->lesson_menu.y_offset-test_it->second->top + this->lesson_menu.menu_screen.res_y/2;
+				this->lesson_menu.render( SCREEN_SUB );
+			}
+			if( i==this->lesson->book->begin() ) break;
 		}
-		if( held & KEY_SELECT && pressed & KEY_LEFT )
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->new_words_button )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_NEW_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->grammar_button )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_GRAMMAR;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->text_button )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_TEXT;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->exercises_button )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_EXERCISES;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	
+	return MenuEntry::handle_button_pressed(text_button);
+}
+
+ButtonAction LessonMenu::handle_touch_begin(touchPosition touch)
+{
+	this->old_touch = touch;
+	this->pixels_scrolled = 0;
+	this->old_y_offset = this->y_offset;
+	
+	return Mode::handle_touch_begin(touch);
+}
+
+ButtonAction LessonMenu::handle_touch_drag(touchPosition touch)
+{
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	// check for touch screen button activation, but only when the user 
+	// is not already scrolling the menu:
+	if( this->pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
+		action |= Mode::handle_touch_drag( touch );
+	// do menu scrolling, but only if we are not currently hovering a 
+	// touch screen button:
+	int y_diff = touch.py - old_touch.py;
+	this->old_touch = touch;
+	if( action == BUTTON_ACTION_UNHANDLED )
+	{
+		int abs_y_diff = abs( y_diff );
+		if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*LessonMenu::MAX_ACCELERATION_FACTOR)) 
+						|| (abs_y_diff <= LessonMenu::MAX_ACCELERATION_FACTOR)) )
 		{
-			ErrorConsole::clear();
+			old_abs_y_diff = abs_y_diff;
+			pixels_scrolled += abs(y_diff);
+			this->y_offset += y_diff;
+			this->v_y = y_diff;
+			// FIXME: force render() not to updates sprites, to make scrolling effect faster
+			this->render( SCREEN_SUB );
+			return BUTTON_ACTION_CHANGED;
 		}
-		if( held & KEY_SELECT && pressed & KEY_RIGHT )
+	}
+	
+	return action;
+}
+
+ButtonAction LessonMenu::handle_touch_end(touchPosition touch)
+{
+	ButtonAction action = BUTTON_ACTION_UNHANDLED;
+	// ignore any touch screen buttons and menu entries currently pointed on,
+	// when the user was scrolling text, so she does not press a button 
+	// by accident:
+	if( this->pixels_scrolled >= BUTTON_ACTIVATION_SCROLL_LIMIT )
+		return BUTTON_ACTION_UNHANDLED;
+	// else priority check normal touch screen buttons for a pressed event:
+	else action |= Mode::handle_touch_end( touch );
+	// if no other button was activated, fall back to menu entry tap detection:
+	if( action == BUTTON_ACTION_UNHANDLED )
+	{
+		bool found = false;
+		MenuList::iterator prev_entry_it = this->menu_list.end();
+		for( MenuList::iterator entry_it = this->menu_list.begin();
+			!found && entry_it != this->menu_list.end() && entry_it->second->top<this->menu_screen.res_y; 
+			prev_entry_it=entry_it++ )
 		{
-			ErrorConsole::dump();
-		}
-		touchPosition touch;
-		touchRead( &touch );
-		if( keysCurrent() & KEY_TOUCH )
-		{
-			bool changed = false;
-			if( !touched ) 
+			void* entry_id = entry_it->first;
+			MenuEntry* entry = entry_it->second;
+			if( entry->last_frame_rendered==this->sub_frame_count
+				&& old_touch.py > entry->top  
+				&& ((entry_id==this->active_list_id 
+					&& old_touch.py < entry->top+MenuEntry::ACTIVE_HEIGHT) 
+					|| old_touch.py < entry->top+MenuEntry::BASE_HEIGHT) )
 			{
-				//std::cout << "touched "; 
-				touched = true;
-				pixels_scrolled = 0;
-				old_y_offset = this->y_offset;
-				old_touch = touch;
-			}
-			if( this->settings_button.is_responsible(touch.px, touch.py) )
-			{
-				if( !this->settings_button.active )
-				{
-					this->settings_button.active = true;
-					activated_button = &this->settings_button;
-					changed = true;
-				}
-			}
-			else if( this->search_button.is_responsible(touch.px, touch.py) )
-			{
-				if( !this->search_button.active )
-				{
-					this->search_button.active = true;
-					activated_button = &this->search_button;
-					changed = true;
-				}
-			}
-			else
-			{
-				MenuList::iterator entry_it = this->get_entry_by_pos( touch.px, touch.py );
-				if( entry_it!=this->menu_list.end() )
-				{
-					void* entry_id = entry_it->first;
-					MenuEntry* entry = entry_it->second;
-					if( entry_id == this->active_list_id )
-					{
-						LessonMenuChoice::ContentType content_type = entry->get_content_type_by_pos(touch.px, touch.py);
-						prev_activated_button = activated_button;
-						activated_button = this->get_button_by_content_type( content_type );
-						if( activated_button!=prev_activated_button )
-						{
-							//std::cout << "button released/changed ";
-							for( TextButtonList::iterator i=this->text_buttons.begin(); 
-								i!=this->text_buttons.end(); i++ )
-							{
-								if( (*i)->active )
-								{
-									(*i)->active = false;
-									changed = true;
-								}
-							}
-							changed = true;
-						}
-						if( !activated_button->active && this->activate_button_by_content_type(content_type) )
-						{
-							//std::cout << "button activated ";
-							changed = true;
-						}
-					} else activated_button = 0;
-				} else activated_button = 0;
-			}
-			if( !activated_button )
-			{
-				int y_diff = touch.py - old_touch.py;
-				int abs_y_diff = abs( y_diff );
-				if( abs_y_diff && ((old_abs_y_diff && (abs_y_diff <= old_abs_y_diff*LessonMenu::MAX_ACCELERATION_FACTOR)) 
-								|| (abs_y_diff <= LessonMenu::MAX_ACCELERATION_FACTOR)) )
-				{
-					//std::cout << ".";
-					old_abs_y_diff = abs_y_diff;
-					pixels_scrolled += abs(y_diff);
-					this->y_offset += y_diff;
-					this->v_y = y_diff;
-					changed = true;
-				}
-			}
-			if( changed )
-			{
+				this->active_list_id = entry_id;
 				this->render( SCREEN_SUB );
-			}
-			old_touch = touch;
-		}
-		else if( touched && pixels_scrolled < BUTTON_ACTIVATION_SCROLL_LIMIT )
-		{
-			touched = false;
-			if( this->settings_button.active )
-			{
-				this->settings_button.active = false;
-				this->show_settings();
 				this->render( SCREEN_MAIN );
-				this->render( SCREEN_SUB );
-			}
-			else if( this->search_button.active )
-			{
-				this->search_button.active = false;
-				choice.content_type = LessonMenuChoice::CONTENT_TYPE_SEARCH;
-				choice.book = 0;
-				choice.lesson = 0;
-				return;
-			}
-			else
-			{
-				MenuList::iterator entry_it = this->get_entry_by_pos( old_touch.px, old_touch.py );
-				if( entry_it!=this->menu_list.end() )
-				{
-					void* entry_id = entry_it->first;
-					MenuEntry* entry = entry_it->second;
-					if( entry_id == this->active_list_id )
-					{
-						if( entry->book )
-						{
-							//std::cout << "book ";
-							choice.book = entry->book;
-							choice.lesson = 0;
-							choice.content_type = entry->get_content_type_by_pos( old_touch.px, old_touch.py );
-							//std::cout << choice.content_type << " ";
-							if( this->get_activation_by_content_type(choice.content_type) )
-							{
-								//std::cout << "button active ";
-								switch( choice.content_type )
-								{
-									case LessonMenuChoice::CONTENT_TYPE_EXPLODE:
-										//std::cout << "explode ";
-										entry->exploded = true;
-										this->render( SCREEN_SUB );
-										break;
-									case LessonMenuChoice::CONTENT_TYPE_IMPLODE:
-										//std::cout << "implode ";
-										entry->exploded = false;
-										this->render( SCREEN_SUB );
-										break;
-									case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-										return;
-									default:
-										//std::cout << "unknown menu event ";
-										break;
-								}
-							}
-						}
-						else if( entry->lesson )
-						{
-							//std::cout << "lesson ";
-							choice.book = entry->lesson->book;
-							choice.lesson = entry->lesson;
-							choice.content_type = entry->get_content_type_by_pos( old_touch.px, old_touch.py );
-							//std::cout << choice.content_type << " ";
-							if( this->get_activation_by_content_type(choice.content_type) )
-							{
-								switch( choice.content_type )
-								{
-									case LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN:
-										for( Book::iterator i=choice.book->find(choice.lesson->number); i!=choice.book->end(); i++ )
-										{
-											void* list_id = static_cast<void*>( i->second );
-											MenuList::iterator test_it = this->menu_list.find( list_id );
-											if( test_it!=this->menu_list.end() )
-											{
-												this->active_list_id = list_id;
-												test_it->second->top;
-												this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
-												this->render( SCREEN_SUB );
-											}
-										}
-										break;
-									case LessonMenuChoice::CONTENT_TYPE_JUMP_UP:
-										for( Book::iterator i=choice.book->find(choice.lesson->number); ; i-- )
-										{
-											void* list_id = static_cast<void*>( i->second );
-											MenuList::iterator test_it = this->menu_list.find( list_id );
-											if( test_it!=this->menu_list.end() )
-											{
-												this->active_list_id = list_id;
-												test_it->second->top;
-												this->y_offset = this->y_offset-test_it->second->top + this->menu_screen.res_y/2;
-												this->render( SCREEN_SUB );
-											}
-											if( i==choice.book->begin() ) break;
-										}
-										break;
-									case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
-									case LessonMenuChoice::CONTENT_TYPE_TEXT:
-									case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
-									case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-									case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-										return;
-									default:
-										break;
-								}
-							}
-						}
-					}
-					else
-					{
-						//std::cout << "entry activated ";
-						this->active_list_id = entry_id;
-						this->render( SCREEN_SUB );
-						this->render( SCREEN_MAIN );
-					}
-				}
 			}
 		}
-        else
-        {
-			swiWaitForVBlank();
-			touched = false;
-			pixels_scrolled = 0;
-			bool changed = false;
-			for( TextButtonList::iterator i=this->text_buttons.begin(); 
-				i!=this->text_buttons.end(); i++ )
-			{
-				if( (*i)->active )
-				{
-					(*i)->active = false;
-					changed = true;
-				}
-			}
-			if( this->v_y )
-			{
-				int resistance = this->v_y / 4;
-				if( !resistance ) resistance = this->v_y / 2;
-				if( !resistance ) resistance = this->v_y;
-				this->v_y -= resistance;
-				this->y_offset += this->v_y;
-				changed = true;
-			}
-			if( changed ) this->render( SCREEN_SUB );
-        }
 	}
+	
+	return action;
 }
 
-MenuList::iterator LessonMenu::get_entry_by_pos( int x, int y )
+ButtonAction LessonMenu::handle_idle_cycles()
 {
-	LOG( "get_entry_by_pos(" << x << "," << y << ")" );
-	for( MenuList::iterator entry_it = this->menu_list.begin();
-		entry_it != this->menu_list.end(); 
-		entry_it++ )
+	this->pixels_scrolled = 0;
+	/* check if there is still momentum from a previous text scrolling input 
+		and animate the text based on simple physics */
+	if( this->v_y )
 	{
-		MenuEntry* entry = entry_it->second;
-		if( entry->last_frame_rendered==this->frame_count )
-		{
-			int next_top;
-			if( entry_it->first==this->active_list_id )
-				next_top = entry->top + MenuEntry::ACTIVE_HEIGHT;
-			else 
-				next_top = entry->top + MenuEntry::BASE_HEIGHT;
-			if( y >= entry->top && y < next_top )
-			{
-				return entry_it;
-			}
-		}
+		int resistance = this->v_y / 4;
+		if( !resistance ) resistance = this->v_y / 2;
+		if( !resistance ) resistance = this->v_y;
+		this->v_y -= resistance;
+		this->y_offset += this->v_y;
+		// FIXME: force render() not to updates sprites, to make scrolling effect faster
+		this->render( SCREEN_SUB );
+		return BUTTON_ACTION_CHANGED;
 	}
-	return this->menu_list.end();
+	
+	return Mode::handle_idle_cycles();
 }
 
-TextButton* LessonMenu::get_button_by_content_type( LessonMenuChoice::ContentType content_type )
-{
-	TextButton* button = 0;
-	switch( content_type )
-	{
-		case LessonMenuChoice::CONTENT_TYPE_NONE:
-		{
-			return 0;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
-		{
-			button = &this->new_words_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:
-		{
-			button = &this->grammar_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_TEXT:
-		{
-			button = &this->text_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_EXERCISES:
-		{
-			button = &this->exercises_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_EXPLODE:
-		{
-			button = &this->explode_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_JUMP_DOWN:
-		{
-			button = &this->jump_down_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_JUMP_UP:
-		{
-			button = &this->jump_up_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_IMPLODE:
-		{
-			button = &this->implode_button;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-		{
-			button = &this->rating_easy;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-		{
-			button = &this->rating_medium;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-		{
-			button = &this->rating_hard;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-		{
-			button = &this->rating_impossible;
-			break;
-		}
-		case LessonMenuChoice::CONTENT_TYPE_SEARCH:
-		{
-			button = &this->search_button;
-			break;
-		}
-	}
-	return button;
-}
-
-bool LessonMenu::activate_button_by_content_type( LessonMenuChoice::ContentType content_type )
-{
-	TextButton* button = this->get_button_by_content_type( content_type );
-	if( button && !button->disabled )
-	{
-		button->active = true;
-		return true;
-	}
-	return false;
-}
-
-bool LessonMenu::get_activation_by_content_type( LessonMenuChoice::ContentType content_type )
-{
-	TextButton* button = this->get_button_by_content_type( content_type );
-	return button && !button->disabled && button->active;
-}
 
 void LessonMenu::show_settings()
 {
-	this->init_button_list.free_all();
+	this->free_vram();
 	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->recursion_depth, this->settings, "Program Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
-	this->init_subscreen();
+	this->init_mode();
+	this->init_vram();
 }

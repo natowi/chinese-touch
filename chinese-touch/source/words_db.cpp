@@ -650,3 +650,46 @@ void WordsDB::set_file_mtime( const std::string& file_path, int new_mtime )
 		}
 	}
 }
+
+double WordsDB::get_avg_rating()
+{
+	return this->get_avg_rating( 0, 0 );
+}
+
+double WordsDB::get_avg_rating( Book* book )
+{
+	return this->get_avg_rating( book, 0 );
+}
+
+double WordsDB::get_avg_rating( Lesson* lesson )
+{
+	return this->get_avg_rating( 0, lesson );
+}
+
+double WordsDB::get_avg_rating( Book* book, Lesson* lesson )
+{
+	double avg_rating = 0;
+	
+	std::stringstream ss_stmt;
+	ss_stmt << "select avg(rating) as avg_rating from words ";
+	if( book ) ss_stmt << "inner join lessons on words.lesson_id=lessons.id ";
+	if( book || lesson ) ss_stmt << "where ";
+	if( book ) ss_stmt << "book_id=" << book->id << " ";
+	if( lesson )
+	{
+		if( book ) ss_stmt << "and ";
+		ss_stmt << "lesson_id=" << lesson->id << " ";
+	}
+	std::string stmt = ss_stmt.str();
+	MapList map_list;
+	int rc;
+	if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &map_list, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+		throw ERROR( msg.str() );
+	}
+	if( map_list.begin() != map_list.end() ) avg_rating = atof( (*map_list.begin())["avg_rating"].c_str() );
+	
+	return avg_rating;
+}

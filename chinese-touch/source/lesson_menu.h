@@ -52,6 +52,7 @@ class MenuEntry : public ButtonProvider
 		static int ICON_X_OFFSET;
 		static int BUTTON_GAP;
 		static int BUTTON_Y_OFFSET;
+		static int BUTTON_ACTIVE_Y_OFFSET;
 		static int BUTTON_WIDTH;
 		static int BUTTON_HEIGHT;
 		static int SMALL_BUTTON_WIDTH;
@@ -68,6 +69,7 @@ class MenuEntry : public ButtonProvider
 		static int HARD_WORDS_BUTTON_X_OFFSET;
 		static int IMPOSSIBLE_WORDS_BUTTON_X_OFFSET;
 		TextButton rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible;
+		Rating cached_rating;
 	public:
 		MenuEntry( LessonMenu& _lesson_menu );
 		virtual void* get_entry_id() = 0;

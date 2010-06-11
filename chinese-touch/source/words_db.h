@@ -37,6 +37,11 @@ public:
 	int get_file_id( const std::string& file_path );
 	int get_file_mtime( const std::string& file_path );
 	void set_file_mtime( const std::string& file_path, int new_mtime );
+	double get_avg_rating();
+	double get_avg_rating( Book* book );
+	double get_avg_rating( Lesson* lesson );
+protected:
+	double get_avg_rating( Book* book, Lesson* lesson );
 };
 
 #endif

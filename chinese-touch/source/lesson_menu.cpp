@@ -40,7 +40,8 @@ int MenuEntry::FONT_SIZE = 7;
 int MenuEntry::ICON_X_OFFSET = 5;
 int MenuEntry::TEXT_X_OFFSET = 50;
 int MenuEntry::BUTTON_GAP = 3;
-int MenuEntry::BUTTON_Y_OFFSET = MenuEntry::BASE_HEIGHT+2;
+int MenuEntry::BUTTON_Y_OFFSET = MenuEntry::BASE_HEIGHT/2-1;
+int MenuEntry::BUTTON_ACTIVE_Y_OFFSET = MenuEntry::BASE_HEIGHT+2;
 int MenuEntry::BUTTON_WIDTH = 32;
 int MenuEntry::BUTTON_HEIGHT = 16;
 int MenuEntry::SMALL_BUTTON_WIDTH = 16;
@@ -218,7 +219,8 @@ MenuEntry::MenuEntry( LessonMenu& _lesson_menu )
 	rating_easy( _lesson_menu.rating_easy ),
 	rating_medium( _lesson_menu.rating_easy ),
 	rating_hard( _lesson_menu.rating_hard ),
-	rating_impossible( _lesson_menu.rating_impossible )
+	rating_impossible( _lesson_menu.rating_impossible ),
+	cached_rating( RATING_NONE )
 {
 	this->text_buttons.push_back( &this->rating_bar );
 	this->text_buttons.push_back( &this->rating_easy );
@@ -240,6 +242,8 @@ BookEntry::BookEntry( LessonMenu& _lesson_menu, Book* _book )
 	this->text_buttons.push_back( &this->implode_button );
 	
 	this->init_button_vram();
+	
+	this->cached_rating = static_cast<Rating>( round(lesson_menu.program.words_db->get_avg_rating(this->book)) );
 }
 
 LessonEntry::LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson )
@@ -261,6 +265,8 @@ LessonEntry::LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson )
 	this->text_buttons.push_back( &this->jump_up_button );
 	
 	this->init_button_vram();
+	
+	this->cached_rating = static_cast<Rating>( round(lesson_menu.program.words_db->get_avg_rating(this->lesson)) );
 }
 
 
@@ -629,29 +635,24 @@ void MenuEntry::render_buttons( OamState* oam_state, int& oam_entry )
 	if( this->last_frame_rendered!=this->lesson_menu.sub_frame_count )
 		return;
 	
-	// only render buttons on selected entry:
+	// vertical button offset is different on selected entry:
 	bool active = this->get_entry_id()==this->lesson_menu.active_list_id;
-	this->rating_bar.hidden = this->rating_bar.disabled
-	= this->rating_easy.hidden = this->rating_easy.disabled
-	= this->rating_medium.hidden = this->rating_medium.disabled
-	= this->rating_hard.hidden = this->rating_hard.disabled
-	= this->rating_impossible.hidden = this->rating_impossible.disabled
-	= !active;
-	if( active )
-	{
-		int y = this->top + MenuEntry::BUTTON_Y_OFFSET;
-		this->rating_bar.y 
-		= this->rating_easy.y 
-		= this->rating_medium.y
-		= this->rating_hard.y
-		= this->rating_impossible.y
-		= y;
-		// hide all but currently active rating:
-		this->rating_easy.hidden = !this->rating_easy.active;
-		this->rating_medium.hidden = !this->rating_medium.active;
-		this->rating_hard.hidden = !this->rating_hard.active;
-		this->rating_impossible.hidden = !this->rating_impossible.active;
-	}
+	int y;
+	if( active ) y = this->top + MenuEntry::BUTTON_ACTIVE_Y_OFFSET;
+	else y = this->top + MenuEntry::BUTTON_Y_OFFSET;
+	
+	this->rating_bar.y 
+	= this->rating_easy.y 
+	= this->rating_medium.y
+	= this->rating_hard.y
+	= this->rating_impossible.y
+	= y;
+	
+	// hide all but currently active rating:
+	this->rating_easy.hidden = !( this->rating_easy.active || this->cached_rating==RATING_EASY );
+	this->rating_medium.hidden = !( this->rating_medium.active || this->cached_rating==RATING_MEDIUM );
+	this->rating_hard.hidden = !( this->rating_hard.active || this->cached_rating==RATING_HARD );
+	this->rating_impossible.hidden = !( this->rating_impossible.active || this->cached_rating==RATING_IMPOSSIBLE );
 	
 	ButtonProvider::render_buttons(oam_state, oam_entry);
 }
@@ -678,7 +679,7 @@ void BookEntry::render_buttons(OamState* oam_state, int& oam_entry)
 	
 	if( active )
 	{
-		int y = this->top + MenuEntry::BUTTON_Y_OFFSET;
+		int y = this->top + MenuEntry::BUTTON_ACTIVE_Y_OFFSET;
 		this->explode_button.y = this->implode_button.y = y;
 		this->explode_button.hidden = this->explode_button.disabled = this->exploded;
 		this->implode_button.hidden = this->implode_button.disabled = !this->exploded;
@@ -703,7 +704,7 @@ void LessonEntry::render_buttons(OamState* oam_state, int& oam_entry)
 	
 	if( active )
 	{
-		int y = this->top + MenuEntry::BUTTON_Y_OFFSET;
+		int y = this->top + MenuEntry::BUTTON_ACTIVE_Y_OFFSET;
 		this->jump_down_button.y 
 		= this->jump_up_button.y
 		= this->new_words_button.y

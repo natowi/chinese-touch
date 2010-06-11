@@ -405,9 +405,13 @@ void LessonEntry::init_button_vram()
 {
 	this->lesson_icon = this->lesson_menu.lesson_icon;
 	this->new_words_button = this->lesson_menu.new_words_button;
+	this->new_words_button.bg_prio = 3; this->new_words_button.text_prio = 2;
 	this->grammar_button = this->lesson_menu.grammar_button;
+	this->grammar_button.bg_prio = 3; this->grammar_button.text_prio = 2;
 	this->text_button = this->lesson_menu.text_button;
+	this->text_button.bg_prio = 3; this->text_button.text_prio = 2;
 	this->exercises_button = this->lesson_menu.exercises_button;
+	this->exercises_button.bg_prio = 3; this->exercises_button.text_prio = 2;
 	this->jump_down_button = this->lesson_menu.jump_down_button;
 	this->jump_up_button = this->lesson_menu.jump_up_button;
 	

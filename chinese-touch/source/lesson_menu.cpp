@@ -19,10 +19,19 @@
 #include "sprite_helper.h"
 #include "bg_dragon.h"
 #include "center_rating_bar.h"
+#include "center_rating_bar_disabled.h"
 #include "bottom_rating_easy.h"
+#include "bottom_rating_easy_active.h"
+#include "bottom_rating_easy_disabled.h"
 #include "bottom_rating_medium.h"
+#include "bottom_rating_medium_active.h"
+#include "bottom_rating_medium_disabled.h"
 #include "bottom_rating_hard.h"
+#include "bottom_rating_hard_active.h"
+#include "bottom_rating_hard_disabled.h"
 #include "bottom_rating_impossible.h"
+#include "bottom_rating_impossible_active.h"
+#include "bottom_rating_impossible_disabled.h"
 #include "small_menu_button.h"
 #include "small_menu_button_active.h"
 #include "small_menu_button_inactive.h"
@@ -32,7 +41,7 @@
 #include "bottom_center_button.h"
 #include "bottom_center_button_active.h"
 #include "fulltext_search.h"
-#include <bottom_rating_bar.h>
+#include "bottom_rating_bar.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -347,21 +356,34 @@ void LessonMenu::init_button_vram()
 	this->implode_button.owns_bg_vram = false;
 
 	this->rating_bar.init_vram( center_rating_barBitmap, this->rating_bar.bg_vram );
+	this->rating_bar.init_vram( center_rating_bar_disabledBitmap, this->rating_bar.bg_inactive_vram );
 	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
 	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
+	this->rating_easy.init_vram( bottom_rating_easy_activeBitmap, this->rating_easy.bg_active_vram );
+	this->rating_easy.init_vram( bottom_rating_easy_disabledBitmap, this->rating_easy.bg_inactive_vram );
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
+	this->rating_medium.init_vram( bottom_rating_medium_activeBitmap, this->rating_medium.bg_active_vram );
+	this->rating_medium.init_vram( bottom_rating_medium_disabledBitmap, this->rating_medium.bg_inactive_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
+	this->rating_hard.init_vram( bottom_rating_hard_activeBitmap, this->rating_hard.bg_active_vram );
+	this->rating_hard.init_vram( bottom_rating_hard_disabledBitmap, this->rating_hard.bg_inactive_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+	this->rating_impossible.init_vram( bottom_rating_impossible_activeBitmap, this->rating_impossible.bg_active_vram );
+	this->rating_impossible.init_vram( bottom_rating_impossible_disabledBitmap, this->rating_impossible.bg_inactive_vram );
 	
 	this->global_rating_bar.init_vram( bottom_rating_barBitmap, this->global_rating_bar.bg_vram );
 	this->global_rating_bar.bg_prio = 2; // place bar behind rating emotes
 	this->global_rating_easy.bg_vram = this->rating_easy.bg_vram;
+	this->global_rating_easy.bg_active_vram = this->rating_easy.bg_active_vram;
 	this->global_rating_easy.owns_bg_vram = false;
 	this->global_rating_medium.bg_vram = this->rating_medium.bg_vram;
+	this->global_rating_medium.bg_active_vram = this->rating_medium.bg_active_vram;
 	this->global_rating_medium.owns_bg_vram = false;
 	this->global_rating_hard.bg_vram = this->rating_hard.bg_vram;
+	this->global_rating_hard.bg_active_vram = this->rating_hard.bg_active_vram;
 	this->global_rating_hard.owns_bg_vram = false;
 	this->global_rating_impossible.bg_vram = this->rating_impossible.bg_vram;
+	this->global_rating_impossible.bg_active_vram = this->rating_impossible.bg_active_vram;
 	this->global_rating_impossible.owns_bg_vram = false;
 	
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
@@ -687,6 +709,14 @@ void MenuEntry::render_buttons( OamState* oam_state, int& oam_entry )
 	this->rating_medium.hidden = !( this->rating_medium.active || this->cached_rating==RATING_MEDIUM );
 	this->rating_hard.hidden = !( this->rating_hard.active || this->cached_rating==RATING_HARD );
 	this->rating_impossible.hidden = !( this->rating_impossible.active || this->cached_rating==RATING_IMPOSSIBLE );
+	
+	// rating bar is disabled for user input (and rendered as such), when not selected:
+	this->rating_bar.disabled 
+	= this->rating_easy.disabled 
+	= this->rating_medium.disabled
+	= this->rating_hard.disabled
+	= this->rating_impossible.disabled
+	= !active;
 	
 	ButtonProvider::render_buttons(oam_state, oam_entry);
 }

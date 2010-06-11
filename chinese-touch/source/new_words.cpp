@@ -28,9 +28,13 @@
 #include "top_paper_tab_inactive.h"
 #include "bottom_rating_bar.h"
 #include "bottom_rating_easy.h"
+#include "bottom_rating_easy_active.h"
 #include "bottom_rating_medium.h"
+#include "bottom_rating_medium_active.h"
 #include "bottom_rating_hard.h"
+#include "bottom_rating_hard_active.h"
 #include "bottom_rating_impossible.h"
+#include "bottom_rating_impossible_active.h"
 #include "settings_dialog.h"
 #include "right_center_button.h"
 #include "right_center_button_active.h"
@@ -203,9 +207,13 @@ void WordListBrowser::init_button_vram()
 	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
 	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
 	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
+	this->rating_easy.init_vram( bottom_rating_easy_activeBitmap, this->rating_easy.bg_active_vram );
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
+	this->rating_medium.init_vram( bottom_rating_medium_activeBitmap, this->rating_medium.bg_active_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
+	this->rating_hard.init_vram( bottom_rating_hard_activeBitmap, this->rating_hard.bg_active_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+	this->rating_impossible.init_vram( bottom_rating_impossible_activeBitmap, this->rating_impossible.bg_active_vram );
 	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
 	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 	this->add_button.init_vram( small_starBitmap, this->add_button.bg_vram );

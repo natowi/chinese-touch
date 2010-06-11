@@ -665,8 +665,16 @@ void BookEntry::render_buttons(OamState* oam_state, int& oam_entry)
 	= !active;
 	
 	this->book_icon.y = this->top;
-	//if( this->exploded ) this->book_icon.active = true;
-	//else this->book_icon.active = false;
+	if( this->exploded ) 
+	{
+		// open book symbol
+		this->book_icon.bg_vram = this->lesson_menu.book_icon.bg_active_vram;
+	}
+	else
+	{
+		// closed book symbol
+		this->book_icon.bg_vram = this->lesson_menu.book_icon.bg_vram;
+	}
 	
 	if( active )
 	{

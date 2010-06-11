@@ -130,7 +130,7 @@ void Program::run()
 							condition << " (rating=" << RATING_IMPOSSIBLE << " or rating=" << RATING_NONE << ")";
 							break;
 						default:
-							condition << " rating>" << RATING_NONE;
+							condition << " rating>=" << RATING_NONE;
 							break;
 					}
 					if( lesson_menu_choice.lesson )

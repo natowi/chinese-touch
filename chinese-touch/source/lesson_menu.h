@@ -150,7 +150,9 @@ public:
 		are stored as reference buttons in LessonMenu and copied to menu 
 		entries, using shared vram. */
 	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button,
-		explode_button, implode_button, rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
+		explode_button, implode_button, 
+		rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
+		global_rating_bar, global_rating_easy, global_rating_medium, global_rating_hard, global_rating_impossible,
 		jump_down_button, jump_up_button, settings_button, search_button;
 	TextButtonList reference_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
@@ -162,6 +164,7 @@ public:
 	int old_y_offset; //!< used for scrolling
 	int old_abs_y_diff; //!< used for scrolling
 	int pixels_scrolled; //!< used for scrolling
+	Rating cached_global_rating;
 public:
 	LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoice& _choice );
 	virtual void init_mode();

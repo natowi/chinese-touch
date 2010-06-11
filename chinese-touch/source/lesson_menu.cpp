@@ -32,6 +32,7 @@
 #include "bottom_center_button.h"
 #include "bottom_center_button_active.h"
 #include "fulltext_search.h"
+#include <bottom_rating_bar.h>
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -119,6 +120,11 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		rating_medium(menu_screen,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
 		rating_hard(menu_screen,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
 		rating_impossible(menu_screen,"",SpriteSize_16x16,MenuEntry::IMPOSSIBLE_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		global_rating_bar(menu_screen,"",SpriteSize_64x32,menu_screen.res_x/2-32,menu_screen.res_y-16,program.ft->latin_face,7,0,0),
+		global_rating_easy(menu_screen,"",SpriteSize_16x16,menu_screen.res_x/2-32,menu_screen.res_y-16,program.ft->latin_face,7,0,0),
+		global_rating_medium(menu_screen,"",SpriteSize_16x16,menu_screen.res_x/2-16,menu_screen.res_y-16,program.ft->latin_face,7,0,0),
+		global_rating_hard(menu_screen,"",SpriteSize_16x16,menu_screen.res_x/2,menu_screen.res_y-16,program.ft->latin_face,7,0,0),
+		global_rating_impossible(menu_screen,"",SpriteSize_16x16,menu_screen.res_x/2+16,menu_screen.res_y-16,program.ft->latin_face,7,0,0),
 		jump_down_button(menu_screen,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		jump_up_button(menu_screen,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		settings_button(menu_screen,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
@@ -152,10 +158,17 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		(*tbi)->disabled = (*tbi)->hidden = true;
 	}
 	// global lesson menu buttons:
+	this->text_buttons.push_back( &this->global_rating_bar );
+	this->text_buttons.push_back( &this->global_rating_easy );
+	this->text_buttons.push_back( &this->global_rating_medium );
+	this->text_buttons.push_back( &this->global_rating_hard );
+	this->text_buttons.push_back( &this->global_rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
 	
 	this->init_vram();
+	
+	this->cached_global_rating = static_cast<Rating>( round(this->program.words_db->get_avg_rating()) );
 	
 	// Menü zur gespeicherten Position bewegen:
 	std::string config_book_name = this->program.config->get_current_book_name();
@@ -339,6 +352,17 @@ void LessonMenu::init_button_vram()
 	this->rating_medium.init_vram( bottom_rating_mediumBitmap, this->rating_medium.bg_vram );
 	this->rating_hard.init_vram( bottom_rating_hardBitmap, this->rating_hard.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
+	
+	this->global_rating_bar.init_vram( bottom_rating_barBitmap, this->global_rating_bar.bg_vram );
+	this->global_rating_bar.bg_prio = 2; // place bar behind rating emotes
+	this->global_rating_easy.bg_vram = this->rating_easy.bg_vram;
+	this->global_rating_easy.owns_bg_vram = false;
+	this->global_rating_medium.bg_vram = this->rating_medium.bg_vram;
+	this->global_rating_medium.owns_bg_vram = false;
+	this->global_rating_hard.bg_vram = this->rating_hard.bg_vram;
+	this->global_rating_hard.owns_bg_vram = false;
+	this->global_rating_impossible.bg_vram = this->rating_impossible.bg_vram;
+	this->global_rating_impossible.owns_bg_vram = false;
 	
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
@@ -583,6 +607,12 @@ void LessonMenu::render( Screen screen )
 			}
 		}
 		
+		// hide all but currently active rating:
+		this->global_rating_easy.hidden = !( this->global_rating_easy.active || this->cached_global_rating==RATING_EASY );
+		this->global_rating_medium.hidden = !( this->global_rating_medium.active || this->cached_global_rating==RATING_MEDIUM );
+		this->global_rating_hard.hidden = !( this->global_rating_hard.active || this->cached_global_rating==RATING_HARD );
+		this->global_rating_impossible.hidden = !( this->global_rating_impossible.active || this->cached_global_rating==RATING_IMPOSSIBLE );
+		
 		// Basisimplementierung schon hier aufrufen, um Verwackeln zwischen Sprites und Hintergrund zu vermeiden?
 		Mode::render( screen );
 		
@@ -742,6 +772,34 @@ ButtonAction LessonMenu::handle_button_pressed(TextButton* text_button)
 	if( text_button == &this->search_button )
 	{
 		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_SEARCH;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->global_rating_easy )
+	{
+		this->choice.book = 0;
+		this->choice.lesson = 0;
+		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_EASY_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->global_rating_medium )
+	{
+		this->choice.book = 0;
+		this->choice.lesson = 0;
+		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->global_rating_hard )
+	{
+		this->choice.book = 0;
+		this->choice.lesson = 0;
+		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_HARD_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->global_rating_impossible )
+	{
+		this->choice.book = 0;
+		this->choice.lesson = 0;
+		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	

@@ -112,39 +112,35 @@ void Program::run()
 				case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
 				case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
 				{
-					if( !lesson_menu_choice.book )
-						throw ERROR( "LessonMenu returned no book" );
 					NewWordList words;
 					std::stringstream condition;
-					condition << "book_id=" << lesson_menu_choice.book->id;
+					if( lesson_menu_choice.book ) condition << "book_id=" << lesson_menu_choice.book->id << " and";
 					switch( lesson_menu_choice.content_type )
 					{
 						case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
-							condition << " and rating=" << RATING_EASY;
+							condition << " rating=" << RATING_EASY;
 							break;
 						case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
-							condition << " and rating=" << RATING_MEDIUM;
+							condition << " rating=" << RATING_MEDIUM;
 							break;
 						case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
-							condition << " and rating=" << RATING_HARD;
+							condition << " rating=" << RATING_HARD;
 							break;
 						case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS:
-							condition << " and (rating=" << RATING_IMPOSSIBLE << " or rating=" << RATING_NONE << ")";
+							condition << " (rating=" << RATING_IMPOSSIBLE << " or rating=" << RATING_NONE << ")";
 							break;
 						default:
+							condition << " rating>" << RATING_NONE;
 							break;
 					}
 					if( lesson_menu_choice.lesson )
 						condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
 					this->words_db->query_words( *this->library, condition.str(), words, "atime" );
 					if( lesson_menu_choice.lesson ) config->save_position( lesson_menu_choice.lesson, true );
-					else config->save_position( lesson_menu_choice.book, true );
-					if( words.size() )
-					{
-						NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, false );
-						new_words->run_until_exit();
-						delete new_words;
-					} else throw ERROR( "Empty word list; Assign new words from text mode!" );
+					else if( lesson_menu_choice.book ) config->save_position( lesson_menu_choice.book, true );
+					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, false );
+					new_words->run_until_exit();
+					delete new_words;
 					break;
 				}
 				case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
@@ -158,12 +154,9 @@ void Program::run()
 					std::stringstream condition;
 					condition << "lesson_id=" << lesson->id;
 					this->words_db->query_words( *this->library, condition.str(), words, "file_offset" );
-					if( words.size() )
-					{
-						NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, true );
-						new_words->run_until_exit();
-						delete new_words;
-					} else throw ERROR( "Empty word list; Assign new words from text mode!" );
+					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, true );
+					new_words->run_until_exit();
+					delete new_words;
 					break;
 				}
 				case LessonMenuChoice::CONTENT_TYPE_GRAMMAR:

@@ -19,9 +19,10 @@ TextButton::TextButton( RenderScreen& _render_screen, const std::string& _text,
 						int _text_x_offset, int _text_y_offset )
 	: render_screen(&_render_screen), text(_text), sprite_size(_sprite_size), text_sprite_size(_sprite_size), 
 	x(_x), y(_y), text_x_offset(_text_x_offset), text_y_offset(_text_y_offset),
-	bg_prio(1), text_prio(0),
-	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), 
-	active(false), disabled(false), owns_bg_vram(true), owns_text_vram(true), hidden(false),
+	bg_prio(1), text_prio(1), fg_prio(1),
+	text_vram(0), bg_vram(0), bg_active_vram(0), bg_inactive_vram(0), fg_vram(0),
+	active(false), disabled(false), hidden(false),
+	owns_bg_vram(true), owns_text_vram(true), owns_fg_vram(true), 
 	face(_face), font_size(_font_size)
 {
 	this->get_dimensions_from_sprite_size( this->sprite_size, this->width, this->height );
@@ -82,6 +83,14 @@ void TextButton::free_all()
 			this->bg_inactive_vram = 0;
 		}
 	}
+	if( this->owns_fg_vram )
+	{
+		if( this->fg_vram )
+		{
+			oamFreeGfx( this->get_oam(), this->fg_vram );
+			this->fg_vram = 0;
+		}
+	}
 }
 
 void TextButton::init_vram( const void* source, u16*& vram_dest )
@@ -131,15 +140,12 @@ void TextButton::render_to( int& oam_entry )
 
 void TextButton::render_to( int& oam_entry, int _x, int _y )
 {
-	u16* vram = this->bg_vram;
-	if( this->active && this->bg_active_vram ) vram = this->bg_active_vram;
-	if( this->disabled && this->bg_inactive_vram ) vram = this->bg_inactive_vram;
-	if( vram && this->is_visible(_x, _y, this->width, this->height) )
+	if( this->fg_vram  && this->is_visible(_x, _y, this->width, this->height) )
 	{
 		oamSet( this->get_oam(), oam_entry++,
 				_x, _y, 	// position
-				this->bg_prio, 1, this->sprite_size, SpriteColorFormat_Bmp, 
-				vram,
+				this->fg_prio, 1, this->sprite_size, SpriteColorFormat_Bmp, 
+				this->fg_vram,
 				0, 0, 0, 0, 0, 0 );
 	}
 	if( this->text_vram 
@@ -150,6 +156,17 @@ void TextButton::render_to( int& oam_entry, int _x, int _y )
 				_x+this->text_x_offset, _y+this->text_y_offset, 	// position
 				this->text_prio, 0, this->text_sprite_size, SpriteColorFormat_256Color, 
 				this->text_vram,
+				0, 0, 0, 0, 0, 0 );
+	}
+	u16* vram = this->bg_vram;
+	if( this->active && this->bg_active_vram ) vram = this->bg_active_vram;
+	if( this->disabled && this->bg_inactive_vram ) vram = this->bg_inactive_vram;
+	if( vram && this->is_visible(_x, _y, this->width, this->height) )
+	{
+		oamSet( this->get_oam(), oam_entry++,
+				_x, _y, 	// position
+				this->bg_prio, 1, this->sprite_size, SpriteColorFormat_Bmp, 
+				vram,
 				0, 0, 0, 0, 0, 0 );
 	}
 }

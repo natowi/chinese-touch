@@ -19,19 +19,31 @@ class LessonMenuChoice
 		enum ContentType
 		{
 			CONTENT_TYPE_NONE = 0,
-			CONTENT_TYPE_NEW_WORDS,
 			CONTENT_TYPE_GRAMMAR,
 			CONTENT_TYPE_TEXT,
 			CONTENT_TYPE_EXERCISES,
+			CONTENT_TYPE_ANY_WORDS,
 			CONTENT_TYPE_EASY_WORDS,
 			CONTENT_TYPE_MEDIUM_WORDS,
 			CONTENT_TYPE_HARD_WORDS,
 			CONTENT_TYPE_IMPOSSIBLE_WORDS,
 			CONTENT_TYPE_SEARCH
 		} content_type;
+		enum ContentRange
+		{
+			CONTENT_RANGE_LESSON = 0,
+			CONTENT_RANGE_BOOK
+		} content_range;
+		enum ContentOrder
+		{
+			CONTENT_ORDER_INDEX = 0,
+			CONTENT_ORDER_LATENCY,
+			CONTENT_ORDER_RANDOM
+		} content_order;
 	public:
 		LessonMenuChoice() : book(0), lesson(0), 
-			content_type(CONTENT_TYPE_NONE) {}
+			content_type(CONTENT_TYPE_NONE), content_range(CONTENT_RANGE_LESSON),
+			content_order(CONTENT_ORDER_LATENCY) {}
 };
 
 
@@ -56,7 +68,6 @@ class MenuEntry : public ButtonProvider
 		static int BUTTON_WIDTH;
 		static int BUTTON_HEIGHT;
 		static int SMALL_BUTTON_WIDTH;
-		static int NEW_WORDS_BUTTON_X_OFFSET;
 		static int GRAMMAR_BUTTON_X_OFFSET;
 		static int TEXT_BUTTON_X_OFFSET;
 		static int EXERCISES_BUTTON_X_OFFSET;
@@ -64,11 +75,15 @@ class MenuEntry : public ButtonProvider
 		static int JUMP_UP_BUTTON_X_OFFSET;
 		static int EXPLODE_BUTTON_X_OFFSET;
 		static int RATED_WORDS_BUTTON_X_OFFSET;
+		static int LESSON_RANGE_BUTTON_X_OFFSET;
+		static int ORDER_BUTTON_X_OFFSET;
 		static int EASY_WORDS_BUTTON_X_OFFSET;
 		static int MEDIUM_WORDS_BUTTON_X_OFFSET;
 		static int HARD_WORDS_BUTTON_X_OFFSET;
 		static int IMPOSSIBLE_WORDS_BUTTON_X_OFFSET;
-		TextButton rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible;
+		TextButton rating_bar_any_extension, rating_bar, 
+				rating_any, rating_easy, rating_medium, rating_hard, rating_impossible,
+				order_index_button, order_latency_button, order_random_button;
 		Rating cached_rating;
 	public:
 		MenuEntry( LessonMenu& _lesson_menu );
@@ -102,8 +117,8 @@ class LessonEntry : public MenuEntry
 {
 	public:
 		Lesson* lesson;
-		TextButton lesson_icon, new_words_button, grammar_button,
-			text_button, exercises_button, jump_down_button, jump_up_button;
+		TextButton lesson_icon, grammar_button, text_button, exercises_button, 
+			jump_down_button, jump_up_button, lesson_range_button, book_range_button;
 	public:
 		LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson );
 		virtual void* get_entry_id() { return static_cast<void*>(this->lesson); }
@@ -149,12 +164,12 @@ public:
 	/*! As an optimization all buttons, including menu entry buttons 
 		are stored as reference buttons in LessonMenu and copied to menu 
 		entries, using shared vram. */
-	TextButton book_icon, lesson_icon, new_words_button, grammar_button, text_button, exercises_button,
-		explode_button, implode_button, 
-		rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
+	TextButton book_icon, lesson_icon, grammar_button, text_button, exercises_button, 
+		explode_button, implode_button, lesson_range_button, book_range_button,
+		order_index_button, order_latency_button, order_random_button,
+		rating_bar_any_extension, rating_bar, rating_any, rating_easy, rating_medium, rating_hard, rating_impossible,
 		global_rating_bar, global_rating_easy, global_rating_medium, global_rating_hard, global_rating_impossible,
 		jump_down_button, jump_up_button, settings_button, search_button;
-	TextButtonList reference_buttons;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */

@@ -17,9 +17,10 @@ public:
 	RenderScreen* render_screen; //!< pointer instead of reference, because we may want to change screens dynamically
 	std::string name, text;
 	SpriteSize sprite_size, text_sprite_size;
-	int width, height, sensor_width, sensor_height, text_width, text_height, x, y, text_x_offset, text_y_offset, bg_prio, text_prio;
-	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram;
-	bool active, disabled, owns_bg_vram, owns_text_vram, hidden;
+	int width, height, sensor_width, sensor_height, text_width, text_height, 
+		x, y, text_x_offset, text_y_offset, bg_prio, text_prio, fg_prio;
+	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram, *fg_vram;
+	bool active, disabled, hidden, owns_bg_vram, owns_text_vram, owns_fg_vram;
 	FT_Face face;
 	int font_size;
 public:

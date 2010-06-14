@@ -415,14 +415,14 @@ void WordListBrowser::randomize_list()
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position )
+NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list )
 	: Mode(_program, _recursion_depth), save_position(_save_position), word_screen(SCREEN_MAIN), drawing_screen(SCREEN_SUB),
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
 		exit_button(drawing_screen,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
 		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
-		pixels_drawn(0), clear_on_switch(true), randomize_list(false)
+		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list)
 {
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )

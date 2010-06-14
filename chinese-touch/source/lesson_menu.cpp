@@ -20,6 +20,7 @@
 #include "bg_dragon.h"
 #include "center_rating_bar.h"
 #include "center_rating_bar_disabled.h"
+#include "center_rating_bar_any_extension.h"
 #include "bottom_rating_easy.h"
 #include "bottom_rating_easy_active.h"
 #include "bottom_rating_easy_disabled.h"
@@ -32,6 +33,8 @@
 #include "bottom_rating_impossible.h"
 #include "bottom_rating_impossible_active.h"
 #include "bottom_rating_impossible_disabled.h"
+#include "bottom_rating_any.h"
+#include "bottom_rating_any_active.h"
 #include "small_menu_button.h"
 #include "small_menu_button_active.h"
 #include "small_menu_button_inactive.h"
@@ -42,6 +45,10 @@
 #include "bottom_center_button_active.h"
 #include "fulltext_search.h"
 #include "bottom_rating_bar.h"
+#include "tiny_lesson.h"
+#include "tiny_lessons.h"
+#include "tiny_dice.h"
+#include "tiny_clock.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -58,12 +65,13 @@ int MenuEntry::SMALL_BUTTON_WIDTH = 16;
 
 int MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET = ICON_X_OFFSET + 0 * SMALL_BUTTON_WIDTH;
 int MenuEntry::JUMP_UP_BUTTON_X_OFFSET = ICON_X_OFFSET + 1 * SMALL_BUTTON_WIDTH;
-int MenuEntry::NEW_WORDS_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
-int MenuEntry::GRAMMAR_BUTTON_X_OFFSET = 1 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
-int MenuEntry::TEXT_BUTTON_X_OFFSET = 2 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
-int MenuEntry::EXERCISES_BUTTON_X_OFFSET = 3 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::GRAMMAR_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::TEXT_BUTTON_X_OFFSET = 1 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::EXERCISES_BUTTON_X_OFFSET = 2 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 
 int MenuEntry::RATED_WORDS_BUTTON_X_OFFSET = 4 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::LESSON_RANGE_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET - MenuEntry::BUTTON_GAP;
+int MenuEntry::ORDER_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + 32;
 int MenuEntry::EASY_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*0;
 int MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*1;
 int MenuEntry::HARD_WORDS_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET + SMALL_BUTTON_WIDTH*2;
@@ -118,13 +126,19 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		y_offset(5), v_y(0), active_list_id(0), sub_frame_count(0), 
 		book_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
 		lesson_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
-		new_words_button(menu_screen,"生词",SpriteSize_32x16,MenuEntry::NEW_WORDS_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
 		grammar_button(menu_screen,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		text_button(menu_screen,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		exercises_button(menu_screen,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
 		explode_button(menu_screen,"open",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
 		implode_button(menu_screen,"close",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
+		lesson_range_button(menu_screen,"",SpriteSize_32x16,MenuEntry::LESSON_RANGE_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		book_range_button(menu_screen,"",SpriteSize_32x16,MenuEntry::LESSON_RANGE_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		order_index_button(menu_screen,"#",SpriteSize_32x16,MenuEntry::ORDER_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,2),
+		order_latency_button(menu_screen,"",SpriteSize_32x16,MenuEntry::ORDER_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		order_random_button(menu_screen,"",SpriteSize_32x16,MenuEntry::ORDER_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		rating_bar_any_extension(menu_screen,"",SpriteSize_32x16,MenuEntry::RATED_WORDS_BUTTON_X_OFFSET-16,0,program.ft->latin_face,7),
 		rating_bar(menu_screen,"",SpriteSize_64x32,MenuEntry::RATED_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
+		rating_any(menu_screen,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET-16,0,program.ft->latin_face,7),
 		rating_easy(menu_screen,"",SpriteSize_16x16,MenuEntry::EASY_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
 		rating_medium(menu_screen,"",SpriteSize_16x16,MenuEntry::MEDIUM_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
 		rating_hard(menu_screen,"",SpriteSize_16x16,MenuEntry::HARD_WORDS_BUTTON_X_OFFSET,0,program.ft->latin_face,7),
@@ -147,7 +161,6 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		this->program, this->info_screen) );
 	
 	// store list of reference buttons to be initialized:
-	this->text_buttons.push_back( &this->new_words_button );
 	this->text_buttons.push_back( &this->grammar_button );
 	this->text_buttons.push_back( &this->text_button );
 	this->text_buttons.push_back( &this->exercises_button );
@@ -155,7 +168,14 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 	this->text_buttons.push_back( &this->jump_up_button );
 	this->text_buttons.push_back( &this->explode_button );
 	this->text_buttons.push_back( &this->implode_button );
+	this->text_buttons.push_back( &this->lesson_range_button );
+	this->text_buttons.push_back( &this->book_range_button );
+	this->text_buttons.push_back( &this->order_index_button );
+	this->text_buttons.push_back( &this->order_latency_button );
+	this->text_buttons.push_back( &this->order_random_button );
+	this->text_buttons.push_back( &this->rating_bar_any_extension );
 	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_any );
 	this->text_buttons.push_back( &this->rating_easy );
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
@@ -237,18 +257,28 @@ MenuEntry::MenuEntry( LessonMenu& _lesson_menu )
 	lesson_menu( _lesson_menu ),
 	text_surface( new RenderScreenBuffer(200, MenuEntry::BASE_HEIGHT) ),
 	exploded(false), top(0), last_frame_rendered(0),
+	rating_bar_any_extension( _lesson_menu.rating_bar_any_extension ),
 	rating_bar( _lesson_menu.rating_bar ),
+	rating_any( _lesson_menu.rating_any ),
 	rating_easy( _lesson_menu.rating_easy ),
 	rating_medium( _lesson_menu.rating_easy ),
 	rating_hard( _lesson_menu.rating_hard ),
 	rating_impossible( _lesson_menu.rating_impossible ),
+	order_index_button( _lesson_menu.order_index_button ),
+	order_latency_button( _lesson_menu.order_latency_button ),
+	order_random_button( _lesson_menu.order_random_button ),
 	cached_rating( RATING_NONE )
 {
+	this->text_buttons.push_back( &this->rating_bar_any_extension );
 	this->text_buttons.push_back( &this->rating_bar );
+	this->text_buttons.push_back( &this->rating_any );
 	this->text_buttons.push_back( &this->rating_easy );
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->order_index_button );
+	this->text_buttons.push_back( &this->order_latency_button );
+	this->text_buttons.push_back( &this->order_random_button );
 	
 	this->init_button_vram();
 }
@@ -271,20 +301,22 @@ BookEntry::BookEntry( LessonMenu& _lesson_menu, Book* _book )
 LessonEntry::LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson )
 	: MenuEntry(_lesson_menu), lesson(_lesson),
 	lesson_icon( _lesson_menu.lesson_icon ),
-	new_words_button( _lesson_menu.new_words_button ),
 	grammar_button( _lesson_menu.grammar_button ),
 	text_button( _lesson_menu.text_button ),
 	exercises_button( _lesson_menu.exercises_button ),
 	jump_down_button( _lesson_menu.jump_down_button ),
-	jump_up_button( _lesson_menu.jump_up_button )
+	jump_up_button( _lesson_menu.jump_up_button ),
+	lesson_range_button( _lesson_menu.lesson_range_button ),
+	book_range_button( _lesson_menu.book_range_button )
 {
 	this->text_buttons.push_back( &this->lesson_icon );
-	this->text_buttons.push_back( &this->new_words_button );
 	this->text_buttons.push_back( &this->grammar_button );
 	this->text_buttons.push_back( &this->text_button );
 	this->text_buttons.push_back( &this->exercises_button );
 	this->text_buttons.push_back( &this->jump_down_button );
 	this->text_buttons.push_back( &this->jump_up_button );
+	this->text_buttons.push_back( &this->lesson_range_button );
+	this->text_buttons.push_back( &this->book_range_button );
 	
 	this->init_button_vram();
 	
@@ -322,20 +354,16 @@ void LessonMenu::init_button_vram()
 	this->book_icon.init_vram( accessories_dictionaryBitmap, this->book_icon.bg_vram );
 	this->book_icon.init_vram( accessories_dictionary_openBitmap, this->book_icon.bg_active_vram );
 	this->lesson_icon.init_vram( text_x_genericBitmap, this->lesson_icon.bg_vram );
-	this->new_words_button.init_vram( menu_buttonBitmap, this->new_words_button.bg_vram );
-	this->new_words_button.init_vram( menu_button_activeBitmap, this->new_words_button.bg_active_vram );
-	this->new_words_button.init_vram( menu_button_inactiveBitmap, this->new_words_button.bg_inactive_vram );
-	this->grammar_button.bg_vram = this->new_words_button.bg_vram;
-	this->grammar_button.bg_active_vram = this->new_words_button.bg_active_vram;
-	this->grammar_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
-	this->grammar_button.owns_bg_vram = false;
-	this->text_button.bg_vram = this->new_words_button.bg_vram;
-	this->text_button.bg_active_vram = this->new_words_button.bg_active_vram;
-	this->text_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
+	this->grammar_button.init_vram( menu_buttonBitmap, this->grammar_button.bg_vram );
+	this->grammar_button.init_vram( menu_button_activeBitmap, this->grammar_button.bg_active_vram );
+	this->grammar_button.init_vram( menu_button_inactiveBitmap, this->grammar_button.bg_inactive_vram );
+	this->text_button.bg_vram = this->grammar_button.bg_vram;
+	this->text_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->text_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
 	this->text_button.owns_bg_vram = false;
-	this->exercises_button.bg_vram = this->new_words_button.bg_vram;
-	this->exercises_button.bg_active_vram = this->new_words_button.bg_active_vram;
-	this->exercises_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
+	this->exercises_button.bg_vram = this->grammar_button.bg_vram;
+	this->exercises_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->exercises_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
 	this->exercises_button.owns_bg_vram = false;
 
 	this->jump_down_button.init_vram( small_menu_buttonBitmap, this->jump_down_button.bg_vram );
@@ -346,18 +374,48 @@ void LessonMenu::init_button_vram()
 	this->jump_up_button.bg_inactive_vram = this->jump_down_button.bg_inactive_vram;
 	this->jump_up_button.owns_bg_vram = false;
 	
-	this->explode_button.bg_vram = this->new_words_button.bg_vram;
-	this->explode_button.bg_active_vram = this->new_words_button.bg_active_vram;
-	this->explode_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
+	this->explode_button.bg_vram = this->grammar_button.bg_vram;
+	this->explode_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->explode_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
 	this->explode_button.owns_bg_vram = false;
-	this->implode_button.bg_vram = this->new_words_button.bg_vram;
-	this->implode_button.bg_active_vram = this->new_words_button.bg_active_vram;
-	this->implode_button.bg_inactive_vram = this->new_words_button.bg_inactive_vram;
+	this->implode_button.bg_vram = this->grammar_button.bg_vram;
+	this->implode_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->implode_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
 	this->implode_button.owns_bg_vram = false;
 
+	this->lesson_range_button.init_vram( tiny_lessonBitmap, this->lesson_range_button.fg_vram );
+	this->lesson_range_button.bg_vram = this->grammar_button.bg_vram;
+	this->lesson_range_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->lesson_range_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
+	this->lesson_range_button.owns_bg_vram = false;
+	this->book_range_button.init_vram( tiny_lessonsBitmap, this->book_range_button.fg_vram );
+	this->book_range_button.bg_vram = this->grammar_button.bg_vram;
+	this->book_range_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->book_range_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
+	this->book_range_button.owns_bg_vram = false;
+
+	this->order_index_button.bg_vram = this->grammar_button.bg_vram;
+	this->order_index_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->order_index_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
+	this->order_index_button.owns_bg_vram = false;
+	this->order_latency_button.init_vram( tiny_clockBitmap, this->order_latency_button.fg_vram );
+	this->order_latency_button.bg_vram = this->grammar_button.bg_vram;
+	this->order_latency_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->order_latency_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
+	this->order_latency_button.owns_bg_vram = false;
+	this->order_random_button.init_vram( tiny_diceBitmap, this->order_random_button.fg_vram );
+	this->order_random_button.bg_vram = this->grammar_button.bg_vram;
+	this->order_random_button.bg_active_vram = this->grammar_button.bg_active_vram;
+	this->order_random_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
+	this->order_random_button.owns_bg_vram = false;
+	
+	this->rating_bar_any_extension.init_vram( center_rating_bar_any_extensionBitmap, this->rating_bar_any_extension.bg_vram );
+	this->rating_bar_any_extension.bg_prio = 2; // place bar behind rating emotes
 	this->rating_bar.init_vram( center_rating_barBitmap, this->rating_bar.bg_vram );
 	this->rating_bar.init_vram( center_rating_bar_disabledBitmap, this->rating_bar.bg_inactive_vram );
 	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
+	//this->rating_any.init_vram( bottom_rating_anyBitmap, this->rating_any.bg_vram );
+	this->rating_any.init_vram( bottom_rating_any_activeBitmap, this->rating_any.bg_active_vram );
 	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
 	this->rating_easy.init_vram( bottom_rating_easy_activeBitmap, this->rating_easy.bg_active_vram );
 	this->rating_easy.init_vram( bottom_rating_easy_disabledBitmap, this->rating_easy.bg_inactive_vram );
@@ -397,16 +455,24 @@ void LessonMenu::init_button_vram()
 
 void MenuEntry::init_button_vram()
 {
+	this->rating_bar_any_extension = this->lesson_menu.rating_bar_any_extension;
 	this->rating_bar = this->lesson_menu.rating_bar;
+	this->rating_any = this->lesson_menu.rating_any;
 	this->rating_easy = this->lesson_menu.rating_easy;
 	this->rating_medium = this->lesson_menu.rating_medium;
 	this->rating_hard = this->lesson_menu.rating_hard;
 	this->rating_impossible = this->lesson_menu.rating_impossible;
+	this->order_index_button = this->lesson_menu.order_index_button;
+	this->order_index_button.bg_prio = this->order_index_button.text_prio = this->order_index_button.fg_prio = 2;
+	this->order_latency_button = this->lesson_menu.order_latency_button;
+	this->order_latency_button.bg_prio = this->order_latency_button.text_prio = this->order_latency_button.fg_prio = 2;
+	this->order_random_button = this->lesson_menu.order_random_button;
+	this->order_random_button.bg_prio = this->order_random_button.text_prio = this->order_random_button.fg_prio = 2;
 	
 	for( TextButtonList::iterator tbi=this->text_buttons.begin();
 		tbi!=this->text_buttons.end(); tbi++ )
 	{
-		(*tbi)->owns_bg_vram = (*tbi)->owns_text_vram
+		(*tbi)->owns_bg_vram = (*tbi)->owns_text_vram = (*tbi)->owns_fg_vram
 		= (*tbi)->disabled = (*tbi)->hidden = false;
 	}
 	
@@ -426,16 +492,18 @@ void BookEntry::init_button_vram()
 void LessonEntry::init_button_vram()
 {
 	this->lesson_icon = this->lesson_menu.lesson_icon;
-	this->new_words_button = this->lesson_menu.new_words_button;
-	this->new_words_button.bg_prio = 3; this->new_words_button.text_prio = 2;
 	this->grammar_button = this->lesson_menu.grammar_button;
-	this->grammar_button.bg_prio = 3; this->grammar_button.text_prio = 2;
+	this->grammar_button.bg_prio = this->grammar_button.text_prio = 2;
 	this->text_button = this->lesson_menu.text_button;
-	this->text_button.bg_prio = 3; this->text_button.text_prio = 2;
+	this->text_button.bg_prio = this->text_button.text_prio = 2;
 	this->exercises_button = this->lesson_menu.exercises_button;
-	this->exercises_button.bg_prio = 3; this->exercises_button.text_prio = 2;
+	this->exercises_button.bg_prio = this->exercises_button.text_prio = 2;
 	this->jump_down_button = this->lesson_menu.jump_down_button;
 	this->jump_up_button = this->lesson_menu.jump_up_button;
+	this->lesson_range_button = this->lesson_menu.lesson_range_button;
+	this->lesson_range_button.bg_prio = this->lesson_range_button.text_prio = this->lesson_range_button.fg_prio = 2;
+	this->book_range_button = this->lesson_menu.book_range_button;
+	this->book_range_button.bg_prio = this->book_range_button.text_prio = this->book_range_button.fg_prio = 2;
 	
 	MenuEntry::init_button_vram();
 }
@@ -697,12 +765,27 @@ void MenuEntry::render_buttons( OamState* oam_state, int& oam_entry )
 	if( active ) y = this->top + MenuEntry::BUTTON_ACTIVE_Y_OFFSET;
 	else y = this->top + MenuEntry::BUTTON_Y_OFFSET;
 	
+	// show any rating selector on selected menu entries only:
+	this->rating_bar_any_extension.hidden = this->rating_bar_any_extension.disabled
+	= this->rating_any.hidden = this->rating_any.disabled
+	= this->order_index_button.hidden = this->order_index_button.disabled
+	= this->order_latency_button.hidden = this->order_latency_button.disabled
+	= this->order_random_button.hidden = this->order_random_button.disabled
+	= !active;
+	
 	this->rating_bar.y 
 	= this->rating_easy.y 
 	= this->rating_medium.y
 	= this->rating_hard.y
 	= this->rating_impossible.y
+	= this->rating_bar_any_extension.y
+	= this->rating_any.y
 	= y;
+	
+	this->order_index_button.y
+	= this->order_latency_button.y
+	= this->order_random_button.y
+	= this->top + MenuEntry::BUTTON_Y_OFFSET;
 	
 	// hide all but currently active rating:
 	this->rating_easy.hidden = !( this->rating_easy.active || this->cached_rating==RATING_EASY );
@@ -717,6 +800,16 @@ void MenuEntry::render_buttons( OamState* oam_state, int& oam_entry )
 	= this->rating_hard.disabled
 	= this->rating_impossible.disabled
 	= !active;
+	
+	if( active )
+	{
+		this->order_index_button.hidden = this->order_index_button.disabled 
+		= !(this->lesson_menu.choice.content_order==LessonMenuChoice::CONTENT_ORDER_INDEX);
+		this->order_latency_button.hidden = this->order_latency_button.disabled 
+		= !(this->lesson_menu.choice.content_order==LessonMenuChoice::CONTENT_ORDER_LATENCY);
+		this->order_random_button.hidden = this->order_random_button.disabled 
+		= !(this->lesson_menu.choice.content_order==LessonMenuChoice::CONTENT_ORDER_RANDOM);
+	}
 	
 	ButtonProvider::render_buttons(oam_state, oam_entry);
 }
@@ -754,34 +847,42 @@ void BookEntry::render_buttons(OamState* oam_state, int& oam_entry)
 
 void LessonEntry::render_buttons(OamState* oam_state, int& oam_entry)
 {
-	// only render MOST buttons on selected entry:
+	// render most buttons on selected lesson entry only:
 	bool active = this->get_entry_id()==this->lesson_menu.active_list_id;
 	this->jump_down_button.hidden = this->jump_down_button.disabled
 	= this->jump_up_button.hidden = this->jump_up_button.disabled
-	= this->new_words_button.hidden = this->new_words_button.disabled
 	= this->grammar_button.hidden = this->grammar_button.disabled
 	= this->text_button.hidden = this->text_button.disabled
 	= this->exercises_button.hidden = this->exercises_button.disabled
+	= this->lesson_range_button.hidden = this->lesson_range_button.disabled
+	= this->book_range_button.hidden = this->book_range_button.disabled
 	= !active;
 	
 	this->lesson_icon.y = this->top;
 	
 	if( active )
 	{
+		// range button is rendered above normal buttons;
+		this->lesson_range_button.y
+		= this->book_range_button.y
+		= this->top + MenuEntry::BUTTON_Y_OFFSET;
+		
 		int y = this->top + MenuEntry::BUTTON_ACTIVE_Y_OFFSET;
 		this->jump_down_button.y 
 		= this->jump_up_button.y
-		= this->new_words_button.y
 		= this->grammar_button.y
 		= this->text_button.y
 		= this->exercises_button.y
 		= y;
 		
-		// FIXME: query database for dynamic assignments, if no static words exist for this lesson:
-		this->new_words_button.disabled = false; //!this->lesson->new_words_available;
 		this->grammar_button.disabled = !this->lesson->grammar_texts_available;
 		this->text_button.disabled = !this->lesson->lesson_texts_available;
 		this->exercises_button.disabled = !this->lesson->exercises_available;
+		
+		this->lesson_range_button.hidden = this->lesson_range_button.disabled 
+		= !(this->lesson_menu.choice.content_range==LessonMenuChoice::CONTENT_RANGE_LESSON);
+		this->book_range_button.hidden = this->book_range_button.disabled 
+		= !(this->lesson_menu.choice.content_range==LessonMenuChoice::CONTENT_RANGE_BOOK);
 	}
 	
 	MenuEntry::render_buttons(oam_state, oam_entry);
@@ -846,6 +947,14 @@ ButtonAction MenuEntry::handle_button_pressed(TextButton* text_button)
 	if( this->last_frame_rendered!=this->lesson_menu.sub_frame_count )
 		return BUTTON_ACTION_UNHANDLED;
 	
+	/* TODO: query word list availability from database for each rating and deny access to empty word 
+		lists with a short warning */
+	
+	if( text_button == &this->rating_any )
+	{
+		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_ANY_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
 	if( text_button == &this->rating_easy )
 	{
 		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_EASY_WORDS;
@@ -865,6 +974,21 @@ ButtonAction MenuEntry::handle_button_pressed(TextButton* text_button)
 	{
 		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->order_index_button )
+	{
+		this->lesson_menu.choice.content_order = LessonMenuChoice::CONTENT_ORDER_LATENCY; // change to latency ordering
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->order_latency_button )
+	{
+		this->lesson_menu.choice.content_order = LessonMenuChoice::CONTENT_ORDER_RANDOM; // change to random ordering
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->order_random_button )
+	{
+		this->lesson_menu.choice.content_order = LessonMenuChoice::CONTENT_ORDER_INDEX; // change back to index ordering
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed(text_button);
@@ -936,11 +1060,6 @@ ButtonAction LessonEntry::handle_button_pressed(TextButton* text_button)
 		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->new_words_button )
-	{
-		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_NEW_WORDS;
-		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
-	}
 	if( text_button == &this->grammar_button )
 	{
 		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_GRAMMAR;
@@ -955,6 +1074,16 @@ ButtonAction LessonEntry::handle_button_pressed(TextButton* text_button)
 	{
 		this->lesson_menu.choice.content_type = LessonMenuChoice::CONTENT_TYPE_EXERCISES;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->lesson_range_button )
+	{
+		this->lesson_menu.choice.content_range = LessonMenuChoice::CONTENT_RANGE_BOOK; // change to book/multi-lesson scope
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->book_range_button )
+	{
+		this->lesson_menu.choice.content_range = LessonMenuChoice::CONTENT_RANGE_LESSON; // change to back single lesson scope
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return MenuEntry::handle_button_pressed(text_button);

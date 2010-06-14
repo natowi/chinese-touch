@@ -62,7 +62,7 @@ class NewWordsViewer : public Mode
 		int pixels_drawn;
 		bool clear_on_switch, randomize_list;
 	public:
-		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position );
+		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();

@@ -107,6 +107,7 @@ void Program::run()
 			
 			switch( lesson_menu_choice.content_type )
 			{
+				case LessonMenuChoice::CONTENT_TYPE_ANY_WORDS:
 				case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS:
 				case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS:
 				case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS:
@@ -133,28 +134,41 @@ void Program::run()
 							condition << " rating>=" << RATING_NONE;
 							break;
 					}
+					std::stringstream ordering;
+					switch( lesson_menu_choice.content_order )
+					{
+						case LessonMenuChoice::CONTENT_ORDER_INDEX:
+							ordering << " book_id, lesson_number, file_offset";
+							break;
+						case LessonMenuChoice::CONTENT_ORDER_LATENCY:
+							ordering << " atime";
+							break;
+						case LessonMenuChoice::CONTENT_ORDER_RANDOM:
+							// done from cpp later...
+							break;
+					}
+					bool position_saving = false;
 					if( lesson_menu_choice.lesson )
-						condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
-					this->words_db->query_words( *this->library, condition.str(), words, "atime" );
+					{
+						lesson_menu_choice.lesson->parse_dictionary_if_needed();
+						if( lesson_menu_choice.content_range==LessonMenuChoice::CONTENT_RANGE_LESSON )
+						{
+							condition << " and lesson_number=" << lesson_menu_choice.lesson->number;
+							// let word list browser do position saving, when single lesson range word list 
+							// with offset ordering was requested:
+							if( lesson_menu_choice.content_order == LessonMenuChoice::CONTENT_ORDER_INDEX )
+								position_saving = true;
+						}
+						else if( lesson_menu_choice.content_range==LessonMenuChoice::CONTENT_RANGE_BOOK )
+						{
+							condition << " and lesson_number<=" << lesson_menu_choice.lesson->number;
+						}
+					}
+					this->words_db->query_words( *this->library, condition.str(), words, ordering.str() );
 					if( lesson_menu_choice.lesson ) config->save_position( lesson_menu_choice.lesson, true );
 					else if( lesson_menu_choice.book ) config->save_position( lesson_menu_choice.book, true );
-					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, false );
-					new_words->run_until_exit();
-					delete new_words;
-					break;
-				}
-				case LessonMenuChoice::CONTENT_TYPE_NEW_WORDS:
-				{
-					Lesson* lesson = lesson_menu_choice.lesson;
-					if( !lesson )
-						throw ERROR( "LessonMenu returned no lesson" );
-					this->config->save_position( lesson, true );
-					lesson->parse_dictionary_if_needed();
-					NewWordList words;
-					std::stringstream condition;
-					condition << "lesson_id=" << lesson->id;
-					this->words_db->query_words( *this->library, condition.str(), words, "file_offset" );
-					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, true );
+					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, position_saving, 
+										(lesson_menu_choice.content_order == LessonMenuChoice::CONTENT_ORDER_RANDOM) );
 					new_words->run_until_exit();
 					delete new_words;
 					break;

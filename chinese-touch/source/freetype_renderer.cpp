@@ -316,10 +316,11 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 				}
 				continue;
 			}
-			else if( input_char_it->code_point==9
-					|| input_char_it->code_point==0x0d )
+			else if( input_char_it->code_point==9 /*Tab*/
+					|| input_char_it->code_point==0x0d /*CR*/
+					|| input_char_it->code_point==0xfeff /*BOM*/ )
 			{
-				continue;
+				continue; // ignore
 			}
 			WARN(  "error translating character code: " << input_char_it->code_point );
 			glyph_index = FT_Get_Char_Index( this->han_face, 0xbf /*¿*/ );

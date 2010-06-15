@@ -54,7 +54,7 @@ class MenuEntry : public ButtonProvider
 	public:
 		LessonMenu& lesson_menu;
 		RenderScreenBuffer* text_surface;
-		bool exploded;
+		bool exploded, text_rendered;
 		int top;
 		int last_frame_rendered;
 		static int BASE_HEIGHT;
@@ -96,6 +96,7 @@ class MenuEntry : public ButtonProvider
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual void render_text( FreetypeRenderer& ft, const std::string& text );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
+		virtual std::string get_title() = 0;
 };
 
 
@@ -110,6 +111,7 @@ class BookEntry : public MenuEntry
 		virtual void init_button_vram();
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
+		virtual std::string get_title() { return this->book->title; }
 };
 
 
@@ -125,6 +127,7 @@ class LessonEntry : public MenuEntry
 		virtual void init_button_vram();
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
+		virtual std::string get_title() { return this->lesson->title; }
 };
 
 

@@ -250,7 +250,6 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 				BookEntry* entry = new BookEntry( *this, book_it->second );
 				if( config_lesson_number ) entry->exploded = true;
 				this->menu_list[ static_cast<void*>(entry->book) ] = entry;
-				entry->render_text( *this->program.ft, entry->book->title );
 				break;
 			}
 		}
@@ -261,7 +260,7 @@ MenuEntry::MenuEntry( LessonMenu& _lesson_menu )
 	: ButtonProvider( _lesson_menu.button_provider_list, *_lesson_menu.program.ft ), 
 	lesson_menu( _lesson_menu ),
 	text_surface( new RenderScreenBuffer(200, MenuEntry::BASE_HEIGHT) ),
-	exploded(false), top(0), last_frame_rendered(0),
+	exploded(false), text_rendered(false), top(0), last_frame_rendered(0),
 	rating_bar_any_extension( _lesson_menu.rating_bar_any_extension ),
 	rating_bar( _lesson_menu.rating_bar ),
 	rating_any( _lesson_menu.rating_any ),
@@ -668,7 +667,6 @@ void LessonMenu::render( Screen screen )
 				{
 					book_entry = new BookEntry( *this, book_it->second );
 					this->menu_list[ book_id ] = book_entry;
-					book_entry->render_text( *this->program.ft, book_it->second->title );
 				}
 				book_entry->top = top;
 				book_entry->last_frame_rendered = this->sub_frame_count;
@@ -697,7 +695,6 @@ void LessonMenu::render( Screen screen )
 						{
 							lesson_entry = new LessonEntry( *this, lesson_it->second );
 							this->menu_list[ lesson_id ] = lesson_entry;
-							lesson_entry->render_text( *this->program.ft, lesson_it->second->title );
 						}
 						lesson_entry->top = top;
 						lesson_entry->last_frame_rendered = this->sub_frame_count;
@@ -905,6 +902,7 @@ void MenuEntry::render_text( FreetypeRenderer& ft, const std::string& text )
 	//render_style.linebreak = false;
 	ft.render( *this->text_surface, text,
 		ft.latin_face, MenuEntry::FONT_SIZE, 0, 0, &render_style );
+	this->text_rendered = true;
 }
 
 
@@ -1188,6 +1186,12 @@ ButtonAction LessonMenu::handle_touch_end(touchPosition touch)
 	return action;
 }
 
+bool update_priority_sort_pred( MenuEntry* left, MenuEntry* right )
+{
+	int focus = left->lesson_menu.menu_screen.res_y/3;
+	return abs(left->top-focus) < abs(right->top-focus);
+}
+
 ButtonAction LessonMenu::handle_idle_cycles()
 {
 	this->pixels_scrolled = 0;
@@ -1200,9 +1204,33 @@ ButtonAction LessonMenu::handle_idle_cycles()
 		if( !resistance ) resistance = this->v_y;
 		this->v_y -= resistance;
 		this->y_offset += this->v_y;
-		// FIXME: force render() not to updates sprites, to make scrolling effect faster
+		// TODO: force render() not to update static sprites, to make scrolling effect faster
 		this->render( SCREEN_SUB );
 		return BUTTON_ACTION_CHANGED;
+	}
+	else
+	{
+		std::list<MenuEntry*> update_list;
+		// find one menu entry near the center of the screen, with a missing text buffer and render it
+		for( MenuList::iterator entry_it = this->menu_list.begin(); entry_it != this->menu_list.end(); entry_it++ )
+		{
+			MenuEntry* entry = entry_it->second;
+			//                      render visible entries only for now as the ui becomes too unresponsive otherwise
+			if( !entry->text_rendered && entry->last_frame_rendered==this->sub_frame_count ) 
+			{
+				update_list.push_back( entry );
+			}
+		}
+		if( update_list.size() )
+		{
+			update_list.sort( update_priority_sort_pred );
+			MenuEntry* entry = *update_list.begin();
+			entry->render_text( *this->program.ft, entry->get_title() );
+			if( entry->last_frame_rendered==this->sub_frame_count )
+			{
+				this->render( SCREEN_SUB );
+			}
+		}
 	}
 	
 	return Mode::handle_idle_cycles();

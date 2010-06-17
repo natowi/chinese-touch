@@ -18,7 +18,8 @@ public:
 	std::string name, text;
 	SpriteSize sprite_size, text_sprite_size;
 	int width, height, sensor_width, sensor_height, text_width, text_height, 
-		x, y, text_x_offset, text_y_offset, bg_prio, text_prio, fg_prio;
+		x, y, text_x_offset, text_y_offset, bg_prio, text_prio, fg_prio,
+		bg_rotation, text_rotation, fg_rotation;
 	u16 *text_vram, *bg_vram, *bg_active_vram, *bg_inactive_vram, *fg_vram;
 	bool active, disabled, hidden, owns_bg_vram, owns_text_vram, owns_fg_vram;
 	FT_Face face;

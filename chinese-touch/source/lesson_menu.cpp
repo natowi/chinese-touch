@@ -50,6 +50,7 @@
 #include "tiny_lessons.h"
 #include "tiny_dice.h"
 #include "tiny_clock.h"
+#include "loading.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -155,6 +156,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		jump_up_button(menu_screen,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		settings_button(menu_screen,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
 		search_button(menu_screen,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1),
+		loading_symbol(menu_screen,"",SpriteSize_32x32,menu_screen.res_x/2-16,menu_screen.res_y/2-16,program.ft->han_face,14,0,1),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
 {
 	this->init_mode();
@@ -183,6 +185,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
+	this->text_buttons.push_back( &this->loading_symbol );
 	for( TextButtonList::iterator tbi=this->text_buttons.begin();
 		tbi!=this->text_buttons.end(); tbi++ )
 	{
@@ -299,6 +302,8 @@ BookEntry::BookEntry( LessonMenu& _lesson_menu, Book* _book )
 	
 	this->init_button_vram();
 	
+	this->book_icon.disabled = true; // ignore input events on book icon
+	
 	this->cached_rating = static_cast<Rating>( round(lesson_menu.program.words_db->get_avg_rating(this->book)) );
 }
 
@@ -323,6 +328,8 @@ LessonEntry::LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson )
 	this->text_buttons.push_back( &this->book_range_button );
 	
 	this->init_button_vram();
+	
+	this->lesson_icon.disabled = true; // ignore input events on lesson icon
 	
 	this->cached_rating = static_cast<Rating>( round(lesson_menu.program.words_db->get_avg_rating(this->lesson)) );
 }
@@ -458,6 +465,8 @@ void LessonMenu::init_button_vram()
 	
 	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
+	
+	this->loading_symbol.init_vram( loadingBitmap, this->loading_symbol.bg_vram );
 	
 	ButtonProvider::init_button_vram();
 }
@@ -1115,6 +1124,7 @@ ButtonAction LessonMenu::handle_touch_begin(touchPosition touch)
 	this->old_touch = touch;
 	this->pixels_scrolled = 0;
 	this->old_y_offset = this->y_offset;
+	this->loading_symbol.hidden = true;
 	
 	return Mode::handle_touch_begin(touch);
 }
@@ -1223,11 +1233,28 @@ ButtonAction LessonMenu::handle_idle_cycles()
 		}
 		if( update_list.size() )
 		{
+			if( this->loading_symbol.hidden )
+			{
+				this->loading_symbol.hidden = false;
+				this->render( SCREEN_SUB );
+			}
+			else
+			{
+				this->loading_symbol.bg_rotation = (this->loading_symbol.bg_rotation > 0) ?  (this->loading_symbol.bg_rotation - 1) : 31;
+			}
 			update_list.sort( update_priority_sort_pred );
 			MenuEntry* entry = *update_list.begin();
 			entry->render_text( *this->program.ft, entry->get_title() );
 			if( entry->last_frame_rendered==this->sub_frame_count )
 			{
+				this->render( SCREEN_SUB );
+			}
+		}
+		else
+		{
+			if( !this->loading_symbol.hidden )
+			{
+				this->loading_symbol.hidden = true;
 				this->render( SCREEN_SUB );
 			}
 		}

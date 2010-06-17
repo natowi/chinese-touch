@@ -41,8 +41,15 @@ void Mode::init_vram()
 	{
 		(*bpi)->init_button_vram();
 	}
+	
 	// load gray scale sprite palette for button text labels
 	dmaCopy( greys256Pal, SPRITE_PALETTE_SUB, 256*2 );
+	
+	// initialize 32 unscaled rotation matrices each differing by 360/32 degrees:
+	for( int i = 0; i < 32; i++ )
+	{
+		oamRotateScale( &oamSub, i, degreesToAngle((i*360)/32), intToFixed(1, 8), intToFixed(1, 8) );
+	}
 }
 
 void ButtonProvider::free_button_vram()

@@ -40,7 +40,7 @@ public:
 	static int LINE_HEIGHT;
 	ContextMode context_mode;
 	RenderChar* context_render_char;
-	TextButton exit_button, settings_button, up_button;
+	TextButton exit_button, settings_button, up_button, loading_symbol;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */
@@ -53,6 +53,10 @@ public:
 	int old_y_offset; //!< used for scrolling
 	int old_abs_y_diff; //!< used for scrolling
 	int pixels_scrolled; //!< used for scrolling
+	UCCharList char_list;
+	RenderInfo render_info;
+	unsigned int prev_size;
+	int org_size;
 public:
 	TextView( Program& _program, int _recursion_depth, Text& _text );
 	void init_mode();

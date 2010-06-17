@@ -9,6 +9,7 @@
 #include "sprite_helper.h"
 #include "words_db.h"
 #include "settings_dialog.h"
+#include "fulltext_search.h"
 
 #include "bottom_left_button.h"
 #include "bottom_left_button_active.h"
@@ -17,7 +18,7 @@
 #include "bg_dragon.h"
 #include "small_top_button.h"
 #include "small_top_button_active.h"
-#include "fulltext_search.h"
+#include "loading.h"
 
 
 int TextView::LINE_HEIGHT = 16;
@@ -33,9 +34,11 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 		exit_button(text_screen,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		settings_button(text_screen,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		up_button(text_screen,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
+		loading_symbol(text_screen,"",SpriteSize_32x32,text_screen.res_x-32,text_screen.res_y-32-16,program.ft->han_face,14,0,1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
 		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
-		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
+		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0), render_info( 0, 0, 0, 0 ),
+		prev_size(0), org_size(0)
 {
 	this->init_mode();
 	
@@ -49,6 +52,7 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 	this->text_buttons.push_back( &this->exit_button );
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->up_button );
+	this->text_buttons.push_back( &this->loading_symbol );
 	
 	// Up-Button is hidden by default (can be explicitly enabled by caller)
 	this->up_button.hidden = this->up_button.disabled = true;
@@ -58,39 +62,16 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
 	}
+	// ignore touch events on loading_symbol:
+	this->loading_symbol.disabled = true;
 	
 	this->restore_init_settings();
 	
-	UCCharList char_list;
-	if( !utf8_to_ucs4((unsigned char*)text.c_str(), char_list) )
+	if( !utf8_to_ucs4((unsigned char*)this->text.c_str(), this->char_list) )
     {
         WARN( "error in utf-8 input (non fatal)" );
     }
-	unsigned int prev_size = 0;
-	RenderInfo info( 0, 0, 0, 0 );
-	int org_size = char_list.size();
-	while( prev_size!=char_list.size() )
-	{
-		// break when no characters where consumed within two consecutive iterations
-		// 		to prevent endless loops
-		prev_size = char_list.size();
-		BufferedLine* buffered_line = new BufferedLine();
-		RenderStyle render_style;
-		render_style.multiline = false;
-		render_style.indentation_offset = info.indentation_offset;
-		info = this->program.ft->render( *buffered_line, char_list, 
-			this->program.ft->latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
-		this->push_back( buffered_line );
-		// render progress bar:
-		int progress_bar_pixels = (org_size-char_list.size())*this->word_screen.res_x/org_size;
-		for( int i=-4; i<=4; i++ )
-			for( int j=0; j<progress_bar_pixels; j++ )
-			{
-				u16* ptr = this->word_screen.bg_base_address+(this->word_screen.res_y/2+i)*this->word_screen.res_x+j;
-				*ptr |= 31<<10;
-				*ptr &= 0xffff^((1<<4)|(1<<9));
-			}
-	}
+	this->org_size = this->char_list.size();
 	
 	this->init_vram();
 }
@@ -125,6 +106,7 @@ void TextView::init_button_vram()
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	this->up_button.init_vram( small_top_buttonBitmap, this->up_button.bg_vram );
 	this->up_button.init_vram( small_top_button_activeBitmap, this->up_button.bg_active_vram );
+	this->loading_symbol.init_vram( loadingBitmap, this->loading_symbol.bg_vram );
 
 	ButtonProvider::init_button_vram();
 }
@@ -298,6 +280,7 @@ ButtonAction TextView::handle_touch_begin(touchPosition touch)
 	this->old_touch = touch;
 	this->pixels_scrolled = 0;
 	this->old_y_offset = this->y_offset;
+	this->loading_symbol.hidden = true;
 	
 	return Mode::handle_touch_begin(touch);
 }
@@ -443,6 +426,36 @@ ButtonAction TextView::handle_idle_cycles()
 		// FIXME: force render() not to updates sprites, to make scrolling effect faster
 		this->render( SCREEN_SUB );
 		return BUTTON_ACTION_CHANGED;
+	}
+	// render missing text lines until no characters where consumed within two consecutive iterations:
+	else if( this->prev_size != this->char_list.size() )
+	{
+		if( this->loading_symbol.hidden )
+		{
+			this->loading_symbol.hidden = false;
+			this->render( SCREEN_SUB );
+		}
+		else
+		{
+			this->loading_symbol.bg_rotation = (this->loading_symbol.bg_rotation > 0) ?  (this->loading_symbol.bg_rotation - 1) : 31;
+		}
+		this->prev_size = this->char_list.size();
+		BufferedLine* buffered_line = new BufferedLine();
+		RenderStyle render_style;
+		render_style.multiline = false;
+		render_style.indentation_offset = this->render_info.indentation_offset;
+		this->render_info = this->program.ft->render( *buffered_line, this->char_list, 
+			this->program.ft->latin_face, 8, 0, 0, &render_style, &buffered_line->render_char_list );
+		this->push_back( buffered_line );
+		this->render( SCREEN_SUB );
+	}
+	else
+	{
+		if( !this->loading_symbol.hidden )
+		{
+			this->loading_symbol.hidden = true;
+			this->render( SCREEN_SUB );
+		}
 	}
 	
 	return Mode::handle_idle_cycles();

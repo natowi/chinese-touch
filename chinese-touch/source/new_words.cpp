@@ -47,6 +47,7 @@
 #include "bottom_center_button.h"
 #include "bottom_center_button_active.h"
 #include "fulltext_search.h"
+#include "tiny_search.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library )
@@ -171,7 +172,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		down_button(_button_screen,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
 		add_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
 		remove_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
-		search_button(_button_screen,"词典",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1)
+		search_button(_button_screen,"",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1)
 {
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -222,6 +223,7 @@ void WordListBrowser::init_button_vram()
 	this->remove_button.init_vram( small_trash_activeBitmap, this->remove_button.bg_active_vram );
 	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
+	this->search_button.init_vram( tiny_searchBitmap, this->search_button.fg_vram );
 
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;

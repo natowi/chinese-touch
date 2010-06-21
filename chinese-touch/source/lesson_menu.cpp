@@ -51,6 +51,7 @@
 #include "tiny_dice.h"
 #include "tiny_clock.h"
 #include "loading.h"
+#include "tiny_search.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -155,7 +156,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		jump_down_button(menu_screen,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		jump_up_button(menu_screen,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		settings_button(menu_screen,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
-		search_button(menu_screen,"词典",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1),
+		search_button(menu_screen,"",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1),
 		loading_symbol(menu_screen,"",SpriteSize_32x32,menu_screen.res_x/2-16,menu_screen.res_y/2-16,program.ft->han_face,14,0,1),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
 {
@@ -465,6 +466,7 @@ void LessonMenu::init_button_vram()
 	
 	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
+	this->search_button.init_vram( tiny_searchBitmap, this->search_button.fg_vram );
 	
 	this->loading_symbol.init_vram( loadingBitmap, this->loading_symbol.bg_vram );
 	
@@ -605,7 +607,7 @@ void LessonMenu::render( Screen screen )
 			{
 				lesson_count += book_it->second->size();
 			}
-			stats_stream << "" << lesson_count << " lessons from " << this->program.library->size() << " books loaded." ;
+			stats_stream << "" << lesson_count << " lessons from " << this->program.library->size() << " books available." ;
 			stats_text = stats_stream.str();
 		}
 		int top = 0;

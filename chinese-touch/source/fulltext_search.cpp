@@ -68,6 +68,7 @@ void FulltextSearch::init_button_vram()
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	this->search_button.init_vram( large_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( large_center_button_activeBitmap, this->search_button.bg_active_vram );
+	this->search_button.init_vram( large_searchBitmap, this->search_button.fg_vram );
 	this->clear_button.init_vram( small_top_buttonBitmap, this->clear_button.bg_vram );
 	this->clear_button.init_vram( small_top_button_activeBitmap, this->clear_button.bg_active_vram );
 	

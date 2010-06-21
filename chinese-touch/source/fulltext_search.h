@@ -5,6 +5,7 @@
 #include "lesson.h"
 #include "settings_dialog.h"
 #include "new_words.h"
+#include "large_search.h"
 
 
 class FulltextSearch : public Mode

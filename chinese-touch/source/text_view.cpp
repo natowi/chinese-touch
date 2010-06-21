@@ -28,13 +28,13 @@ int TextView::MAX_ACCELERATION_FACTOR = 10;
 TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 	: Mode(_program, _recursion_depth), word_screen(SCREEN_MAIN), text_screen(SCREEN_SUB), text(_text),
 		word_browser(button_provider_list, *_program.ft, current_words, text_screen, *_program.library),
-		y_offset(5), v_y(0), sub_frame_count(0), current_highlight(0),
+		y_offset(16), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
 		exit_button(text_screen,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		settings_button(text_screen,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		up_button(text_screen,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
-		loading_symbol(text_screen,"",SpriteSize_32x32,text_screen.res_x-32,text_screen.res_y-32-16,program.ft->han_face,14,0,1),
+		loading_symbol(text_screen,"",SpriteSize_32x32,text_screen.res_x/2-16,text_screen.res_y/2-16,program.ft->han_face,14,0,1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
 		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0), render_info( 0, 0, 0, 0 ),
@@ -428,7 +428,9 @@ ButtonAction TextView::handle_idle_cycles()
 		return BUTTON_ACTION_CHANGED;
 	}
 	// render missing text lines until no characters where consumed within two consecutive iterations:
-	else if( this->prev_size != this->char_list.size() )
+	else if( (this->prev_size != this->char_list.size())
+				&& ((this->size() * TextView::LINE_HEIGHT + this->y_offset)
+					<= this->text_screen.res_y) ) 
 	{
 		if( this->loading_symbol.hidden )
 		{

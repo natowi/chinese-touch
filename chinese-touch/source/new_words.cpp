@@ -48,6 +48,7 @@
 #include "bottom_center_button_active.h"
 #include "fulltext_search.h"
 #include "tiny_search.h"
+#include "tiny_bubble.h"
 
 
 void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library )
@@ -162,7 +163,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		left_button(_button_screen,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
 		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
-		pronunciation_tab(_button_screen,"拼音",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
+		pronunciation_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
 		translation_tab(_button_screen,"latin",SpriteSize_32x16,button_screen.res_x/2+16+8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
 		rating_bar(_button_screen,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_easy(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
@@ -228,6 +229,7 @@ void WordListBrowser::init_button_vram()
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
 	this->pronunciation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	this->pronunciation_tab.init_vram( tiny_bubbleBitmap, this->pronunciation_tab.fg_vram );
 	this->pronunciation_tab.owns_bg_vram = false;
 	this->translation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->translation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;

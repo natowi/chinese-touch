@@ -95,7 +95,9 @@ class Book;
 class Lesson
 {
 public:
-    Lesson( int _number, Book* _book ) : number(_number), book(_book) {};
+    Lesson( int _number, Book* _book ) : number(_number), book(_book),
+		new_words_available(false), lesson_texts_available(false),
+		grammar_texts_available(false), exercises_available(false) {};
 	std::string find_config_file_by_extension( const std::string& extension );
     void parse_config( const std::string& lesson_file_name );
     int parse_dictionary_if_needed( bool count_only=false );

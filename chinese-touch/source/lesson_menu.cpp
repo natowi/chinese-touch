@@ -52,6 +52,8 @@
 #include "tiny_clock.h"
 #include "loading.h"
 #include "tiny_search.h"
+#include "tiny_book.h"
+#include "tiny_text.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -68,9 +70,7 @@ int MenuEntry::SMALL_BUTTON_WIDTH = 16;
 
 int MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET = ICON_X_OFFSET + 0 * SMALL_BUTTON_WIDTH;
 int MenuEntry::JUMP_UP_BUTTON_X_OFFSET = ICON_X_OFFSET + 1 * SMALL_BUTTON_WIDTH;
-int MenuEntry::GRAMMAR_BUTTON_X_OFFSET = 0 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
-int MenuEntry::TEXT_BUTTON_X_OFFSET = 1 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
-int MenuEntry::EXERCISES_BUTTON_X_OFFSET = 2 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
+int MenuEntry::BUTTON_X_OFFSET = MenuEntry::TEXT_X_OFFSET;
 
 int MenuEntry::RATED_WORDS_BUTTON_X_OFFSET = 4 * (MenuEntry::BUTTON_WIDTH+BUTTON_GAP) + MenuEntry::TEXT_X_OFFSET;
 int MenuEntry::LESSON_RANGE_BUTTON_X_OFFSET = RATED_WORDS_BUTTON_X_OFFSET - MenuEntry::BUTTON_GAP;
@@ -129,9 +129,9 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		y_offset(5), v_y(0), active_list_id(0), sub_frame_count(0), 
 		book_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9), 
 		lesson_icon(menu_screen,"",SpriteSize_32x32,MenuEntry::ICON_X_OFFSET,0,program.ft->latin_face,9),
-		grammar_button(menu_screen,"语法",SpriteSize_32x16,MenuEntry::GRAMMAR_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		text_button(menu_screen,"课文",SpriteSize_32x16,MenuEntry::TEXT_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		exercises_button(menu_screen,"练习",SpriteSize_32x16,MenuEntry::EXERCISES_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
+		grammar_button(menu_screen,"§",SpriteSize_32x16,0,0,program.ft->latin_face,11,0,-1),
+		text_button(menu_screen,"",SpriteSize_32x16,0,0,program.ft->han_face,9,1,1),
+		exercises_button(menu_screen,"",SpriteSize_32x16,0,0,program.ft->han_face,9,1),
 		explode_button(menu_screen,"open",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
 		implode_button(menu_screen,"close",SpriteSize_32x16,MenuEntry::EXPLODE_BUTTON_X_OFFSET,0,program.ft->latin_face,6,1,2),
 		lesson_range_button(menu_screen,"",SpriteSize_32x16,MenuEntry::LESSON_RANGE_BUTTON_X_OFFSET,0,program.ft->han_face,9,1),
@@ -373,9 +373,11 @@ void LessonMenu::init_button_vram()
 	this->text_button.bg_active_vram = this->grammar_button.bg_active_vram;
 	this->text_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
 	this->text_button.owns_bg_vram = false;
+	this->text_button.init_vram( tiny_bookBitmap, this->text_button.fg_vram );
 	this->exercises_button.bg_vram = this->grammar_button.bg_vram;
 	this->exercises_button.bg_active_vram = this->grammar_button.bg_active_vram;
 	this->exercises_button.bg_inactive_vram = this->grammar_button.bg_inactive_vram;
+	this->exercises_button.init_vram( tiny_textBitmap, this->exercises_button.fg_vram );
 	this->exercises_button.owns_bg_vram = false;
 
 	this->jump_down_button.init_vram( small_menu_buttonBitmap, this->jump_down_button.bg_vram );
@@ -857,7 +859,8 @@ void BookEntry::render_buttons(OamState* oam_state, int& oam_entry)
 	{
 		int y = this->top + MenuEntry::BUTTON_ACTIVE_Y_OFFSET;
 		this->explode_button.y = this->implode_button.y = y;
-		this->explode_button.hidden = this->explode_button.disabled = this->exploded;
+		this->explode_button.hidden = this->exploded;
+		this->explode_button.disabled = this->explode_button.hidden || !this->book->size();
 		this->implode_button.hidden = this->implode_button.disabled = !this->exploded;
 	}
 	
@@ -866,13 +869,15 @@ void BookEntry::render_buttons(OamState* oam_state, int& oam_entry)
 
 void LessonEntry::render_buttons(OamState* oam_state, int& oam_entry)
 {
+	// hide/disable different text catogories by default:
+	this->grammar_button.hidden = this->grammar_button.disabled
+	= this->text_button.hidden = this->text_button.disabled
+	= this->exercises_button.hidden = this->exercises_button.disabled
+	= true;
 	// render most buttons on selected lesson entry only:
 	bool active = this->get_entry_id()==this->lesson_menu.active_list_id;
 	this->jump_down_button.hidden = this->jump_down_button.disabled
 	= this->jump_up_button.hidden = this->jump_up_button.disabled
-	= this->grammar_button.hidden = this->grammar_button.disabled
-	= this->text_button.hidden = this->text_button.disabled
-	= this->exercises_button.hidden = this->exercises_button.disabled
 	= this->lesson_range_button.hidden = this->lesson_range_button.disabled
 	= this->book_range_button.hidden = this->book_range_button.disabled
 	= !active;
@@ -894,9 +899,25 @@ void LessonEntry::render_buttons(OamState* oam_state, int& oam_entry)
 		= this->exercises_button.y
 		= y;
 		
-		this->grammar_button.disabled = !this->lesson->grammar_texts_available;
-		this->text_button.disabled = !this->lesson->lesson_texts_available;
-		this->exercises_button.disabled = !this->lesson->exercises_available;
+		int x = MenuEntry::BUTTON_X_OFFSET;
+		if( this->lesson->grammar_texts_available )
+		{
+			this->grammar_button.hidden = this->grammar_button.disabled = false;
+			this->grammar_button.x = x;
+			x += MenuEntry::BUTTON_WIDTH + MenuEntry::BUTTON_GAP;
+		}
+		if( this->lesson->lesson_texts_available )
+		{
+			this->text_button.hidden = this->text_button.disabled = false;
+			this->text_button.x = x;
+			x += MenuEntry::BUTTON_WIDTH + MenuEntry::BUTTON_GAP;
+		}
+		if( this->lesson->exercises_available )
+		{
+			this->exercises_button.hidden = this->exercises_button.disabled = false;
+			this->exercises_button.x = x;
+			x += MenuEntry::BUTTON_WIDTH + MenuEntry::BUTTON_GAP;
+		}
 		
 		this->lesson_range_button.hidden = this->lesson_range_button.disabled 
 		= !(this->lesson_menu.choice.content_range==LessonMenuChoice::CONTENT_RANGE_LESSON);

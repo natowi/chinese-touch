@@ -429,7 +429,7 @@ ButtonAction TextView::handle_idle_cycles()
 	}
 	// render missing text lines until no characters where consumed within two consecutive iterations:
 	else if( (this->prev_size != this->char_list.size())
-				&& ((this->size() * TextView::LINE_HEIGHT + this->y_offset)
+				&& ((int)(this->size() * TextView::LINE_HEIGHT + this->y_offset)
 					<= this->text_screen.res_y) ) 
 	{
 		if( this->loading_symbol.hidden )

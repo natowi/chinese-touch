@@ -68,9 +68,7 @@ class MenuEntry : public ButtonProvider
 		static int BUTTON_WIDTH;
 		static int BUTTON_HEIGHT;
 		static int SMALL_BUTTON_WIDTH;
-		static int GRAMMAR_BUTTON_X_OFFSET;
-		static int TEXT_BUTTON_X_OFFSET;
-		static int EXERCISES_BUTTON_X_OFFSET;
+		static int BUTTON_X_OFFSET;
 		static int JUMP_DOWN_BUTTON_X_OFFSET;
 		static int JUMP_UP_BUTTON_X_OFFSET;
 		static int EXPLODE_BUTTON_X_OFFSET;

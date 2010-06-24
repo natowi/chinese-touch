@@ -24,8 +24,44 @@
 #include "fulltext_search.h"
 
 
-Program::Program()
-	: first_run( false ), words_db( new WordsDB() )
+Program::Program( int argc, char* argv[] )
+	: first_run(false), ui_lang(0), ft(0), words_db(0), library(0),
+		config(0), error_console(0), 
+		name("chinese-touch"), version("1.3"),
+		fs_type("unknown"), image_path(""), base_dir("/"+name),
+		words_db_name("words.db")
+{
+	if( argc>=1 ) 
+	{
+		std::string image_url = argv[0];
+		size_t fs_type_end = image_url.find(':');
+		if( fs_type_end != std::string::npos )
+		{
+			this->fs_type = image_url.substr( 0, fs_type_end );
+		}
+		if( (fs_type_end+1)<image_url.length() )
+		{
+			this->image_path = image_url.substr( fs_type_end+1 );
+		}
+		size_t last_slash = this->image_path.rfind( '/' );
+		if( last_slash != std::string::npos )
+		{
+			this->base_dir = image_path.substr( 0, last_slash );
+		}
+		LOG( "fs_type: " << this->fs_type );
+		LOG( "image_path: " << this->image_path );
+		LOG( "program_path: " << this->base_dir );
+	}
+	else
+	{
+		WARN( "Your cards loader software does not support ARGV! Thus the program must reside in:" 
+			<< std::endl << this->base_dir << std::endl );
+	}
+	
+	this->error_console = new ErrorConsole(*this);
+}
+
+void Program::initialize()
 {
 	LOG( "initializing fat driver" );
 	if( !fatInitDefault() )
@@ -33,20 +69,21 @@ Program::Program()
 		throw ERROR( "error initializing fat driver" );
 	}
 
+	this->words_db = new WordsDB();
 	try
 	{
-		this->words_db->open( WORDS_DB_FILE_NAME );
+		this->words_db->open( this->base_dir+"/"+this->words_db_name );
 	}
 	catch( Error& e )
 	{
 		WARN( e.what() );
-		this->words_db->create( WORDS_DB_FILE_NAME );
+		this->words_db->create( this->base_dir+"/"+this->words_db_name );
 		first_run = true;
 	}
 	this->words_db->update();
 	
 	LOG( "initializing library" );
-	this->library = new Library( *words_db );
+	this->library = new Library( *this );
 	LOG( "scanning library..." );
 	this->library->rescan();
 	LOG( "scanning complete" );
@@ -54,9 +91,9 @@ Program::Program()
 	this->ui_lang = new UILanguage( "en" );
 	
 	LOG( "initializing Freetype" );
-	this->ft = new FreetypeRenderer( "ukai.ttc", "VeraSe.ttf", "togoshi-mincho.ttf" );
+	this->ft = new FreetypeRenderer( *this, "ukai.ttc", "VeraSe.ttf", "togoshi-mincho.ttf" );
 	
-	this->config = new Config();
+	this->config = new Config( *this );
 	LOG( "loading config" );
 	this->config->load();
 }
@@ -253,25 +290,34 @@ void Program::run()
 }
 
 
-int main()
+int main( int argc, char* argv[] )
 {
 	defaultExceptionHandler();
+	Program* program = 0;
 	try
 	{
-		Program program;
-		program.run();
+		program = new Program( argc, argv );
+		program->initialize();
+		program->run();
 	}
 	catch( Error& e )
 	{
-		error_stream << "caught " << e.what() << std::endl;
-		ErrorConsole::init_screen();
-		ErrorConsole::dump();
+		CRITICAL( e.what() );
+		if( program )
+		{
+			program->error_console->init_screen();
+			program->error_console->dump();
+		}
 	}
 	catch( std::exception& e )
 	{
-		error_stream << "caught " << e.what() << std::endl;
-		ErrorConsole::init_screen();
-		ErrorConsole::dump();
+		CRITICAL( e.what() );
+		if( program )
+		{
+			program->error_console->init_screen();
+			program->error_console->dump();
+		}
 	}
+	if( program ) delete program;
 	return 0;
 }

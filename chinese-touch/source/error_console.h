@@ -5,11 +5,12 @@
 #include <iostream>
 #include <sstream>
 
-#include "chinese-touch.h"
 #include "screen.h"
+
 
 extern std::stringstream error_stream;
 
+#define CRITICAL(a) error_stream << "CRITICAL: " << a << std::endl
 #define WARN(a) error_stream << "WARNING: " << a << std::endl
 #if DEBUG
 #define LOG(a) error_stream << a << std::endl
@@ -36,12 +37,17 @@ public:
 	virtual const char* what();
 };
 
+class Program;
+
 class ErrorConsole
 {
 public:
-    static void init_screen( Screen=SCREEN_SUB );
-	static void dump();
-	static void clear();
+	ErrorConsole( Program& _program );
+    void init_screen( Screen=SCREEN_SUB );
+	void dump();
+	void clear();
+protected:
+	std::string log_file_name;
 };
 
 #endif

@@ -119,10 +119,12 @@ public:
 };
 
 
+class Program;
+
 class FreetypeRenderer
 {
 public:
-    FreetypeRenderer( const std::string& han_font, 
+    FreetypeRenderer( Program& program, const std::string& han_font, 
                     const std::string& latin_font, const std::string& jp_font );
     ~FreetypeRenderer();
 	void init_screen( RenderScreen& render_screen );

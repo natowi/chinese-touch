@@ -3,9 +3,12 @@
 
 #include "config.h"
 #include "error_console.h"
+#include "chinese-touch.h"
 
-Config::Config()
- : previous_word(0), changed(false)
+
+Config::Config( Program& _program )
+ : previous_word(0), changed(false),
+	config_file_name( _program.base_dir+"/"+_program.name+".conf" )
 {
     this->prev_time = time(0);
     memset( (void*)&this->data, 0, sizeof(this->data) );
@@ -104,27 +107,27 @@ void Config::save()
 void Config::save_really()
 {
     LOG( "Config::save_really()" );
-    FILE* f = fopen( CONFIG_FILE_NAME, "w" );
+    FILE* f = fopen( this->config_file_name.c_str(), "w" );
     if( f )
     {
-        LOG( "writing: " << CONFIG_FILE_NAME );
+        LOG( "writing: " << this->config_file_name );
         fwrite( &this->data, sizeof(this->data), 1, f );
         fflush( f );
         fclose( f );
         this->changed = false;
     }
-    else LOG( "error opening: " << CONFIG_FILE_NAME );
+    else LOG( "error opening: " << this->config_file_name );
 }
 
 void Config::load()
 {
-    FILE* f = fopen( CONFIG_FILE_NAME, "r" );
+    FILE* f = fopen( this->config_file_name.c_str(), "r" );
     if( f )
     {
-        LOG( "reading: " << CONFIG_FILE_NAME );
+        LOG( "reading: " << this->config_file_name );
         fread( &this->data, sizeof(this->data), 1, f );
         fclose( f );
     }
-    else LOG( "error opening: " << CONFIG_FILE_NAME );
+    else LOG( "error opening: " << this->config_file_name );
 }
 

@@ -195,24 +195,22 @@ ButtonAction Mode::handle_console_button_event( int pressed, int held, int relea
 	
 	if( held & KEY_SELECT && pressed & KEY_UP )
 	{
-		// FIXME: make Error Console a real mode
-		ErrorConsole::init_screen( SCREEN_MAIN );
+		this->program.error_console->init_screen( SCREEN_MAIN );
 		action |= BUTTON_ACTION_PRESSED;
 	}
 	if( held & KEY_SELECT && pressed & KEY_DOWN )
 	{
-		// FIXME: make Error Console a real mode
-		ErrorConsole::init_screen( SCREEN_SUB );
+		this->program.error_console->init_screen( SCREEN_SUB );
 		action |= BUTTON_ACTION_PRESSED;
 	}
 	if( held & KEY_SELECT && pressed & KEY_LEFT )
 	{
-		ErrorConsole::clear();
+		this->program.error_console->clear();
 		action |= BUTTON_ACTION_PRESSED;
 	}
 	if( held & KEY_SELECT && pressed & KEY_RIGHT )
 	{
-		ErrorConsole::dump();
+		this->program.error_console->dump();
 		action |= BUTTON_ACTION_PRESSED;
 	}
 	

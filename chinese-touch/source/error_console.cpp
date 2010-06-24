@@ -4,6 +4,8 @@
 
 #include "error_console.h"
 #include "config.h"
+#include "chinese-touch.h"
+
 
 std::stringstream error_stream;
 
@@ -23,6 +25,11 @@ const char* Error::what()
 	return this->full_msg.c_str();
 }
 
+
+ErrorConsole::ErrorConsole(Program& _program)
+	: log_file_name( _program.base_dir+"/"+_program.name+".log" )
+{
+}
 
 void ErrorConsole::init_screen( Screen screen )
 {
@@ -59,7 +66,7 @@ void ErrorConsole::init_screen( Screen screen )
 
 void ErrorConsole::dump()
 {
-	std::ofstream logfile( LOG_FILE_NAME, std::ios_base::out|std::ios_base::app );
+	std::ofstream logfile( this->log_file_name.c_str(), std::ios_base::out|std::ios_base::app );
 	std::string errors = error_stream.str();
 	logfile.write( errors.c_str(), errors.length() );
 	logfile.close();

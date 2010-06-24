@@ -15,6 +15,7 @@
 #include "config.h"
 #include "error_console.h"
 #include "words_db.h"
+#include "chinese-touch.h"
 
 
 NewWord::~NewWord()
@@ -42,10 +43,16 @@ NewWordList::~NewWordList()
 }
 
 
+Library::Library( Program& _program )
+	: words_db( *_program.words_db ), books_path( _program.base_dir+"/books" )
+{
+
+}
+
+
 /*! Scans the directory structure "/chinese-touch/books/\<bookname\>/..." for book and lesson configuration files */
 void Library::rescan()
 {
-    std::string books_path = BOOKS_DIR;
     DIR* books_dir = opendir( books_path.c_str() );
     if( !books_dir )
     {
@@ -369,7 +376,7 @@ void Book::parse_config( const std::string& conf_file_name )
 
 std::string Book::get_full_path()
 {
-	return std::string(BOOKS_DIR)+this->name+"/";
+	return this->library->books_path+"/"+this->name+"/";
 }
 
 

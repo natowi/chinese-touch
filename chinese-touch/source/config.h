@@ -3,14 +3,17 @@
 
 #include "lesson.h"
 
+#if 0
 #define PROGRAM_NAME "chinese-touch"
 #define PROGRAM_VERSION "1.3"
-#define CONFIG_STRING_SIZE 50
 #define BASE_DIR "/" PROGRAM_NAME "/"
 #define BOOKS_DIR BASE_DIR "books/"
 #define CONFIG_FILE_NAME BASE_DIR PROGRAM_NAME ".conf"
 #define LOG_FILE_NAME BASE_DIR PROGRAM_NAME ".log"
 #define WORDS_DB_FILE_NAME BASE_DIR "words.db"
+#endif
+
+#define CONFIG_STRING_SIZE 50
 
 union ConfigData
 {
@@ -23,10 +26,12 @@ union ConfigData
     char sugar_cube[4096];
 };
 
+class Program;
+
 class Config
 {
 public:
-    Config();
+    Config( Program& _program );
     void load();
     void save();
     void save_word_position( NewWord* word, bool force=false );
@@ -44,6 +49,7 @@ protected:
     NewWord* previous_word;
     bool changed;
     time_t prev_time;
+	std::string config_file_name;
 };
 
 #endif //CONFIG_H

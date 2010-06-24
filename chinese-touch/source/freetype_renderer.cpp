@@ -5,6 +5,7 @@
 #include "freetype_renderer.h"
 #include "config.h"
 #include "error_console.h"
+#include "chinese-touch.h"
 
 #undef __FTERRORS_H__
 #define FT_ERROR_START_LIST     ErrorMap ft_errors; void FT_Init_Errors(){
@@ -14,7 +15,7 @@
 #include FT_ERRORS_H
 
 
-FreetypeRenderer::FreetypeRenderer( const std::string& han_font, 
+FreetypeRenderer::FreetypeRenderer( Program& program, const std::string& han_font, 
 	const std::string& latin_font, const std::string& jp_font ) 
 		: han_face(0), latin_face(0), jp_face(0), dpi_x(100), dpi_y(100)
 {	
@@ -27,9 +28,9 @@ FreetypeRenderer::FreetypeRenderer( const std::string& han_font,
 		msg << "error initializing freetype: " << ft_errors[this->error];
         throw ERROR( msg.str() );
     }
-    std::string _han_font = BASE_DIR + han_font;
-    std::string _latin_font = BASE_DIR + latin_font;
-	std::string _jp_font = BASE_DIR + jp_font;
+    std::string _han_font = program.base_dir + "/" + han_font;
+    std::string _latin_font = program.base_dir + "/" + latin_font;
+	std::string _jp_font = program.base_dir + "/" + jp_font;
     this->error = FT_New_Face( this->library, _han_font.c_str(), 0, &this->han_face );
     if( this->error )
     {

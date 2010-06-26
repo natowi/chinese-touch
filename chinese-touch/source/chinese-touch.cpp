@@ -77,6 +77,7 @@ void Program::initialize()
 	
 	RenderScreen loading_screen( SCREEN_MAIN );
 	this->ft->init_screen( loading_screen );
+	loading_screen.clear();
 	dmaCopy( bg_dragonBitmap, loading_screen.bg_base_address, sizeof(bg_dragonBitmap) );
 	set_16bpp_sprite_opague( loading_screen.bg_base_address, 256, 192 );
 	bgShow( loading_screen.bg_id );

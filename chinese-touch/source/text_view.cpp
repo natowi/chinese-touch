@@ -532,6 +532,11 @@ void TextView::restore_init_settings()
 			extra_sql_cond << "book_id!=" << this->text.lesson->book->id << " or book_id is Null";
 			or_needed = true;
 		}
+		// add impossible where predicate if user wants no lookups at all:
+		if( !extra_sql_cond.str().length() )
+		{
+			extra_sql_cond << "1=0";
+		}
 	}
 	this->lookup_sql_cond = extra_sql_cond.str();
 }

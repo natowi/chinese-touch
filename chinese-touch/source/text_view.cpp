@@ -379,14 +379,14 @@ ButtonAction TextView::handle_touch_end( touchPosition touch )
 							|| this->context_mode != CONTEXT_WORDS_BY_CONTEXT )
 						{
 							// first click (odd count) on a character: find words in current context:
-							this->program.library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->word_browser.words, this->lookup_sql_cond );
+							this->program.library->find_words_by_context( this->text, search_char_list, search_char_it, 6, this->word_browser.words, this->lookup_sql_cond, this->lookup_from_other_books );
 							this->context_mode = CONTEXT_WORDS_BY_CONTEXT;
 						}
 						else
 						{
 							// second click (even count) on a character: find words containing selected character:
 							std::string character( this->text, curr_char->uc_char.source_offset, curr_char->uc_char.source_length );
-							this->program.library->find_words_by_characters( character, this->word_browser.words, this->lookup_sql_cond );
+							this->program.library->find_words_by_characters( character, this->word_browser.words, this->lookup_sql_cond, this->lookup_from_other_books );
 							this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 						}
 						this->context_render_char = curr_char;

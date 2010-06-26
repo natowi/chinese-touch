@@ -154,9 +154,9 @@ class Library : public std::map<std::string,Book*>
 public:
 	Library( Program& _program );
 	void rescan();
-	void find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond="" );
+	void find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond = "", bool include_dictionaries=true );
 	void find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond="" );
+		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond="", bool include_dictionaries=true );
 public:
 	WordsDB& words_db;
 	std::string books_path;

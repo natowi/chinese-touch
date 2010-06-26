@@ -190,7 +190,7 @@ bool hanzi_max_length_sort_predicate( NewWord* left, NewWord* right )
 	return left->hanzi.length() > right->hanzi.length();
 }
 
-void Library::find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond )
+void Library::find_words_by_characters( const std::string& characters, NewWordList& result, const std::string& extra_sql_cond, bool include_dictionaries )
 {
 	result.clear();
 	std::string sql_cond = "word like '%"+characters+"%'";
@@ -199,38 +199,41 @@ void Library::find_words_by_characters( const std::string& characters, NewWordLi
 	this->words_db.query_words( *this, sql_cond, result );
 	// query single character entries from available static book databases
 	sql_cond = "word='"+characters+"'";
-	for( Library::iterator book_it = this->begin(); book_it != this->end(); book_it++ )
+	if( include_dictionaries )
 	{
-		if( book_it->second 
-			&& book_it->second->dictionary_lesson
-			&& book_it->second->static_words_db_path.length() )
+		for( Library::iterator book_it = this->begin(); book_it != this->end(); book_it++ )
 		{
-			WordsDB* static_db = new WordsDB();
-			try
+			if( book_it->second 
+				&& book_it->second->dictionary_lesson
+				&& book_it->second->static_words_db_path.length() )
 			{
-				static_db->open( book_it->second->static_words_db_path );
+				WordsDB* static_db = new WordsDB();
 				try
 				{
-					static_db->query_static_words( *this, sql_cond, result, book_it->second->dictionary_lesson );
+					static_db->open( book_it->second->static_words_db_path );
+					try
+					{
+						static_db->query_static_words( *this, sql_cond, result, book_it->second->dictionary_lesson );
+					}
+					catch( Error& e )
+					{
+						WARN( e.what() );
+					}
+					static_db->close();
 				}
 				catch( Error& e )
 				{
 					WARN( e.what() );
 				}
-				static_db->close();
+				delete static_db;
 			}
-			catch( Error& e )
-			{
-				WARN( e.what() );
-			}
-			delete static_db;
 		}
 	}
 	result.sort( hanzi_min_length_sort_predicate );
 }
 
 void Library::find_words_by_context( const std::string& text, const UCCharList& search_list, 
-		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond )
+		UCCharList::const_iterator pos, int max_range, NewWordList& result, const std::string& extra_sql_cond, bool include_dictionaries )
 {
 	result.clear();
 	typedef std::list<UCCharList::const_iterator> PosList;
@@ -293,32 +296,35 @@ void Library::find_words_by_context( const std::string& text, const UCCharList& 
 		final_sql_cond = "(" + final_sql_cond + ") and ("+extra_sql_cond+")";
 	// query main word database:
 	this->words_db.query_words( *this, final_sql_cond, result );
-	// query available static book databases
-	for( Library::iterator book_it = this->begin(); book_it != this->end(); book_it++ )
+	// query available dictionary books, if required:
+	if( include_dictionaries )
 	{
-		if( book_it->second 
-			&& book_it->second->dictionary_lesson
-			&& book_it->second->static_words_db_path.length() )
+		for( Library::iterator book_it = this->begin(); book_it != this->end(); book_it++ )
 		{
-			WordsDB* static_db = new WordsDB();
-			try
+			if( book_it->second 
+				&& book_it->second->dictionary_lesson
+				&& book_it->second->static_words_db_path.length() )
 			{
-				static_db->open( book_it->second->static_words_db_path );
+				WordsDB* static_db = new WordsDB();
 				try
 				{
-					static_db->query_static_words( *this, sql_cond, result, book_it->second->dictionary_lesson );
+					static_db->open( book_it->second->static_words_db_path );
+					try
+					{
+						static_db->query_static_words( *this, sql_cond, result, book_it->second->dictionary_lesson );
+					}
+					catch( Error& e )
+					{
+						WARN( e.what() );
+					}
+					static_db->close();
 				}
 				catch( Error& e )
 				{
 					WARN( e.what() );
 				}
-				static_db->close();
+				delete static_db;
 			}
-			catch( Error& e )
-			{
-				WARN( e.what() );
-			}
-			delete static_db;
 		}
 	}
 	result.sort( hanzi_max_length_sort_predicate );

@@ -154,6 +154,11 @@ void TextView::render( Screen screen )
 			}
 			else
 			{
+				// render currently highlighted character and help
+				std::string character( this->text, this->context_render_char->uc_char.source_offset, 
+													this->context_render_char->uc_char.source_length );
+				NewWord char_word( character, "", 0 );
+				char_word.render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
 				if( this->context_mode == CONTEXT_WORDS_BY_CONTEXT )
 				{
 					message = "No context matching words found :(";

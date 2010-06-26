@@ -3,16 +3,6 @@
 
 #include "lesson.h"
 
-#if 0
-#define PROGRAM_NAME "chinese-touch"
-#define PROGRAM_VERSION "1.3"
-#define BASE_DIR "/" PROGRAM_NAME "/"
-#define BOOKS_DIR BASE_DIR "books/"
-#define CONFIG_FILE_NAME BASE_DIR PROGRAM_NAME ".conf"
-#define LOG_FILE_NAME BASE_DIR PROGRAM_NAME ".log"
-#define WORDS_DB_FILE_NAME BASE_DIR "words.db"
-#endif
-
 #define CONFIG_STRING_SIZE 50
 
 union ConfigData

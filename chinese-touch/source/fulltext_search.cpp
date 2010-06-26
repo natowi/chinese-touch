@@ -46,9 +46,7 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson*
 void FulltextSearch::init_mode()
 {
 	this->program.ft->init_screen( this->word_screen );
-	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
-	bgHide( this->word_screen.bg_id );
 
 	this->program.ft->init_screen( this->keyboard_screen );
 	this->keyboard_screen.clear();

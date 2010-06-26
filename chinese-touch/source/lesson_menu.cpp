@@ -17,7 +17,6 @@
 #include "menu_button_inactive.h"
 #include "greys256.h"
 #include "sprite_helper.h"
-#include "bg_dragon.h"
 #include "center_rating_bar.h"
 #include "center_rating_bar_disabled.h"
 #include "center_rating_bar_any_extension.h"
@@ -339,9 +338,6 @@ LessonEntry::LessonEntry( LessonMenu& _lesson_menu, Lesson* _lesson )
 void LessonMenu::init_mode()
 {
 	this->program.ft->init_screen( this->info_screen );
-	dmaCopy( bg_dragonBitmap, this->info_screen.bg_base_address, sizeof(bg_dragonBitmap) );
-	set_16bpp_sprite_opague( this->info_screen.bg_base_address, 256, 192 );
-	bgShow( this->info_screen.bg_id );
 	this->info_screen.clear();
 	
 	this->program.ft->init_screen( this->menu_screen );
@@ -355,8 +351,7 @@ void LessonMenu::init_mode()
 
 void LessonMenu::init_vram()
 {
-	bgHide( this->info_screen.bg_id );
-	
+	this->info_screen.clear_bg(); // clear dragon image rendered by Program::initialize()
 	Mode::init_vram();
 }
 

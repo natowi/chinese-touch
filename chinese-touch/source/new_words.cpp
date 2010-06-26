@@ -473,7 +473,6 @@ void NewWordsViewer::init_mode()
 {
 	this->Mode::button_ft.init_screen( this->word_screen );
 	this->word_screen.clear();
-	bgHide( this->word_screen.bg_id );
 	
 	this->Mode::button_ft.init_screen( this->drawing_screen );
 	this->drawing_screen.clear();

@@ -15,7 +15,6 @@
 #include "bottom_left_button_active.h"
 #include "bottom_right_button.h"
 #include "bottom_right_button_active.h"
-#include "bg_dragon.h"
 #include "small_top_button.h"
 #include "small_top_button_active.h"
 #include "loading.h"
@@ -79,9 +78,6 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 void TextView::init_mode()
 {
 	this->program.ft->init_screen( this->word_screen );
-	dmaCopy( bg_dragonBitmap, this->word_screen.bg_base_address, sizeof(bg_dragonBitmap) );
-	set_16bpp_sprite_opague( this->word_screen.bg_base_address, 256, 192 );
-	bgShow( this->word_screen.bg_id );
 	this->word_screen.clear();
 
 	this->program.ft->init_screen( this->text_screen );
@@ -92,8 +88,6 @@ void TextView::init_mode()
 
 void TextView::init_vram()
 {
-	bgHide( this->word_screen.bg_id );
-	
 	Mode::init_vram();
 }
 	

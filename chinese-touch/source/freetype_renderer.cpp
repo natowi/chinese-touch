@@ -104,8 +104,14 @@ void FreetypeRenderer::init_screen( RenderScreen& render_screen )
 
 void RenderScreen::clear( int color )
 {
-    // 1. clear background buffer with background color
+	// FIXME: buffer size depends on graphics mode
     memset( this->base_address, color, this->res_x*this->res_y*1 );
+}
+
+void RenderScreen::clear_bg( int color )
+{
+	// FIXME: buffer size depends on graphics mode
+    memset( this->bg_base_address, color, this->res_x*this->res_y*2 );
 }
 
 void RenderScreenBuffer::render_to( RenderScreen& dest, int x, int y, bool replace )

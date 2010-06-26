@@ -22,6 +22,9 @@
 #include "words_db.h"
 #include "ui_language.h"
 #include "fulltext_search.h"
+#include "bg_dragon.h"
+#include "sprite_helper.h"
+#include <background.h>
 
 
 Program::Program( int argc, char* argv[] )
@@ -69,32 +72,46 @@ void Program::initialize()
 		throw ERROR( "error initializing fat driver" );
 	}
 
+	LOG( "initializing Freetype" );
+	this->ft = new FreetypeRenderer( *this, "ukai.ttc", "VeraSe.ttf", "togoshi-mincho.ttf" );
+	
+	RenderScreen loading_screen( SCREEN_MAIN );
+	this->ft->init_screen( loading_screen );
+	dmaCopy( bg_dragonBitmap, loading_screen.bg_base_address, sizeof(bg_dragonBitmap) );
+	set_16bpp_sprite_opague( loading_screen.bg_base_address, 256, 192 );
+	bgShow( loading_screen.bg_id );
+	
+	int size = 9, x = 5, y = 5;
+	RenderInfo render_info(0,0,0,0);
 	this->words_db = new WordsDB();
 	try
 	{
+		render_info = this->ft->render( loading_screen, "opening "+this->words_db_name, this->ft->han_face, size, x, y+=render_info.height );
 		this->words_db->open( this->base_dir+"/"+this->words_db_name );
 	}
 	catch( Error& e )
 	{
 		WARN( e.what() );
+		render_info = this->ft->render( loading_screen, "creating "+this->words_db_name, this->ft->han_face, size, x, y+=render_info.height );
 		this->words_db->create( this->base_dir+"/"+this->words_db_name );
 		first_run = true;
 	}
 	this->words_db->update();
 	
 	LOG( "initializing library" );
+	render_info = this->ft->render( loading_screen, "initializing library", this->ft->han_face, size, x, y+=render_info.height );
 	this->library = new Library( *this );
 	LOG( "scanning library..." );
+	render_info = this->ft->render( loading_screen, "scanning library...", this->ft->han_face, size, x, y+=render_info.height );
 	this->library->rescan();
 	LOG( "scanning complete" );
+	render_info = this->ft->render( loading_screen, "scanning complete", this->ft->han_face, size, x, y+=render_info.height );
 	
 	this->ui_lang = new UILanguage( "en" );
 	
-	LOG( "initializing Freetype" );
-	this->ft = new FreetypeRenderer( *this, "ukai.ttc", "VeraSe.ttf", "togoshi-mincho.ttf" );
-	
 	this->config = new Config( *this );
 	LOG( "loading config" );
+	render_info = this->ft->render( loading_screen, "loading config", this->ft->han_face, size, x, y+=render_info.height );
 	this->config->load();
 }
 

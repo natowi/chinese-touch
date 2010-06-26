@@ -60,6 +60,7 @@ public:
 		bgSetPriority( _bg_id, 3 );
 	}
 	void clear( int color=0 );
+	void clear_bg( int color=0 );
 public:
 	Screen screen;
 	int id;

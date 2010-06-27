@@ -49,11 +49,17 @@ Program::Program( int argc, char* argv[] )
 		size_t last_slash = this->image_path.rfind( '/' );
 		if( last_slash != std::string::npos )
 		{
-			this->base_dir = image_path.substr( 0, last_slash );
+			std::string _base_dir = image_path.substr( 0, last_slash );
+			if( _base_dir.length() )
+			{
+				this->base_dir = _base_dir;
+			}
+			else WARN( "Base dir \"" << _base_dir << "\" unsupported! Desmume? Falling back to: "
+						<< std::endl << this->base_dir << std::endl );
 		}
 		LOG( "fs_type: " << this->fs_type );
 		LOG( "image_path: " << this->image_path );
-		LOG( "program_path: " << this->base_dir );
+		LOG( "base_dir: " << this->base_dir );
 	}
 	else
 	{

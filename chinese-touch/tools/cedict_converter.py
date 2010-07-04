@@ -38,11 +38,6 @@ second_mapping = {
 	"ü3" : "ǚ",
 	"ü4" : "ǜ",
 	"ü5" : "ü",
-	"u:1" : "ǖ",
-	"u:2" : "ǘ",
-	"u:3" : "ǚ",
-	"u:4" : "ǜ",
-	"u:5" : "ü",
 }
 
 untone_mapping = {}
@@ -54,6 +49,7 @@ for key in second_mapping:
 		untone_mapping[ second_mapping[key] ] = key[0]
 
 def translate_pinyin( raw_pinyin ):
+	raw_pinyin = raw_pinyin.replace( "u:", "ü" )
 	syllables = raw_pinyin.split(" ")
 	new_syllables = []
 	for _syl in syllables:

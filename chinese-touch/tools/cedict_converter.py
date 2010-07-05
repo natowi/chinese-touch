@@ -290,6 +290,7 @@ for line in sys.stdin:
 				definition += part_definition
 		if len(definition) or not duplicate_id:
 			write_row( definition, comment, locals() )
+	
 	if( not test ):
 		print line
 		raise Exception("Parse error")

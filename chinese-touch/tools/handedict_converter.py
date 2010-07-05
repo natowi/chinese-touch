@@ -241,9 +241,9 @@ for line in sys.stdin:
 		comment = ""
 		if words["simp"] != words["trad"]:
 			if variant=="trad":
-				comment += "simpl: " + words["simp"]
+				comment += "kurz: " + words["simp"]
 			elif variant=="simp":
-				comment += "trad: " + words["trad"]
+				comment += "lang: " + words["trad"]
 		if ("simp" in variants) and ("trad" in variants) \
 			and variant=="simp" and words["simp"]==words["trad"]:
 				break # only one entry if trad==simpl!

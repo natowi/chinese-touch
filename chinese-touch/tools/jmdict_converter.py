@@ -115,6 +115,7 @@ class Sense:
 			return
 		# TODO: cross references to other head words?
 		parent_locals = copy.copy( parent_locals )
+		kanji = parent_locals["kanji"]
 		definition = ""
 		for gloss in self.glosses[ target_lang ]:
 			if definition and gloss!="; ":
@@ -126,6 +127,11 @@ class Sense:
 			if comment:
 				comment += "; "
 			comment += c
+		for c in kanji:
+			if c!=word:
+				if comment:
+					comment += "; "
+				comment += see_also+c
 		for c in self.references:
 			if comment:
 				comment += "; "
@@ -142,11 +148,19 @@ class Sense:
 			type += t
 		parent_locals["type"] = type
 		pronunciation = ""
+		head_is_reading = False
 		for r in readings:
-			if not r.kanji_restriction or word in r.kanji_restriction:
-				if pronunciation:
-					pronunciation += ", "
-				pronunciation += r.text
+			# never repeat reading head-words in reading field
+			if r.text!=word:
+				# only include readings not excluded by kanji-restriction for current kanji
+				if not r.kanji_restriction or word in r.kanji_restriction:
+					if pronunciation:
+						pronunciation += ", "
+					pronunciation += r.text
+			else:
+				head_is_reading = True
+		if head_is_reading and len(pronunciation):
+			pronunciation = see_also + pronunciation
 		parent_locals["pronunciation"] = pronunciation
 		insert = "insert into words ("+",".join(col_names)+") values ("
 		ft_pattern_list = []
@@ -159,14 +173,16 @@ class Sense:
 			insert += "'"+value+"'"
 		insert += ");"
 		print insert
-		for ft_pattern in ft_pattern_list:
-			ft_pattern = extended_lower( ft_pattern )
-			ft_pattern = filter_pattern( ft_pattern )
-			# do not generate unnecessary self and bogus references:
-			if ft_pattern not in words + [""]:
-				if ft_patterns.has_key(ft_pattern):
-					ft_patterns[ft_pattern][parent_locals["id"]] = True
-				else: ft_patterns[ft_pattern] = { parent_locals["id"] : True }
+		# restrict reverse lookups to kanji-entries or reading-entries without kanji:
+		if word in kanji or not kanji:
+			for ft_pattern in ft_pattern_list:
+				ft_pattern = extended_lower( ft_pattern )
+				ft_pattern = filter_pattern( ft_pattern )
+				# do not generate unnecessary self and bogus references:
+				if ft_pattern not in words + [""]:
+					if ft_patterns.has_key(ft_pattern):
+						ft_patterns[ft_pattern][parent_locals["id"]] = True
+					else: ft_patterns[ft_pattern] = { parent_locals["id"] : True }
 		parent_locals["id"]+=1
 		parent_locals["duplicate_id"]+=1
 	def reset( self ):
@@ -196,6 +212,7 @@ for action, elem in context:
 	if elem.tag=="entry" and action=="end":
 		entry = elem
 		words = []
+		kanji = []
 		readings = []
 		senses = []
 		sense = None
@@ -206,6 +223,8 @@ for action, elem in context:
 				for subchild in child:
 					if subchild.tag=="keb" or subchild.tag=="reb":
 						words.append( subchild.text )
+					if subchild.tag=="keb":
+						kanji.append( subchild.text )
 					if subchild.tag=="reb":
 						readings.append( Reading(subchild.text) )
 					if subchild.tag=="re_restr":
@@ -218,10 +237,14 @@ for action, elem in context:
 						sense.types.append( subchild.text )
 					if subchild.tag=="xref":
 						sense.references.append( subchild.text )
-					if subchild.tag=="and":
+					if subchild.tag=="ant":
 						sense.antonyms.append( subchild.text )
 					if subchild.tag=="misc" or subchild.tag=="s_inf" or subchild.tag=="field":
 						sense.comments.append( subchild.text )
+					if subchild.tag=="stagk":
+						sense.kanji_restriction.append( subchild.text )
+					if subchild.tag=="stagr":
+						sense.reading_restriction.append( Reading(subchild.text) )
 					if subchild.tag=="gloss":
 						lang_key = "{http://www.w3.org/XML/1998/namespace}lang"
 						if subchild.attrib.has_key( lang_key ):

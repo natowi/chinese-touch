@@ -48,15 +48,19 @@ def extended_lower( s ):
 #   CJK Unified Ideographs Extension A: Range: 3400-4DBF
 #   CJK Unified Ideographs: Range: 4E00-9FAF
 # Dictionary Radicals:
-#   Kangxi Radicals: Range 2F00-2FDF 
+#   Kangxi Radicals: Range 2F00-2FDF
+# FF00-FF5E is a range of large variants of ASCII glyphs
 def filter_pattern( s ):
 	result = ""
 	for c in s.decode("utf-8"):
-		if 0x3400<=ord(c)<=0x4DBF or 0x4E00<=ord(c)<=0x9FAF:
+		if 0x3400<=ord(c)<=0x4DBF or 0x4E00<=ord(c)<=0x9FAF or 0xFF00<=ord(c)<=0xFF5E:
 			continue
 		else:
 			result += c.encode("utf-8")
 	return result
+	
+# FIXME: this does not always work for some reason:
+ft_pattern_split_regex = "[ ,;:.\!\?\-/\(\)\[\]\{\}\<\>0-9'\"\|~]|、|，|。|・|．|！|？|：|－|［|］|（|）|｛|｝|《|》|／"
 
 
 col_names = [ 
@@ -158,17 +162,17 @@ class Sense:
 	def __init__( self ):
 		self.reset()
 	def write( self, word, readings, parent_locals ):
-		lang = parent_locals["lang"]
-		if not self.glosses.has_key( lang ):
+		_lang = parent_locals["lang"]
+		if not self.glosses.has_key( _lang ):
 			return
-		parent_locals = copy.copy( parent_locals )
-		kanji = parent_locals["kanji"]
+		mylocals = copy.copy( parent_locals )
+		kanji = mylocals["kanji"]
 		definition = ""
-		for gloss in self.glosses[ lang ]:
+		for gloss in self.glosses[ _lang ]:
 			if definition and gloss!="; ":
 				definition += ", "
 			definition += gloss
-		parent_locals["definition"] = definition
+		mylocals["definition"] = definition
 		comment = ""
 		for c in self.comments:
 			if comment:
@@ -205,13 +209,13 @@ class Sense:
 				acmt += gtrans("antonym")+": "
 			acmt += a
 		comment += acmt
-		parent_locals["comment"] = comment
+		mylocals["comment"] = comment
 		type = ""
 		for t in self.types:
 			if type:
 				type += "; "
 			type += t
-		parent_locals["type"] = type
+		mylocals["type"] = type
 		pronunciation = ""
 		head_is_reading = False
 		for r in readings:
@@ -226,14 +230,14 @@ class Sense:
 				head_is_reading = True
 		if head_is_reading and len(pronunciation):
 			pronunciation = gtrans("also")+": "+pronunciation
-		parent_locals["pronunciation"] = pronunciation
+		mylocals["pronunciation"] = pronunciation
 		insert = "insert into words ("+",".join(col_names)+") values ("
 		ft_pattern_list = []
 		for i in xrange(len(col_names)):
 			if( i ): insert+=","
-			value = ("%("+col_names[i]+")s") % parent_locals
+			value = ("%("+col_names[i]+")s") % mylocals
 			if( col_names[i] in ft_col_names ):
-				ft_pattern_list += re.split( "[ ,;:.\!\?\-/\(\)\[\]\{\}\<\>0-9'\"\|]", value )
+				ft_pattern_list += re.split( ft_pattern_split_regex, value )
 			value = value.replace( "'", "''" ).strip()
 			insert += "'"+value+"'"
 		insert += ");"

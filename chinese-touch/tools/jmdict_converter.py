@@ -94,10 +94,57 @@ rating="0"
 file_id="0"
 file_offset=0
 
-# TODO: multi-language support, by target language
-target_lang = "eng"
-see_also = "see: "
-see_antonym = "antonym: "
+lang = "eng"
+lang_pattern = "--lang="
+for arg in sys.argv:
+	if arg[:len(lang_pattern)]==lang_pattern:
+		lang = arg[len(lang_pattern):]
+
+# dynamic translation map (key=fallback in English)
+# cat JMdict.xml |grep lang= |sed 's/.*lang=\("[^"]*"\).*/\1/' |sort -u
+trans = {
+	"ain" : {},
+	"alg" : {},
+	"ara" : {},
+	"bnt" : {},
+	"bur" : {},
+	"chi" : {},
+	"dan" : {},
+	"dut" : {},
+	"eng" : {},
+	"epo" : {},
+	"fre" : {},
+	"ger" : { "also":"auch", "xref":"siehe", "antonym":"Antonym" },
+	"gre" : {},
+	"heb" : {},
+	"hin" : {},
+	"hun" : {},
+	"ind" : {},
+	"ita" : {},
+	"khm" : {},
+	"kor" : {},
+	"lat" : {},
+	"may" : {},
+	"mon" : {},
+	"nor" : {},
+	"per" : {},
+	"pol" : {},
+	"por" : {},
+	"rus" : {},
+	"san" : {},
+	"spa" : {},
+	"swe" : {},
+	"tah" : {},
+	"tha" : {},
+	"tib" : {},
+	"tur" : {},
+	"vie" : {},
+}
+def gtrans( text ):
+	try:
+		return trans[lang][text]
+	except KeyError, e:
+		return text
 
 # unique list fulltext patterns, referencing unique word id lists
 ft_patterns = {}
@@ -111,13 +158,13 @@ class Sense:
 	def __init__( self ):
 		self.reset()
 	def write( self, word, readings, parent_locals ):
-		if not self.glosses.has_key( target_lang ):
+		lang = parent_locals["lang"]
+		if not self.glosses.has_key( lang ):
 			return
-		# TODO: cross references to other head words?
 		parent_locals = copy.copy( parent_locals )
 		kanji = parent_locals["kanji"]
 		definition = ""
-		for gloss in self.glosses[ target_lang ]:
+		for gloss in self.glosses[ lang ]:
 			if definition and gloss!="; ":
 				definition += ", "
 			definition += gloss
@@ -127,19 +174,37 @@ class Sense:
 			if comment:
 				comment += "; "
 			comment += c
-		for c in kanji:
-			if c!=word:
+		kcmt = ""
+		for k in kanji:
+			if k!=word:
+				if kcmt:
+					kcmt += ", "
+				else:
+					if comment:
+						kcmt += "; "
+					kcmt += gtrans("also")+": "
+				kcmt += k
+		comment += kcmt
+		rcmt = ""
+		for r in self.references:
+			if rcmt:
+				rcmt += ", "
+			else:
 				if comment:
-					comment += "; "
-				comment += see_also+c
-		for c in self.references:
-			if comment:
-				comment += "; "
-			comment += see_also+c
-		for c in self.antonyms:
-			if comment:
-				comment += "; "
-			comment += see_antonym+c
+					rcmt += "; "
+				rcmt += gtrans("xref")+": "
+			rcmt += r
+		comment += rcmt
+		acmt = ""
+		for a in self.antonyms:
+			if acmt:
+				acmt += ", "
+			else:
+				if comment:
+					acmt += "; "
+				acmt += gtrans("antonym")+": "
+			acmt += a
+		comment += acmt
 		parent_locals["comment"] = comment
 		type = ""
 		for t in self.types:
@@ -160,7 +225,7 @@ class Sense:
 			else:
 				head_is_reading = True
 		if head_is_reading and len(pronunciation):
-			pronunciation = see_also + pronunciation
+			pronunciation = gtrans("also")+": "+pronunciation
 		parent_locals["pronunciation"] = pronunciation
 		insert = "insert into words ("+",".join(col_names)+") values ("
 		ft_pattern_list = []
@@ -194,12 +259,12 @@ class Sense:
 		self.antonyms = []
 		self.comments = []
 	def merge( self, sense ):
-		for lang in sense.glosses:
-			if self.glosses.has_key( lang ):
-				self.glosses[lang].append( "; " )
+		for _lang in sense.glosses:
+			if self.glosses.has_key( _lang ):
+				self.glosses[_lang].append( "; " )
 			else:
-				self.glosses[lang] = []
-			self.glosses[lang] += sense.glosses[lang]
+				self.glosses[_lang] = []
+			self.glosses[_lang] += sense.glosses[_lang]
 		#self.kanji_restriction += sense.kanji_restriction
 		#self.reading_restriction += sense.reading_restriction
 		#self.types += sense.types
@@ -248,15 +313,15 @@ for action, elem in context:
 					if subchild.tag=="gloss":
 						lang_key = "{http://www.w3.org/XML/1998/namespace}lang"
 						if subchild.attrib.has_key( lang_key ):
-							lang = subchild.attrib[ lang_key ]
+							_lang = subchild.attrib[ lang_key ]
 						else:
 							# When absent, the value "eng" (i.e. English) is 
 							# the default value.
-							lang = "eng"
-						if not sense.glosses.has_key( lang ):
-							sense.glosses[ lang ] = [ subchild.text ]
+							_lang = "eng"
+						if not sense.glosses.has_key( _lang ):
+							sense.glosses[ _lang ] = [ subchild.text ]
 						else:
-							sense.glosses[ lang ].append( subchild.text )
+							sense.glosses[ _lang ].append( subchild.text )
 		
 		for word in words:
 			duplicate_id = 0

@@ -8,6 +8,7 @@
 #include <sqlite3.h>
 #include <time.h> // srand
 #include <stdlib.h> // srand
+#include <nds/arm9/background.h>
 
 #include "chinese-touch.h"
 #include "freetype_renderer.h"
@@ -24,7 +25,6 @@
 #include "fulltext_search.h"
 #include "bg_dragon.h"
 #include "sprite_helper.h"
-#include <background.h>
 
 
 Program::Program( int argc, char* argv[] )
@@ -77,7 +77,7 @@ void Program::initialize()
 	{
 		throw ERROR( "error initializing fat driver" );
 	}
-
+	
 	LOG( "initializing Freetype" );
 	this->ft = new FreetypeRenderer( *this, "ukai.ttc", "VeraSe.ttf", "togoshi-mincho.ttf" );
 	

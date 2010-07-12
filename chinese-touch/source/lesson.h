@@ -50,7 +50,8 @@ typedef enum
 	RATING_ANY, //!< any rating, including none
 } Rating;
 
-class WordListBrowser;
+
+class RenderSettings;
 
 /*! A foreign language word and several associated properties like translations and so on. */
 class NewWord
@@ -62,7 +63,7 @@ public:
 			id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0),
 			from_static_db(false) {};
 	~NewWord();
-    void render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library );
+    void render( FreetypeRenderer& ft, RenderScreen& render_screen, RenderSettings& render_settings, Library& library );
 public:
     std::string hanzi, //!< Foreign language word.
 				pinyin; //!< Foreign language pronunciation.

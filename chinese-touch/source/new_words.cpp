@@ -49,9 +49,10 @@
 #include "fulltext_search.h"
 #include "tiny_search.h"
 #include "tiny_bubble.h"
+#include "stroke_order.h"
 
 
-void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordListBrowser& render_settings, Library& library )
+void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, RenderSettings& render_settings, Library& library )
 {
 	// try to read the corresponding entry from the database:
 	if( this->lesson && this->lesson->book && this->lesson->book->library )
@@ -149,17 +150,21 @@ void NewWord::render( FreetypeRenderer& ft, RenderScreen& render_screen, WordLis
 }
 
 
+RenderSettings::RenderSettings()
+	:	render_foreign_word(true), render_pronuciation(true), render_translation(true),
+		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
+		restore_on_switch(false)
+{
+}
+
 WordListBrowser::WordListBrowser( ButtonProviderList& provider_list, 
 								  FreetypeRenderer& _freetype_renderer, 
 								  NewWordList& _words, 
 								  RenderScreen& _button_screen,
 								  Library& _library ) 
-	: 	ButtonProvider(provider_list, _freetype_renderer), 
+	: 	ButtonProvider(provider_list, _freetype_renderer),
 		words(_words), current_word(words.begin()),
 		button_screen(_button_screen), library(_library),
-		render_foreign_word(true), render_pronuciation(true), render_translation(true),
-		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true),
-		restore_on_switch(false),
 		left_button(_button_screen,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
 		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
@@ -173,7 +178,8 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		down_button(_button_screen,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
 		add_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
 		remove_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
-		search_button(_button_screen,"",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1)
+		search_button(_button_screen,"",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1),
+		stroke_order_button(_button_screen,"s",SpriteSize_16x16,button_screen.res_x-44-16,button_screen.res_y-16,button_ft.han_face,9,0,1)
 {
 	this->text_buttons.push_back( &this->left_button );
 	this->text_buttons.push_back( &this->right_button );
@@ -189,6 +195,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->text_buttons.push_back( &this->add_button );
 	this->text_buttons.push_back( &this->remove_button );
 	this->text_buttons.push_back( &this->search_button );
+	this->text_buttons.push_back( &this->stroke_order_button );
 	
 	this->add_button.hidden = this->add_button.disabled = true;
 	this->remove_button.hidden = this->remove_button.disabled = true;
@@ -236,6 +243,9 @@ void WordListBrowser::init_button_vram()
 	this->translation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
 	this->translation_tab.owns_bg_vram = false;
 	
+	this->stroke_order_button.bg_vram = this->down_button.bg_vram;
+	this->stroke_order_button.bg_active_vram = this->down_button.bg_active_vram;
+	
 	ButtonProvider::init_button_vram();
 }
 
@@ -255,6 +265,7 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 	
 	// retract several edge sensors depending on the current list/display state:
 	this->down_button.y = word ? 0 : -12;
+	this->stroke_order_button.y = word ? 0 : -12;
 	// FIXME: it may be to hard for the user to tap on half retracted display setting tabs
 	this->foreign_word_tab.y = word ? ( this->render_foreign_word ? 0 : -8 ) : -12;
 	this->pronunciation_tab.y = word ? ( this->render_pronuciation ? 0 : -8 ) : -12;
@@ -433,6 +444,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	{
 		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+		this->word_browser.stroke_order_button.hidden = this->word_browser.stroke_order_button.disabled = true;
 	}
 	
 	// In this mode we want to restore visibility settings on switch by default:
@@ -582,6 +594,17 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 			|| text_button == &this->word_browser.right_button) )
 	{
 		this->drawing_pad.clear();
+	}
+	if( text_button == &this->word_browser.stroke_order_button 
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		StrokeOrderViewer *stroke_order = new StrokeOrderViewer( this->program, this->recursion_depth, **this->word_browser.current_word );
+		stroke_order->run_until_exit();
+		delete stroke_order;
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

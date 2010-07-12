@@ -484,8 +484,8 @@ void TextView::show_word_as_text( Program& program, NewWord* word, Lesson* lesso
 			new_text += "#\t"+di->second->example + "\n\n";
 	}
 	TextView* text_view = new TextView( program, recursion_depth, new_text );
-	// explicitly enable up_button, as an alternative to return from child mode
-	text_view->up_button.hidden = text_view->up_button.disabled = false;
+	//// explicitly enable up_button, as an alternative to return from child mode
+	//text_view->up_button.hidden = text_view->up_button.disabled = false;
 	text_view->run_until_exit();
 	delete text_view;
 }

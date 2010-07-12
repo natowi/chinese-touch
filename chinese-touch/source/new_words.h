@@ -10,22 +10,30 @@
 #include "ui_language.h"
 
 
+class RenderSettings
+{
+public:
+	bool render_foreign_word, render_pronuciation, render_translation;
+	bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
+	bool restore_on_switch;
+public:
+	RenderSettings();
+};
+
 /*! Base class for modes with word list browsing capabilities */
-class WordListBrowser : public ButtonProvider
+class WordListBrowser : public ButtonProvider, public RenderSettings
 {
 	public:
 		NewWordList& words;
 		NewWordList::iterator current_word;
 		RenderScreen& button_screen;
 		Library& library;
-		bool render_foreign_word, render_pronuciation, render_translation;
-		bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
-		bool restore_on_switch;
 		TextButton left_button, right_button, 
 			foreign_word_tab, pronunciation_tab, translation_tab, 
 			rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
-			down_button, add_button, remove_button, search_button;
+			down_button, add_button, remove_button, search_button,
+			stroke_order_button;
 	public:
 		WordListBrowser( ButtonProviderList& provider_list, 
 						 FreetypeRenderer& _freetype_renderer, 

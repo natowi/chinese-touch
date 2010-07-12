@@ -19,7 +19,7 @@ TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=	include freetype/include sqlite
+INCLUDES	:=	include freetype/include sqlite libpng/include zlib/include
 GRAPHICS	:=	graphics
 
 
@@ -44,8 +44,10 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
 LIBS	:= 	../freetype/objs/.libs/libfreetype.a \
-			../sqlite/.libs/libsqlite3.a \
-            -lfat -lnds9
+		../sqlite/.libs/libsqlite3.a \
+		../libpng/lib/libpng.a \
+		../zlib/lib/libz.a \
+		-lfat -lnds9
  
  
 #---------------------------------------------------------------------------------

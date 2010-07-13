@@ -133,7 +133,7 @@ void TextView::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
-			new_word->render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
+			new_word->render( this->program, this->word_screen, this->word_browser );
 		}
 		else
 		{
@@ -152,7 +152,7 @@ void TextView::render( Screen screen )
 				std::string character( this->text, this->context_render_char->uc_char.source_offset, 
 													this->context_render_char->uc_char.source_length );
 				NewWord char_word( character, "", 0 );
-				char_word.render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
+				char_word.render( this->program, this->word_screen, this->word_browser );
 				if( this->context_mode == CONTEXT_WORDS_BY_CONTEXT )
 				{
 					message = "No context matching words found :(";
@@ -269,6 +269,24 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		this->program.words_db->add_or_write_word( *new_word );
 		this->program.words_db->read_word( *new_word );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.stroke_order_tab 
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		NewWordList *single_word_list = new NewWordList();
+		single_word_list->push_back( *this->word_browser.current_word );
+		NewWordsViewer *word_viewer = new NewWordsViewer( this->program, this->recursion_depth, *single_word_list, 
+														  false /*no position saving*/, false /*no shuffle*/, 
+														  false /*don't show settings*/ );
+		word_viewer->word_browser.toggle_stroke_order();
+		word_viewer->run_until_exit();
+		delete word_viewer;
+		single_word_list->erase( single_word_list->begin(), single_word_list->end() );
+		delete single_word_list;
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

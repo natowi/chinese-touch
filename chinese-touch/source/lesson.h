@@ -63,7 +63,7 @@ public:
 			id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0),
 			from_static_db(false) {};
 	~NewWord();
-    void render( FreetypeRenderer& ft, RenderScreen& render_screen, RenderSettings& render_settings, Library& library );
+    void render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings );
 public:
     std::string hanzi, //!< Foreign language word.
 				pinyin; //!< Foreign language pronunciation.

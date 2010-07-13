@@ -10,6 +10,9 @@ public:
 	unsigned long code_point;
 	int source_offset;
 	int source_length;
+public:
+	UCChar() : code_point(0), source_offset(0), source_length(0) {}
+	void init() { this->code_point=0; this->source_offset=0; this->source_length=0; }
 };
 typedef std::list<UCChar> UCCharList;
 

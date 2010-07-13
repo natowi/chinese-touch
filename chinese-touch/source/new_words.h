@@ -13,9 +13,11 @@
 class RenderSettings
 {
 public:
-	bool render_foreign_word, render_pronuciation, render_translation;
-	bool init_render_foreign_word, init_render_pronuciation, init_render_translation;
+	bool render_foreign_word, render_pronuciation, render_translation, render_stroke_order;
+	bool init_render_foreign_word, init_render_pronuciation, init_render_translation, init_render_stroke_order;
 	bool restore_on_switch;
+	int stroke_order_left, stroke_order_top;
+	UCChar highlight_char;
 public:
 	RenderSettings();
 };
@@ -29,20 +31,22 @@ class WordListBrowser : public ButtonProvider, public RenderSettings
 		RenderScreen& button_screen;
 		Library& library;
 		TextButton left_button, right_button, 
-			foreign_word_tab, pronunciation_tab, translation_tab, 
+			foreign_word_tab, pronunciation_tab, translation_tab, stroke_order_tab, 
 			rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
-			down_button, add_button, remove_button, search_button,
-			stroke_order_button;
+			down_button, add_button, remove_button, search_button;
+		UCCharList current_char_list;
+		UCCharList::iterator current_char;
 	public:
 		WordListBrowser( ButtonProviderList& provider_list, 
 						 FreetypeRenderer& _freetype_renderer, 
 						 NewWordList& _words, 
 						 RenderScreen& _button_screen,
 						 Library& _library );
-		void toggle_foreign_word() { this->render_foreign_word = !this->render_foreign_word; }
-		void toggle_pronunciation() { this->render_pronuciation = !this->render_pronuciation; }
-		void toggle_translation() { this->render_translation = !this->render_translation; }
+		void toggle_foreign_word();
+		void toggle_pronunciation();
+		void toggle_translation();
+		void toggle_stroke_order();
 		void restore_init_settings();
 		void restore_init_settings_if_needed();
 		virtual void init_button_vram();
@@ -70,10 +74,11 @@ class NewWordsViewer : public Mode
 		int pixels_drawn;
 		bool clear_on_switch, randomize_list;
 	public:
-		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list );
+		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();
+		virtual ~NewWordsViewer();
 		void show_settings();
 		void render( Screen screen );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );

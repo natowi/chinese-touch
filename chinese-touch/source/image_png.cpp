@@ -5,7 +5,7 @@
 #include "image_png.h"
 #include "error_console.h"
 
-void read_png( std::string file_name, u16* dest_buffer, int& width, int& height, char alpha_threshold )
+void read_png( std::string file_name, u16* dest_buffer, int& width, int& height, int left, int top, char alpha_threshold )
 {
 	FILE *fp = fopen( file_name.c_str(), "rb" );
 	if (!fp)
@@ -76,9 +76,9 @@ void read_png( std::string file_name, u16* dest_buffer, int& width, int& height,
 	if( height>info_ptr->height ) height = info_ptr->height;
 	png_byte** row_pointers;
 	row_pointers = png_get_rows( png_ptr, info_ptr );
-	for( int row=0; row<info_ptr->height && row<height; row++ )
+	for( int row=top; row<info_ptr->height && row<(height+top); row++ )
 	{
-		for( int col=0; col<info_ptr->width && col<width; col++ )
+		for( int col=left; col<info_ptr->width && col<(width+left); col++ )
 		{
 			int byte_offset = col*(info_ptr->pixel_depth/8);
 			
@@ -99,7 +99,7 @@ void read_png( std::string file_name, u16* dest_buffer, int& width, int& height,
 				pixel_value |= (channel_value/8) << (channel*5);
 			}
 			
-			dest_buffer[row*dest_width+col] = pixel_value;
+			dest_buffer[(row-top)*dest_width+(col-left)] = pixel_value;
 		}
 	}
 	png_destroy_read_struct( &png_ptr, &info_ptr, &end_info);

@@ -85,7 +85,7 @@ void FulltextSearch::render( Screen screen )
 		this->word_screen.clear();
 		if( this->word_browser.words.size() && this->word_browser.current_word != this->word_browser.words.end() )
 		{
-			(*this->word_browser.current_word)->render( *this->program.ft, this->word_screen, this->word_browser, *this->program.library );
+			(*this->word_browser.current_word)->render( this->program, this->word_screen, this->word_browser );
 		}
 	}
 	else if( screen == SCREEN_SUB )

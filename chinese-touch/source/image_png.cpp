@@ -5,7 +5,7 @@
 #include "image_png.h"
 #include "error_console.h"
 
-void read_png( std::string file_name, u16* dest_buffer, int& width, int& height, int left, int top, char alpha_threshold )
+void read_png( const std::string& file_name, u16*& dest_buffer, int& width, int& height, int left, int top, char alpha_threshold )
 {
 	FILE *fp = fopen( file_name.c_str(), "rb" );
 	if (!fp)
@@ -70,12 +70,35 @@ void read_png( std::string file_name, u16* dest_buffer, int& width, int& height,
 		errstr << "not 8bpc RGB(A) image: " << file_name;
 		throw ERROR( errstr.str() );
 	}
+	
+	if( !width || !height ) 
+	{
+		// user wants us to allocate buffer dynamically
+		width = info_ptr->width;
+		height = info_ptr->height;
+		if( dest_buffer ) delete dest_buffer;
+		dest_buffer = 0;
+	}
+	
 	int dest_width = width;
 	int dest_height = height;
-	if( width>info_ptr->width ) width = info_ptr->width;
-	if( height>info_ptr->height ) height = info_ptr->height;
-	png_byte** row_pointers;
-	row_pointers = png_get_rows( png_ptr, info_ptr );
+	// ensure 16-bit-alignment of dest buffer lines:
+	dest_width = dest_width/2*2+dest_width%2*2;
+	if( !dest_buffer )
+	{
+		// user wants us to allocate buffer
+		dest_buffer = new u16[ dest_width * dest_height ];
+	}
+	
+	if( width>info_ptr->width+1 ) width = info_ptr->width;
+	if( height>info_ptr->height+1 ) height = info_ptr->height;
+	
+	if( left < 0 ) left=0;
+	if( top < 0 ) top=0;
+	if( left > info_ptr->width-dest_width ) left = info_ptr->width-dest_width;
+	if( top > info_ptr->height-dest_height ) top = info_ptr->height-dest_height;
+	
+	png_byte** row_pointers = png_get_rows( png_ptr, info_ptr );
 	for( int row=top; row<info_ptr->height && row<(height+top); row++ )
 	{
 		for( int col=left; col<info_ptr->width && col<(width+left); col++ )
@@ -99,9 +122,11 @@ void read_png( std::string file_name, u16* dest_buffer, int& width, int& height,
 				pixel_value |= (channel_value/8) << (channel*5);
 			}
 			
-			dest_buffer[(row-top)*dest_width+(col-left)] = pixel_value;
+			dest_buffer[ (row-top) * dest_width+(col-left) ] = pixel_value;
 		}
 	}
+	width = dest_width;
+	height = dest_height;
 	png_destroy_read_struct( &png_ptr, &info_ptr, &end_info);
 	fclose( fp );
 }

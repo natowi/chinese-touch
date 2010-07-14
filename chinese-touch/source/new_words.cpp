@@ -9,6 +9,7 @@
 #include <stdlib.h> // rand()
 #include <iomanip>
 #include <sys/stat.h>
+#include <string.h>
 
 #include "new_words.h"
 #include "config.h"
@@ -52,6 +53,8 @@
 #include "tiny_search.h"
 #include "tiny_bubble.h"
 #include "image_png.h"
+#include "tiny_book.h"
+#include "tiny_text.h"
 
 
 void NewWord::render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings )
@@ -69,7 +72,9 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			this->lesson->book->library->words_db.add_or_write_word( *this );
 		}
 	}
-	render_screen.clear();
+	
+	// optimization: prevent word re-rendering if an image buffer is already available
+	if( !render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update ) render_screen.clear();
 	render_screen.clear_bg();
 
 	// render hanzi centered
@@ -77,36 +82,97 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	render_style.center_x = true;
 	int top = 5;
 	int size = 32;
-	if( render_settings.render_foreign_word )
+	// optimization: prevent word re-rendering if an image buffer is already available
+	if( render_settings.render_foreign_word && (!render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update) )
 	{
+		// TODO: if( render_settings.highlight_char.code_point ) ...
 		RenderInfo rect = program.ft->render( render_screen, this->hanzi, program.ft->han_face, size, 0, top, &render_style );
 		top += rect.height;
 	}
-	else
+													// save space only for stroke order image
+	else if( render_settings.render_foreign_word || !render_settings.render_stroke_order )
 	{
-		top += size*1.2;
+		top += size*1.2; // white space instead of foreign word
 	}
-	top += 10;
-
+												// save space only for stroke order image:
+	if( render_settings.render_foreign_word || !render_settings.render_stroke_order )
+	{
+		top += 10; // gap after foreign word
+	}
+	
 	// render pinyin centered
 	size = 12;
 	if( this->pinyin.length()>20 ) size = 10;
 	if( this->pinyin.length()>40 ) size = 8;
-	if( render_settings.render_pronuciation )
+	// optimization: prevent pronunciation re-rendering if an image buffer is already available
+	if( render_settings.render_pronuciation && (!render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update) )
 	{
 		RenderInfo rect = program.ft->render( render_screen, this->pinyin, program.ft->han_face, size, 0, top, &render_style );
 		top += rect.height;
 	}
+													// save space only for stroke order image:
+	else if( render_settings.render_pronuciation || !render_settings.render_stroke_order )
+	{
+		top += size*1.2; // white space instead of pronunciation
+	}
+												// save space only for stroke order image:
+	if( render_settings.render_pronuciation || !render_settings.render_stroke_order )
+	{
+		top += 10; // gap after pronunciation
+	}
+
+	if( render_settings.render_stroke_order )
+	{
+		render_settings.stroke_order_full_update = false;
+		if( render_settings.highlight_char.code_point 
+			&& (!render_settings.stroke_order_image_buffer 
+				|| render_settings.highlight_char.code_point!=render_settings.stroke_order_image_char.code_point) )
+		{
+			std::stringstream stroke_image_name;
+			stroke_image_name << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << render_settings.highlight_char.code_point << std::setw(0) << ".png";
+			struct stat statbuf;
+			if( stat(stroke_image_name.str().c_str(), &statbuf)==0 )
+			{
+				render_settings.stroke_order_image_buffer_width=0;
+				render_settings.stroke_order_image_buffer_height=0;
+				read_png( stroke_image_name.str(), render_settings.stroke_order_image_buffer, 
+						render_settings.stroke_order_image_buffer_width, render_settings.stroke_order_image_buffer_height );
+				render_settings.stroke_order_image_char = render_settings.highlight_char;
+			}
+		}
+		if( render_settings.stroke_order_image_buffer )
+		{
+			int width = render_screen.res_x;
+			int height = render_screen.res_y - top;
+			u16* start_address = render_screen.bg_base_address + render_screen.res_x*(render_screen.res_y-height);
+			
+			if( render_settings.stroke_order_scroll_left > render_settings.stroke_order_image_buffer_width - render_screen.res_x ) 
+				render_settings.stroke_order_scroll_left = render_settings.stroke_order_image_buffer_width - render_screen.res_x;
+			if( render_settings.stroke_order_scroll_top > render_settings.stroke_order_image_buffer_height - height ) 
+				render_settings.stroke_order_scroll_top = render_settings.stroke_order_image_buffer_height - height;
+			if( render_settings.stroke_order_scroll_left < 0 ) render_settings.stroke_order_scroll_left = 0;
+			if( render_settings.stroke_order_scroll_top < 0 ) render_settings.stroke_order_scroll_top = 0;
+			
+			int image_residual_width = render_settings.stroke_order_image_buffer_width - render_settings.stroke_order_scroll_left;
+			if( image_residual_width < width ) width = image_residual_width;
+			int image_residual_height = render_settings.stroke_order_image_buffer_height - render_settings.stroke_order_scroll_top;
+			if( image_residual_height < height ) height = image_residual_height;
+			
+			for( int line = 0; line < height; line++ )
+			{
+				// copy line data from stroke order image buffer to vram:
+				memcpy( start_address+line*render_screen.res_x, 
+						render_settings.stroke_order_image_buffer
+							+ (line+render_settings.stroke_order_scroll_top)*render_settings.stroke_order_image_buffer_width
+							+ (render_settings.stroke_order_scroll_left>>1<<1),
+						width*2 );
+			}
+		}
+	}
 	else
 	{
-		top += size*1.2;
-	}
-	top += 10;
+		std::string lang = "de";
 
-	std::string lang = "de";
-
-	if( !render_settings.render_stroke_order )
-	{
 		if( render_settings.render_translation && this->definitions.count(lang) )
 		{
 			if( this->definitions[lang]->word_type.length() )
@@ -153,27 +219,28 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			program.ft->render( render_screen, text_stream.str(), program.ft->latin_face, size, 0, book_lesson_top );
 		}
 	}
-	else if( render_settings.highlight_char.code_point )
-	{
-		std::stringstream stroke_image_name;
-		stroke_image_name << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << render_settings.highlight_char.code_point << std::setw(0) << ".png";
-		struct stat statbuf;
-		if( stat(stroke_image_name.str().c_str(), &statbuf)==0 )
-		{
-			int width = render_screen.res_x, height = render_screen.res_y / 2;
-			u16* start_address = render_screen.bg_base_address + render_screen.res_x*(render_screen.res_y-height);
-			read_png( stroke_image_name.str(), start_address, width, height, render_settings.stroke_order_left, render_settings.stroke_order_top );
-		}
-	}
 }
 
 
 RenderSettings::RenderSettings()
 	:	render_foreign_word(true), render_pronuciation(true), render_translation(true), render_stroke_order(false),
 		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true), init_render_stroke_order(false),
-		restore_on_switch(false), stroke_order_left(0), stroke_order_top(0)
+		restore_on_switch(false), stroke_order_scroll_left(0), stroke_order_scroll_top(0), stroke_order_image_buffer(0),
+		stroke_order_image_buffer_width(0), stroke_order_image_buffer_height(0), stroke_order_full_update(true)
 {
 }
+
+RenderSettings::~RenderSettings()
+{
+	this->free_buffers();
+}
+
+void RenderSettings::free_buffers()
+{
+	if( this->stroke_order_image_buffer ) delete this->stroke_order_image_buffer;
+	this->stroke_order_image_buffer = 0;
+}
+
 
 WordListBrowser::WordListBrowser( ButtonProviderList& provider_list, 
 								  FreetypeRenderer& _freetype_renderer, 
@@ -185,16 +252,16 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		button_screen(_button_screen), library(_library),
 		left_button(_button_screen,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
-		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32-8,/*dynamic*/ 0,button_ft.han_face,9),
-		pronunciation_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16-8,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
-		translation_tab(_button_screen,"latin",SpriteSize_32x16,button_screen.res_x/2+16-8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
-		stroke_order_tab(_button_screen,"stroke",SpriteSize_32x16,button_screen.res_x/2+16+32-8,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
+		as_text_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16-64-8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32,/*dynamic*/ 0,button_ft.han_face,9),
+		pronunciation_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
+		translation_tab(_button_screen,"latin",SpriteSize_32x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		stroke_order_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2+16+32+8,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
 		rating_bar(_button_screen,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_easy(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_medium(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_hard(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_impossible(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
-		down_button(_button_screen,"下",SpriteSize_16x16,44,/*dynamic*/ 0,button_ft.han_face,9,0,0),
 		add_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
 		remove_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
 		search_button(_button_screen,"",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1),
@@ -211,7 +278,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->text_buttons.push_back( &this->rating_medium );
 	this->text_buttons.push_back( &this->rating_hard );
 	this->text_buttons.push_back( &this->rating_impossible );
-	this->text_buttons.push_back( &this->down_button );
+	this->text_buttons.push_back( &this->as_text_tab );
 	this->text_buttons.push_back( &this->add_button );
 	this->text_buttons.push_back( &this->remove_button );
 	this->text_buttons.push_back( &this->search_button );
@@ -242,8 +309,6 @@ void WordListBrowser::init_button_vram()
 	this->rating_hard.init_vram( bottom_rating_hard_activeBitmap, this->rating_hard.bg_active_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossibleBitmap, this->rating_impossible.bg_vram );
 	this->rating_impossible.init_vram( bottom_rating_impossible_activeBitmap, this->rating_impossible.bg_active_vram );
-	this->down_button.init_vram( small_top_buttonBitmap, this->down_button.bg_vram );
-	this->down_button.init_vram( small_top_button_activeBitmap, this->down_button.bg_active_vram );
 	this->add_button.init_vram( small_starBitmap, this->add_button.bg_vram );
 	this->add_button.init_vram( small_star_activeBitmap, this->add_button.bg_active_vram );
 	this->remove_button.init_vram( small_trashBitmap, this->remove_button.bg_vram );
@@ -252,6 +317,11 @@ void WordListBrowser::init_button_vram()
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
 	this->search_button.init_vram( tiny_searchBitmap, this->search_button.fg_vram );
 
+	this->as_text_tab.bg_vram = this->foreign_word_tab.bg_vram;
+	this->as_text_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
+	this->as_text_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	this->as_text_tab.init_vram( tiny_bookBitmap, this->as_text_tab.fg_vram );
+	this->as_text_tab.owns_bg_vram = false;
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
 	this->pronunciation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
@@ -264,6 +334,7 @@ void WordListBrowser::init_button_vram()
 	this->stroke_order_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->stroke_order_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
 	this->stroke_order_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	this->stroke_order_tab.init_vram( tiny_textBitmap, this->stroke_order_tab.fg_vram );
 	this->stroke_order_tab.owns_bg_vram = false;
 	
 	ButtonProvider::init_button_vram();
@@ -297,13 +368,15 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 	NewWord* word = 0;
 	if( this->current_word != this->words.end() ) word = *this->current_word;
 	
-	// retract several edge sensors depending on the current list/display state:
-	this->down_button.y = word ? 0 : -12;
-	// FIXME: it may be to hard for the user to tap on half retracted display setting tabs
-	this->foreign_word_tab.y = word ? ( this->render_foreign_word ? 0 : -8 ) : -12;
-	this->pronunciation_tab.y = word ? ( this->render_pronuciation ? 0 : -8 ) : -12;
-	this->translation_tab.y = word ? ( this->render_translation ? 0 : -8 ) : -12;
-	this->stroke_order_tab.y = word ? ( this->render_stroke_order ? 0 : -8 ) : -12;
+	// vertically translate several edge sensors depending on the current list/display state:
+	this->left_button.y =  (this->render_stroke_order ? 32 : 0);
+	this->right_button.y =  (this->render_stroke_order ? 32 : 0);
+	this->as_text_tab.y = (word ? 0 : -12) + (this->render_stroke_order ? 32 : 0);
+	this->foreign_word_tab.y = (word ? ( this->render_foreign_word ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
+	this->pronunciation_tab.y = (word ? ( this->render_pronuciation ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
+	this->translation_tab.y = (word ? ( this->render_translation ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
+	this->stroke_order_tab.y = (word ? ( this->render_stroke_order ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
+	
 	this->rating_bar.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
 	this->rating_easy.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
 	this->rating_medium.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
@@ -355,11 +428,6 @@ ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 		this->toggle_translation();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
-	else if( text_button == &this->stroke_order_tab )
-	{
-		this->toggle_stroke_order();
-		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
-	}
 	else if( text_button == &this->rating_easy 
 		&& this->current_word != this->words.end() )
 	{
@@ -400,13 +468,14 @@ ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 
 bool WordListBrowser::switch_forward()
 {
+	this->free_buffers();
 	if( this->render_stroke_order && this->current_char != this->current_char_list.end() )
 	{
 		UCCharList::iterator test_it = this->current_char;
 		if( ++test_it != this->current_char_list.end() )
 		{
 			this->current_char++;
-			this->restore_init_settings_if_needed();
+			// this->restore_init_settings_if_needed();
 			return true;
 		}
 	}
@@ -425,10 +494,11 @@ bool WordListBrowser::switch_forward()
 
 bool WordListBrowser::switch_backwards()
 {
+	this->free_buffers();
 	if( this->render_stroke_order && this->current_char != this->current_char_list.begin() )
 	{
 		this->current_char--;
-		this->restore_init_settings_if_needed();
+		// this->restore_init_settings_if_needed();
 		return true;
 	}
 	else if( this->current_word != this->words.begin() )
@@ -455,17 +525,39 @@ ButtonAction WordListBrowser::handle_console_button_event( int pressed, int held
 	return ButtonProvider::handle_console_button_event( pressed, held, released );
 }
 
-void WordListBrowser::toggle_foreign_word() { this->render_foreign_word = !this->render_foreign_word; }
-void WordListBrowser::toggle_pronunciation() { this->render_pronuciation = !this->render_pronuciation; }
+void WordListBrowser::toggle_foreign_word() 
+{ 
+	this->render_foreign_word = !this->render_foreign_word;
+	this->stroke_order_full_update = true; // need to refresh word rendering
+}
+void WordListBrowser::toggle_pronunciation() 
+{ 
+	this->render_pronuciation = !this->render_pronuciation; 
+	this->stroke_order_full_update = true; // need to refresh word rendering
+}
 void WordListBrowser::toggle_translation() 
 { 
+	// replace stroke order image with translation fields:
 	if( !this->render_translation && this->render_stroke_order ) this->toggle_stroke_order();
 	this->render_translation = !this->render_translation;
+	this->stroke_order_full_update = true; // need to refresh word rendering
 }
 void WordListBrowser::toggle_stroke_order() 
 { 
-	if( !this->render_stroke_order && this->render_translation ) this->toggle_translation();
+	// replace pronunciation and translation fields with stroke order image:
+	if( !this->render_stroke_order && this->render_pronuciation ) 
+	{
+		this->toggle_pronunciation();
+	}
+	if( !this->render_stroke_order && this->render_translation )
+	{
+		this->toggle_translation();
+	}
 	this->render_stroke_order = !this->render_stroke_order; 
+	if( this->stroke_order_image_buffer )
+	{
+		this->free_buffers();
+	}
 	if( this->render_stroke_order )
 	{
 		this->current_char_list.clear();
@@ -475,6 +567,7 @@ void WordListBrowser::toggle_stroke_order()
 		}
 		this->current_char = this->current_char_list.begin();
 	}
+	this->stroke_order_full_update = true; // need to refresh word rendering
 }
 
 void WordListBrowser::restore_init_settings()
@@ -514,12 +607,12 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		exit_button(drawing_screen,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
 		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
-		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list)
+		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false)
 {
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
-		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
+		this->word_browser.as_text_tab.hidden = this->word_browser.as_text_tab.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
 	}
 	
@@ -627,7 +720,6 @@ void NewWordsViewer::render( Screen screen )
 	}
 	if( screen == SCREEN_MAIN )
 	{
-		this->word_screen.clear();
 		if( new_word )
 		{
 			if( this->save_position ) this->program.config->save_word_position( new_word );
@@ -640,6 +732,16 @@ void NewWordsViewer::render( Screen screen )
 				this->word_browser.highlight_char.init();
 			}
 			new_word->render( this->program, this->word_screen, this->word_browser );
+		}
+	}
+	if( screen == SCREEN_SUB )
+	{
+		if( this->word_browser.render_stroke_order )
+		{
+			for( int line=0; line<32; line++ )
+			{
+				memset( this->drawing_screen.base_address+line*this->drawing_screen.res_x/2, 50, this->drawing_screen.res_x );
+			}
 		}
 	}
 	
@@ -666,7 +768,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		this->show_settings();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->word_browser.down_button
+	if( text_button == &this->word_browser.as_text_tab
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
@@ -692,6 +794,12 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 			|| text_button == &this->word_browser.right_button) )
 	{
 		this->drawing_pad.clear();
+		return BUTTON_ACTION_PRESSED;
+	}
+	if( text_button == &this->word_browser.stroke_order_tab )
+	{
+		this->word_browser.toggle_stroke_order();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );
@@ -702,14 +810,23 @@ ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 	this->old_touch = touch;
 	this->old_distance = 0;
 	this->pixels_drawn = 0;
+	this->scrolling = false;
 	// check for touch screen button activation:
 	ButtonAction action = Mode::handle_touch_begin( touch );
-	// only draw a pixel if no button was activated by the touch:
+	// only draw a pixel or start scrolling if no button was activated by the touch:
 	if( action == BUTTON_ACTION_UNHANDLED )
 	{
-		this->drawing_pad.draw_point( touch.px, touch.py );
-		this->pixels_drawn += 1;
-		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+		if( this->word_browser.render_stroke_order && touch.py<32 )
+		{
+			this->scrolling = true;
+			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+		}
+		else
+		{
+			this->drawing_pad.draw_point( touch.px, touch.py );
+			this->pixels_drawn += 1;
+			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+		}
 	}
 	
 	return action;
@@ -727,15 +844,24 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	{
 		action |= Mode::handle_touch_drag( touch );
 	}
-	// if we are not hovering a touch screen button, draw a line:
+	// if we are not hovering a touch screen button, draw a line or scroll:
 	if( (action == BUTTON_ACTION_UNHANDLED)
 		&& (distance 
 			&& ((this->old_distance && (distance <= this->old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
 				|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) )
 	{
-		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
 		this->pixels_drawn += distance;
-		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+		if( this->scrolling )
+		{
+			this->word_browser.stroke_order_scroll_left -= x_diff*2;
+			this->word_browser.stroke_order_scroll_top -= y_diff*2;
+			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
+		}
+		else
+		{
+			this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
+			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+		}
 	}
 	this->old_distance = distance;
 	this->old_touch = touch;
@@ -745,6 +871,7 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 
 ButtonAction NewWordsViewer::handle_touch_end( touchPosition touch )
 {
+	this->scrolling = false;
 	ButtonAction action = BUTTON_ACTION_UNHANDLED;
 	// check for touch screen button activation, but only if the users
 	// is not already writing to the screen:

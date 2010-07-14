@@ -12,6 +12,8 @@
 #include "large_center_button_active.h"
 #include <small_top_button.h>
 #include <small_top_button_active.h>
+#include "key.h"
+#include "key_active.h"
 
 
 FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson* _lesson )
@@ -20,7 +22,7 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson*
 		word_browser(button_provider_list, *_program.ft, current_words, keyboard_screen, *_program.library),
 		settings_button(keyboard_screen,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		search_button(keyboard_screen,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_program.ft->han_face,14,0,4),
-		clear_button(keyboard_screen,"c",SpriteSize_16x16,keyboard_screen.res_x-44-16,0,_program.ft->latin_face,10,1,-1)
+		clear_button(keyboard_screen,"clr",SpriteSize_32x32,0 /*dynamic*/,16+3,_program.ft->latin_face,8,-6,4)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
@@ -35,8 +37,9 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson*
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
-		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
+		this->word_browser.as_text_tab.hidden = this->word_browser.as_text_tab.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+		this->word_browser.stroke_order_tab.hidden = this->word_browser.stroke_order_tab.disabled = true;
 	}
 	
 	this->init_mode();
@@ -67,8 +70,8 @@ void FulltextSearch::init_button_vram()
 	this->search_button.init_vram( large_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( large_center_button_activeBitmap, this->search_button.bg_active_vram );
 	this->search_button.init_vram( large_searchBitmap, this->search_button.fg_vram );
-	this->clear_button.init_vram( small_top_buttonBitmap, this->clear_button.bg_vram );
-	this->clear_button.init_vram( small_top_button_activeBitmap, this->clear_button.bg_active_vram );
+	this->clear_button.init_vram( keyBitmap, this->clear_button.bg_vram );
+	this->clear_button.init_vram( key_activeBitmap, this->clear_button.bg_active_vram );
 	
 	ButtonProvider::init_button_vram();
 }
@@ -99,7 +102,7 @@ void FulltextSearch::render( Screen screen )
 							|| (new_word->lesson && new_word->lesson->book!=this->lesson->book) /*other books*/
 							|| !new_word->lesson /*lost words*/ ) );
 		
-		this->clear_button.y = touch_keyboard.written_text.length() ? 0 : -12;
+		this->clear_button.x = touch_keyboard.written_text.length() ? keyboard_screen.res_x-18 : keyboard_screen.res_x-4;
 		int top = 20;
 		if( this->prev_rendered_text != this->touch_keyboard.written_text )
 		{
@@ -136,7 +139,7 @@ void extract_words( const std::string& text, StringList& patterns )
 
 ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 {
-	if( text_button == &this->word_browser.down_button
+	if( text_button == &this->word_browser.as_text_tab
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
@@ -203,6 +206,24 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 	{
 		this->touch_keyboard.written_text = "";
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.stroke_order_tab 
+		&& this->word_browser.current_word!=this->word_browser.words.end() )
+	{
+		this->free_vram();
+		NewWordList *single_word_list = new NewWordList();
+		single_word_list->push_back( *this->word_browser.current_word );
+		NewWordsViewer *word_viewer = new NewWordsViewer( this->program, this->recursion_depth, *single_word_list, 
+														  false /*no position saving*/, false /*no shuffle*/, 
+														  false /*don't show settings*/ );
+		word_viewer->word_browser.toggle_stroke_order();
+		word_viewer->run_until_exit();
+		delete word_viewer;
+		single_word_list->erase( single_word_list->begin(), single_word_list->end() );
+		delete single_word_list;
+		this->init_mode();
+		this->init_vram();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

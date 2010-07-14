@@ -58,8 +58,9 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
-		this->word_browser.down_button.hidden = this->word_browser.down_button.disabled = true;
+		this->word_browser.as_text_tab.hidden = this->word_browser.as_text_tab.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
+		this->word_browser.stroke_order_tab.hidden = this->word_browser.stroke_order_tab.disabled = true;
 	}
 	// ignore touch events on loading_symbol:
 	this->loading_symbol.disabled = true;
@@ -236,7 +237,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		this->show_settings();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->word_browser.down_button
+	if( text_button == &this->word_browser.as_text_tab
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();

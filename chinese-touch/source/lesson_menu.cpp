@@ -339,6 +339,7 @@ void LessonMenu::init_mode()
 {
 	this->program.ft->init_screen( this->info_screen );
 	this->info_screen.clear();
+	this->info_screen.clear_bg();
 	
 	this->program.ft->init_screen( this->menu_screen );
 	this->menu_screen.clear();
@@ -351,7 +352,6 @@ void LessonMenu::init_mode()
 
 void LessonMenu::init_vram()
 {
-	this->info_screen.clear_bg(); // clear dragon image rendered by Program::initialize()
 	Mode::init_vram();
 }
 

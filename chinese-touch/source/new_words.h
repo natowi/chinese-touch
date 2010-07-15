@@ -55,6 +55,7 @@ class WordListBrowser : public ButtonProvider, public RenderSettings
 		void restore_init_settings();
 		void restore_init_settings_if_needed();
 		virtual void init_button_vram();
+		virtual void free_button_vram();
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
 		bool switch_forward();

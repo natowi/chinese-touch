@@ -80,6 +80,7 @@ void TextView::init_mode()
 {
 	this->program.ft->init_screen( this->word_screen );
 	this->word_screen.clear();
+	this->word_screen.clear_bg();
 
 	this->program.ft->init_screen( this->text_screen );
 	this->text_screen.clear();

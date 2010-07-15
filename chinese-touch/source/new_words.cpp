@@ -49,11 +49,12 @@
 #include "small_trash_active.h"
 #include "bottom_center_button.h"
 #include "bottom_center_button_active.h"
+#include "top_center_button.h"
+#include "top_center_button_active.h"
 #include "fulltext_search.h"
 #include "tiny_search.h"
 #include "tiny_bubble.h"
 #include "image_png.h"
-#include "tiny_book.h"
 #include "tiny_text.h"
 
 
@@ -252,11 +253,11 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		button_screen(_button_screen), library(_library),
 		left_button(_button_screen,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
 		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
-		as_text_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16-64-8,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		as_text_tab(_button_screen,"ˇ",SpriteSize_32x16,button_screen.res_x/2-16-64-8,/*dynamic*/ 0,button_ft.han_face,16,1,-2),
 		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32,/*dynamic*/ 0,button_ft.han_face,9),
 		pronunciation_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
 		translation_tab(_button_screen,"latin",SpriteSize_32x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
-		stroke_order_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2+16+32+8,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
+		stroke_order_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2+16+32,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
 		rating_bar(_button_screen,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_easy(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_medium(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
@@ -299,6 +300,8 @@ void WordListBrowser::init_button_vram()
 	this->foreign_word_tab.init_vram( top_paper_tabBitmap, this->foreign_word_tab.bg_vram );
 	this->foreign_word_tab.init_vram( top_paper_tab_activeBitmap, this->foreign_word_tab.bg_active_vram );
 	this->foreign_word_tab.init_vram( top_paper_tab_inactiveBitmap, this->foreign_word_tab.bg_inactive_vram );
+	this->as_text_tab.init_vram( top_center_buttonBitmap, this->as_text_tab.bg_vram );
+	this->as_text_tab.init_vram( top_center_button_activeBitmap, this->as_text_tab.bg_active_vram );
 	this->rating_bar.init_vram( bottom_rating_barBitmap, this->rating_bar.bg_vram );
 	this->rating_bar.bg_prio = 2; // place bar behind rating emotes
 	this->rating_easy.init_vram( bottom_rating_easyBitmap, this->rating_easy.bg_vram );
@@ -317,11 +320,6 @@ void WordListBrowser::init_button_vram()
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
 	this->search_button.init_vram( tiny_searchBitmap, this->search_button.fg_vram );
 
-	this->as_text_tab.bg_vram = this->foreign_word_tab.bg_vram;
-	this->as_text_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
-	this->as_text_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
-	this->as_text_tab.init_vram( tiny_bookBitmap, this->as_text_tab.fg_vram );
-	this->as_text_tab.owns_bg_vram = false;
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
 	this->pronunciation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
@@ -339,6 +337,14 @@ void WordListBrowser::init_button_vram()
 	
 	ButtonProvider::init_button_vram();
 }
+
+void WordListBrowser::free_button_vram()
+{
+	 // also free stroke order image buffer if allocated:
+	this->free_buffers();
+	ButtonProvider::free_button_vram();
+}
+
 
 void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 {
@@ -662,6 +668,7 @@ void NewWordsViewer::init_mode()
 {
 	this->Mode::button_ft.init_screen( this->word_screen );
 	this->word_screen.clear();
+	this->word_screen.clear_bg();
 	
 	this->Mode::button_ft.init_screen( this->drawing_screen );
 	this->drawing_screen.clear();

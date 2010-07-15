@@ -613,6 +613,10 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		exit_button(drawing_screen,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
 		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		scroll_field_overlay_0(drawing_screen,"",SpriteSize_64x32,64*0,0,_program.ft->latin_face,9,0,16),
+		scroll_field_overlay_1(drawing_screen,"Scroll",SpriteSize_64x32,64*1,0,_program.ft->latin_face,9,0,8),
+		scroll_field_overlay_2(drawing_screen,"here!",SpriteSize_64x32,64*2,0,_program.ft->latin_face,9,0,8),
+		scroll_field_overlay_3(drawing_screen,"",SpriteSize_64x32,64*3,0,_program.ft->latin_face,9,0,16),
 		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false)
 {
 	// disable child mode buttons when recursion limit is reached:
@@ -637,6 +641,16 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	this->text_buttons.push_back( &this->exit_button );
 	this->text_buttons.push_back( &this->clear_button );
 	this->text_buttons.push_back( &this->settings_button );
+	this->text_buttons.push_back( &this->scroll_field_overlay_0 );
+	this->text_buttons.push_back( &this->scroll_field_overlay_1 );
+	this->text_buttons.push_back( &this->scroll_field_overlay_2 );
+	this->text_buttons.push_back( &this->scroll_field_overlay_3 );
+	
+	this->scroll_field_overlay_0.disabled = this->scroll_field_overlay_0.hidden
+	= this->scroll_field_overlay_1.disabled = this->scroll_field_overlay_1.hidden
+	= this->scroll_field_overlay_2.disabled = this->scroll_field_overlay_2.hidden
+	= this->scroll_field_overlay_3.disabled = this->scroll_field_overlay_3.hidden
+	= true;
 	
 	// initialize word list on stored word index (only used when calling new words from a lesson):
 	if( this->save_position )
@@ -689,6 +703,32 @@ void NewWordsViewer::init_button_vram()
 	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	
+	int overlay_buffer_size = scroll_field_overlay_0.width*scroll_field_overlay_0.height;
+	u16* overlay_buffer = new u16[ overlay_buffer_size ];
+	for( u16* pos=overlay_buffer; pos<overlay_buffer+overlay_buffer_size; pos++ )
+	{
+		int grit_size = 8;
+		int offset = pos - overlay_buffer;
+		if( (offset % grit_size) && ((offset / scroll_field_overlay_0.width) % grit_size - grit_size+1) )
+		{
+			*pos = 1<<15 | 31<<10 | 24<<5 | 20<<0;
+		}
+		else *pos = 1<<15 | 24<<10 | 20<<5 | 16<<0;
+	}
+	this->scroll_field_overlay_0.init_vram( overlay_buffer, this->scroll_field_overlay_0.bg_vram );
+	this->scroll_field_overlay_1.bg_vram = this->scroll_field_overlay_0.bg_vram;
+	this->scroll_field_overlay_1.owns_bg_vram = false;
+	this->scroll_field_overlay_2.bg_vram = this->scroll_field_overlay_0.bg_vram;
+	this->scroll_field_overlay_2.owns_bg_vram = false;
+	this->scroll_field_overlay_3.bg_vram = this->scroll_field_overlay_0.bg_vram;
+	this->scroll_field_overlay_3.owns_bg_vram = false;
+	delete overlay_buffer;
+	this->scroll_field_overlay_0.bg_prio = this->scroll_field_overlay_0.text_prio
+	=this->scroll_field_overlay_1.bg_prio = this->scroll_field_overlay_1.text_prio
+	=this->scroll_field_overlay_2.bg_prio = this->scroll_field_overlay_2.text_prio
+	=this->scroll_field_overlay_3.bg_prio = this->scroll_field_overlay_3.text_prio
+	= 0;
 	
 	ButtonProvider::init_button_vram();
 }
@@ -743,13 +783,11 @@ void NewWordsViewer::render( Screen screen )
 	}
 	if( screen == SCREEN_SUB )
 	{
-		if( this->word_browser.render_stroke_order )
-		{
-			for( int line=0; line<32; line++ )
-			{
-				memset( this->drawing_screen.base_address+line*this->drawing_screen.res_x/2, 50, this->drawing_screen.res_x );
-			}
-		}
+		this->scroll_field_overlay_0.hidden
+		= this->scroll_field_overlay_1.hidden
+		= this->scroll_field_overlay_2.hidden
+		= this->scroll_field_overlay_3.hidden
+		= !this->word_browser.render_stroke_order;
 	}
 	
 	Mode::render( screen );
@@ -818,22 +856,23 @@ ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 	this->old_distance = 0;
 	this->pixels_drawn = 0;
 	this->scrolling = false;
-	// check for touch screen button activation:
-	ButtonAction action = Mode::handle_touch_begin( touch );
+	ButtonAction action=BUTTON_ACTION_UNHANDLED;
+	if( this->word_browser.render_stroke_order && touch.py<32 )
+	{
+		this->scrolling = true;
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	else
+	{
+		// check for touch screen button activation:
+		action = Mode::handle_touch_begin( touch );
+	}
 	// only draw a pixel or start scrolling if no button was activated by the touch:
 	if( action == BUTTON_ACTION_UNHANDLED )
 	{
-		if( this->word_browser.render_stroke_order && touch.py<32 )
-		{
-			this->scrolling = true;
-			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
-		}
-		else
-		{
-			this->drawing_pad.draw_point( touch.px, touch.py );
-			this->pixels_drawn += 1;
-			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
-		}
+		this->drawing_pad.draw_point( touch.px, touch.py );
+		this->pixels_drawn += 1;
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return action;
@@ -845,10 +884,16 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	int x_diff = touch.px - this->old_touch.px;
 	int y_diff = touch.py - this->old_touch.py;
 	int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
-	// check for touch screen button activation, but only if the users
-	// is not already writing to the screen:
-	if( this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
+	if( this->scrolling )
 	{
+		this->word_browser.stroke_order_scroll_left -= x_diff*2;
+		this->word_browser.stroke_order_scroll_top -= y_diff*2;
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
+	}
+	else if( this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
+	{
+		// check for touch screen button activation, but only if the users
+		// is not already writing to the screen:
 		action |= Mode::handle_touch_drag( touch );
 	}
 	// if we are not hovering a touch screen button, draw a line or scroll:
@@ -858,17 +903,8 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 				|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) )
 	{
 		this->pixels_drawn += distance;
-		if( this->scrolling )
-		{
-			this->word_browser.stroke_order_scroll_left -= x_diff*2;
-			this->word_browser.stroke_order_scroll_top -= y_diff*2;
-			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
-		}
-		else
-		{
-			this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
-			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
-		}
+		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	this->old_distance = distance;
 	this->old_touch = touch;
@@ -878,15 +914,16 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 
 ButtonAction NewWordsViewer::handle_touch_end( touchPosition touch )
 {
-	this->scrolling = false;
 	ButtonAction action = BUTTON_ACTION_UNHANDLED;
 	// check for touch screen button activation, but only if the users
 	// is not already writing to the screen:
-	if( this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
+	if( !this->scrolling && this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
 	{
 		action |= Mode::handle_touch_end( touch );
 	}
 	if( action == BUTTON_ACTION_UNHANDLED )
 		action |= this->handle_touch_drag( touch );
+	this->scrolling = false;
+	
 	return action;
 }

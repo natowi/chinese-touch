@@ -72,7 +72,8 @@ class NewWordsViewer : public Mode
 		RenderScreen word_screen, drawing_screen;
 		WordListBrowser word_browser;
 		DrawingPad drawing_pad;
-		TextButton exit_button, clear_button, settings_button;
+		TextButton exit_button, clear_button, settings_button, 
+				scroll_field_overlay_0, scroll_field_overlay_1, scroll_field_overlay_2, scroll_field_overlay_3;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;
 		touchPosition old_touch;

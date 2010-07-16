@@ -21,6 +21,7 @@ public:
 	u16* stroke_order_image_buffer;
 	int stroke_order_image_buffer_width, stroke_order_image_buffer_height;
 	bool stroke_order_full_update;
+	RenderChar* highlight_render_char;
 public:
 	RenderSettings();
 	~RenderSettings();

@@ -86,9 +86,21 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	// optimization: prevent word re-rendering if an image buffer is already available
 	if( render_settings.render_foreign_word && (!render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update) )
 	{
-		// TODO: if( render_settings.highlight_char.code_point ) ...
-		RenderInfo rect = program.ft->render( render_screen, this->hanzi, program.ft->han_face, size, 0, top, &render_style );
+		RenderCharList char_list;
+		RenderInfo rect = program.ft->render( render_screen, this->hanzi, program.ft->han_face, size, 0, top, &render_style, &char_list );
 		top += rect.height;
+		if( render_settings.highlight_char.code_point )
+		{
+			for( RenderCharList::iterator rci=char_list.begin(); rci!=char_list.end(); rci++ )
+			{
+				if( (*rci)->uc_char.source_offset == render_settings.highlight_char.source_offset )
+				{
+					if( render_settings.highlight_render_char ) 
+						delete render_settings.highlight_render_char;
+					render_settings.highlight_render_char = new RenderChar( **rci );
+				}
+			}
+		}
 	}
 													// save space only for stroke order image
 	else if( render_settings.render_foreign_word || !render_settings.render_stroke_order )
@@ -125,6 +137,19 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	if( render_settings.render_stroke_order )
 	{
 		render_settings.stroke_order_full_update = false;
+		if( render_settings.highlight_render_char )
+		{
+			for( int line=0; line < render_settings.highlight_render_char->height; line++ )
+			{	
+				u16* start = render_screen.bg_base_address + line*render_screen.res_x 
+					+ render_settings.highlight_render_char->y*render_screen.res_x 
+					+ render_settings.highlight_render_char->x;
+				for( int pixel=0; pixel < render_settings.highlight_render_char->width; pixel++ )
+				{
+					start[pixel] = 1<<15 | 15<<10 | 24<<5 | 31<<0;
+				}
+			}
+		}
 		if( render_settings.highlight_char.code_point 
 			&& (!render_settings.stroke_order_image_buffer 
 				|| render_settings.highlight_char.code_point!=render_settings.stroke_order_image_char.code_point) )
@@ -134,6 +159,8 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			struct stat statbuf;
 			if( stat(stroke_image_name.str().c_str(), &statbuf)==0 )
 			{
+				render_settings.stroke_order_scroll_left=0;
+				render_settings.stroke_order_scroll_top=0;
 				render_settings.stroke_order_image_buffer_width=0;
 				render_settings.stroke_order_image_buffer_height=0;
 				read_png( stroke_image_name.str(), render_settings.stroke_order_image_buffer, 
@@ -227,7 +254,8 @@ RenderSettings::RenderSettings()
 	:	render_foreign_word(true), render_pronuciation(true), render_translation(true), render_stroke_order(false),
 		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true), init_render_stroke_order(false),
 		restore_on_switch(false), stroke_order_scroll_left(0), stroke_order_scroll_top(0), stroke_order_image_buffer(0),
-		stroke_order_image_buffer_width(0), stroke_order_image_buffer_height(0), stroke_order_full_update(true)
+		stroke_order_image_buffer_width(0), stroke_order_image_buffer_height(0), stroke_order_full_update(true),
+		highlight_render_char(0)
 {
 }
 
@@ -240,6 +268,8 @@ void RenderSettings::free_buffers()
 {
 	if( this->stroke_order_image_buffer ) delete this->stroke_order_image_buffer;
 	this->stroke_order_image_buffer = 0;
+	if( this->highlight_render_char ) delete this->highlight_render_char;
+	this->highlight_render_char = 0;
 }
 
 

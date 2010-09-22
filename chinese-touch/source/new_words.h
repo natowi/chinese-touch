@@ -40,7 +40,7 @@ class WordListBrowser : public ButtonProvider, public RenderSettings
 			as_text_tab, foreign_word_tab, pronunciation_tab, translation_tab, stroke_order_tab, 
 			rating_bar, 
 			rating_easy, rating_medium, rating_hard, rating_impossible,
-			add_button, remove_button, search_button;
+			add_button, remove_button, search_button, exit_button, dogear;
 		UCCharList current_char_list;
 		UCCharList::iterator current_char;
 	public:
@@ -73,7 +73,7 @@ class NewWordsViewer : public Mode
 		RenderScreen word_screen, drawing_screen;
 		WordListBrowser word_browser;
 		DrawingPad drawing_pad;
-		TextButton exit_button, clear_button, settings_button, 
+		TextButton clear_button, settings_button, 
 				scroll_field_overlay_0, scroll_field_overlay_1, scroll_field_overlay_2, scroll_field_overlay_3;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;

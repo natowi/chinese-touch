@@ -11,8 +11,6 @@
 #include "settings_dialog.h"
 #include "fulltext_search.h"
 
-#include "bottom_left_button.h"
-#include "bottom_left_button_active.h"
 #include "bottom_right_button.h"
 #include "bottom_right_button_active.h"
 #include "small_top_button.h"
@@ -30,9 +28,7 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 		y_offset(16), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
-		exit_button(text_screen,"x",SpriteSize_16x16,0,text_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		settings_button(text_screen,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
-		up_button(text_screen,"上",SpriteSize_16x16,text_screen.res_x-44-16,0,_program.ft->han_face,9,1,-1),
 		loading_symbol(text_screen,"",SpriteSize_32x32,text_screen.res_x/2-16,text_screen.res_y/2-16,program.ft->han_face,14,0,1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
 		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
@@ -48,13 +44,9 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 	this->settings.add_setting( new BooleanSetting("3_lookup_from_upcoming_lessons","from upcoming Lessons",this->lookup_from_upcoming_lessons) );
 	this->settings.add_setting( new BooleanSetting("4_lookup_from_other_books","from other Books",this->lookup_from_other_books) );
 	
-	this->text_buttons.push_back( &this->exit_button );
 	this->text_buttons.push_back( &this->settings_button );
-	this->text_buttons.push_back( &this->up_button );
 	this->text_buttons.push_back( &this->loading_symbol );
 	
-	// Up-Button is hidden by default (can be explicitly enabled by caller)
-	this->up_button.hidden = this->up_button.disabled = true;
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
 	{
@@ -96,12 +88,8 @@ void TextView::init_vram()
 void TextView::init_button_vram()
 {
 	// load sprite graphics into vram:
-	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
-	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
-	this->up_button.init_vram( small_top_buttonBitmap, this->up_button.bg_vram );
-	this->up_button.init_vram( small_top_button_activeBitmap, this->up_button.bg_active_vram );
 	this->loading_symbol.init_vram( loadingBitmap, this->loading_symbol.bg_vram );
 
 	ButtonProvider::init_button_vram();
@@ -225,14 +213,6 @@ void TextView::render( Screen screen )
 
 ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 {
-	if( text_button == &this->exit_button )
-	{
-		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
-	}
-	if( text_button == &this->up_button )
-	{
-		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
-	}
 	if( text_button == &this->settings_button )
 	{
 		this->show_settings();
@@ -251,6 +231,9 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 	{
 		this->free_vram();
 		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth, this->text.lesson );
+		// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
+		fulltext_search->word_browser.exit_button.hidden = fulltext_search->word_browser.exit_button.disabled = true;
+		fulltext_search->word_browser.dogear.hidden = fulltext_search->word_browser.dogear.disabled = false;
 		fulltext_search->run_until_exit();
 		delete fulltext_search;
 		this->init_mode();
@@ -282,6 +265,9 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 														  false /*no position saving*/, false /*no shuffle*/, 
 														  false /*don't show settings*/ );
 		word_viewer->word_browser.toggle_stroke_order();
+		// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
+		word_viewer->word_browser.exit_button.hidden = word_viewer->word_browser.exit_button.disabled = true;
+		word_viewer->word_browser.dogear.hidden = word_viewer->word_browser.dogear.disabled = false;
 		word_viewer->run_until_exit();
 		delete word_viewer;
 		single_word_list->erase( single_word_list->begin(), single_word_list->end() );
@@ -504,8 +490,11 @@ void TextView::show_word_as_text( Program& program, NewWord* word, Lesson* lesso
 			new_text += "#\t"+di->second->example + "\n\n";
 	}
 	TextView* text_view = new TextView( program, recursion_depth, new_text );
-	//// explicitly enable up_button, as an alternative to return from child mode
-	//text_view->up_button.hidden = text_view->up_button.disabled = false;
+	// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
+	text_view->word_browser.exit_button.hidden = text_view->word_browser.exit_button.disabled = true;
+	text_view->word_browser.dogear.hidden = text_view->word_browser.dogear.disabled = false;
+	// FIXME?: disable settings button in sub text view, as lesson-related options do not make much sense there...
+	text_view->settings_button.hidden = text_view->settings_button.disabled = true;
 	text_view->run_until_exit();
 	delete text_view;
 }

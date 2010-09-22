@@ -40,7 +40,7 @@ public:
 	static int LINE_HEIGHT;
 	ContextMode context_mode;
 	RenderChar* context_render_char;
-	TextButton exit_button, settings_button, up_button, loading_symbol;
+	TextButton settings_button, loading_symbol;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */

@@ -56,6 +56,8 @@
 #include "tiny_bubble.h"
 #include "image_png.h"
 #include "tiny_text.h"
+#include "bottom_left_dogear.h"
+#include "bottom_left_dogear_active.h"
 
 
 void NewWord::render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings )
@@ -296,6 +298,8 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		add_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+48,button_screen.res_y-16,button_ft.han_face,9,0,0),
 		remove_button(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2+64,button_screen.res_y-16,button_ft.han_face,9,0,0),
 		search_button(_button_screen,"",SpriteSize_32x16,40,button_screen.res_y-16,button_ft.han_face,9,0,1),
+		exit_button(_button_screen,"x",SpriteSize_16x16,0,button_screen.res_y-16,button_ft.latin_face,10,-1,1),
+		dogear(_button_screen,"",SpriteSize_32x32,0,button_screen.res_y-32,button_ft.latin_face,7,0,0),
 		current_char( current_char_list.begin() )
 {
 	this->text_buttons.push_back( &this->left_button );
@@ -313,11 +317,14 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->text_buttons.push_back( &this->add_button );
 	this->text_buttons.push_back( &this->remove_button );
 	this->text_buttons.push_back( &this->search_button );
+	this->text_buttons.push_back( &this->exit_button );
+	this->text_buttons.push_back( &this->dogear );
 	
 	this->add_button.hidden = this->add_button.disabled = true;
 	this->remove_button.hidden = this->remove_button.disabled = true;
-	// broken:
-	//this->search_button.hidden = this->search_button.disabled = true;
+	
+	// The dog-ear is hidden by default (can be explicitly enabled by caller)
+	this->dogear.hidden = this->dogear.disabled = true;
 }
 
 void WordListBrowser::init_button_vram()
@@ -349,6 +356,10 @@ void WordListBrowser::init_button_vram()
 	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );
 	this->search_button.init_vram( tiny_searchBitmap, this->search_button.fg_vram );
+	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
+	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
+	this->dogear.init_vram( bottom_left_dogearBitmap, this->dogear.bg_vram );
+	this->dogear.init_vram( bottom_left_dogear_activeBitmap, this->dogear.bg_active_vram );
 
 	this->pronunciation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->pronunciation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
@@ -498,6 +509,14 @@ ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 		this->library.words_db.delete_word( **this->current_word );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
+	else if( text_button == &this->exit_button )
+	{
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	else if( text_button == &this->dogear )
+	{
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
 	
 	return ButtonProvider::handle_button_pressed(text_button);
 }
@@ -640,7 +659,6 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	: Mode(_program, _recursion_depth), save_position(_save_position), word_screen(SCREEN_MAIN), drawing_screen(SCREEN_SUB),
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
-		exit_button(drawing_screen,"x",SpriteSize_16x16,0,drawing_screen.res_y-16,_program.ft->latin_face,10,-1,1),
 		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
 		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		scroll_field_overlay_0(drawing_screen,"",SpriteSize_64x32,64*0,0,_program.ft->latin_face,9,0,16),
@@ -668,7 +686,6 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	this->settings.add_setting( new BooleanSetting("4_clear_screen","Clear Writing Screen on Switch",this->clear_on_switch) );
 	this->settings.add_setting( new BooleanSetting("5_randomize_list","Randomize List Now",this->randomize_list) );
 	
-	this->text_buttons.push_back( &this->exit_button );
 	this->text_buttons.push_back( &this->clear_button );
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->scroll_field_overlay_0 );
@@ -727,8 +744,6 @@ void NewWordsViewer::init_vram()
 
 void NewWordsViewer::init_button_vram()
 {
-	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
-	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
 	this->clear_button.init_vram( right_center_buttonBitmap, this->clear_button.bg_vram );
 	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
@@ -830,7 +845,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		this->drawing_pad.clear();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->exit_button )
+	if( text_button == &this->word_browser.exit_button )
 	{
 		if( this->save_position && (this->word_browser.current_word != this->word_browser.words.end()) )
 		{
@@ -858,6 +873,9 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		FulltextSearch *fulltext_search = new FulltextSearch( this->program, this->recursion_depth, 
 				(this->word_browser.current_word!=this->word_browser.words.end() ? 
 					(*this->word_browser.current_word)->lesson : 0) );
+		// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
+		fulltext_search->word_browser.exit_button.hidden = fulltext_search->word_browser.exit_button.disabled = true;
+		fulltext_search->word_browser.dogear.hidden = fulltext_search->word_browser.dogear.disabled = false;
 		fulltext_search->run_until_exit();
 		delete fulltext_search;
 		this->init_mode();

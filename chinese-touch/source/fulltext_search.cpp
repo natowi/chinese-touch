@@ -218,6 +218,9 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 														  false /*no position saving*/, false /*no shuffle*/, 
 														  false /*don't show settings*/ );
 		word_viewer->word_browser.toggle_stroke_order();
+		// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
+		word_viewer->word_browser.exit_button.hidden = word_viewer->word_browser.exit_button.disabled = true;
+		word_viewer->word_browser.dogear.hidden = word_viewer->word_browser.dogear.disabled = false;
 		word_viewer->run_until_exit();
 		delete word_viewer;
 		single_word_list->erase( single_word_list->begin(), single_word_list->end() );

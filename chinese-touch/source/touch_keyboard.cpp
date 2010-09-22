@@ -11,11 +11,9 @@
 
 TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen )  
 	: ButtonProvider(button_provider_list, _freetype_renderer), ui_lang(_ui_lang), keyboard_screen(_keyboard_screen),
-		reference_key(keyboard_screen,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2),
-		exit_button(keyboard_screen,"x",SpriteSize_16x16,0,keyboard_screen.res_y-16,button_ft.latin_face,10,-1,1)
+		reference_key(keyboard_screen,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2)
 {
 	this->text_buttons.push_back( &this->reference_key );
-	this->text_buttons.push_back( &this->exit_button );
 	
 	this->reference_key.hidden = true;
 	this->reference_key.sensor_height = this->reference_key.sensor_width = 22;
@@ -106,9 +104,6 @@ void TouchKeyboard::init_button_vram()
 		(*key_it)->bg_active_vram = this->reference_key.bg_active_vram;
 	}
 	
-	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
-	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
-	
 	ButtonProvider::init_button_vram();
 }
 
@@ -148,10 +143,6 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 			this->handle_text_changed( this->written_text );
 		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
-	}
-	else if( text_button == &this->exit_button )
-	{
-		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	
 	return this->ButtonProvider::handle_button_pressed( text_button );

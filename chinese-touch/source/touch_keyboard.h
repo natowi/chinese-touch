@@ -13,7 +13,7 @@ class TouchKeyboard : public ButtonProvider
 public:
 	UILanguage& ui_lang;
 	RenderScreen& keyboard_screen;
-	TextButton reference_key, exit_button;
+	TextButton reference_key;
 	TextButtonSetStorage keys;
 	std::string written_text, modifier;
 	StringMap modifier_map;

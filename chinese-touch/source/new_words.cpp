@@ -882,7 +882,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( this->clear_on_switch
+	if( this->clear_on_switch && !this->word_browser.render_stroke_order
 		&& (text_button == &this->word_browser.left_button
 			|| text_button == &this->word_browser.right_button) )
 	{

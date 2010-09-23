@@ -22,7 +22,8 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson*
 		word_browser(button_provider_list, *_program.ft, current_words, keyboard_screen, *_program.library),
 		settings_button(keyboard_screen,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		search_button(keyboard_screen,"查词典",SpriteSize_64x32,keyboard_screen.res_x-74,keyboard_screen.res_y-60,_program.ft->han_face,14,0,4),
-		clear_button(keyboard_screen,"clr",SpriteSize_32x32,0 /*dynamic*/,16+3,_program.ft->latin_face,8,-6,4)
+		clear_button(keyboard_screen,"clr",SpriteSize_32x32,0 /*dynamic*/,16+3,_program.ft->latin_face,8,-6,4),
+		search_done(false)
 {
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
@@ -91,6 +92,26 @@ void FulltextSearch::render( Screen screen )
 		{
 			(*this->word_browser.current_word)->render( this->program, this->word_screen, this->word_browser );
 		}
+		else
+		{
+			std::string message;
+			if( !this->search_done )
+			{
+				message = "Welcome to Dictionary Search!";
+				message += "\n ";
+				message += "\n- Type a search term and hit the search \n  button";
+			}
+			else
+			{
+				message = "No entry found :(";
+				message += "\n ";
+				message += "\n- Download dictionaries from:";
+				message += "\n  http://code.google.com/p/chinese-touch";
+			}
+			RenderStyle style;
+			style.center_x = style.center_y = false;
+			this->program.ft->render( this->word_screen, message, this->program.ft->latin_face, 8, 5, 60, &style );
+		}
 	}
 	else if( screen == SCREEN_SUB )
 	{
@@ -152,6 +173,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 	}
 	if( text_button == &this->search_button )
 	{
+		this->search_done = true;
 		this->word_browser.words.clear();
 		this->word_browser.current_word = this->word_browser.words.begin();
 		// query available static book databases
@@ -225,6 +247,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		delete word_viewer;
 		single_word_list->erase( single_word_list->begin(), single_word_list->end() );
 		delete single_word_list;
+		this->prev_rendered_text=""; // force rerendering of current search text
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;

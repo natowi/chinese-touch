@@ -26,6 +26,7 @@ public:
 	TextButton settings_button, search_button, clear_button;
 	Settings settings;
 	std::string prev_rendered_text;
+	bool search_done;
 };
 
 #endif // FULLTEXT_SEARCH_H

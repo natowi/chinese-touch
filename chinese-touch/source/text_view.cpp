@@ -130,7 +130,7 @@ void TextView::render( Screen screen )
 			std::string message;
 			if( !this->current_highlight )
 			{
-				message = "Welcome to the text mode!";
+				message = "Welcome to the Text Mode!";
 				message += "\n ";
 				message += "\n- Grab the text to scroll up and down";
 				message += "\n- Tap a character to find context \n  matching words";

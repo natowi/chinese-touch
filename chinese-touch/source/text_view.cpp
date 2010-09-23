@@ -132,28 +132,37 @@ void TextView::render( Screen screen )
 			{
 				message = "Welcome to the text mode!";
 				message += "\n ";
-				message += "\nYou may:";
 				message += "\n- Grab the text to scroll up and down";
-				message += "\n- Tap a character to lookup context matching words";
+				message += "\n- Tap a character to find context \n  matching words";
 			}
 			else
 			{
-				// render currently highlighted character and help
+				// Render currently highlighted character
 				std::string character( this->text, this->context_render_char->uc_char.source_offset, 
 													this->context_render_char->uc_char.source_length );
-				NewWord char_word( character, "", 0 );
-				char_word.render( this->program, this->word_screen, this->word_browser );
+				NewWord *char_word = new NewWord( character, "", 0 );
+				char_word->render( this->program, this->word_screen, this->word_browser );
+				// Add the newly created dummy word to the WordListBrowser, so that the user 
+				// can access a possibly existing stroke order image or exercise writing at least:
+				this->word_browser.words.push_back( char_word );
+				this->word_browser.current_word = this->word_browser.words.begin();
+				this->render( SCREEN_SUB ); // make widgets available for dummy word
+				// Provide stateful help messages to the user:
 				if( this->context_mode == CONTEXT_WORDS_BY_CONTEXT )
 				{
 					message = "No context matching words found :(";
 					message += "\n ";
-					message += "\nYou may:";
 					message += "\n- Tap again to search by character";
-					message += "\n- Download dictionaries at the project site";
+					message += "\n- Download dictionaries from:";
+					message += "\n  http://code.google.com/p/chinese-touch";
 				}
 				else if( this->context_mode == CONTEXT_WORDS_BY_CHARCODE )
 				{
 					message = "No words with that character found :(";
+					message += "\n ";
+					message += "\n- Tap again for context matching words";
+					message += "\n- Download dictionaries from:";
+					message += "\n  http://code.google.com/p/chinese-touch";
 				}
 			}
 			RenderStyle style;

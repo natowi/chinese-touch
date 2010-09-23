@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding: utf-8
 
 import urllib2, re
 
@@ -35,11 +36,15 @@ while char_list_url:
 		except:
 			pass
 		meta = urllib2.urlopen( urllib2.Request(base_url+meta_url, headers=headers) ).read()
+		#                          <a href="http://upload.wikimedia.org/wikipedia/commons/6/6a/%E5%AD%A6-bw.png"><img alt="File:学-bw.png" 
 		image_url = re.findall( """<a href="(http://upload[^"]*\\.png)"><img alt="File:%(image_name)s" """ % locals(), meta )
-		image_url = image_url[0]
-		image = urllib2.urlopen( urllib2.Request(image_url, headers=headers) ).read()
-		image_file = open( image_name, "w" )
-		image_file.write( image )
-		image_file.close()
-		print "[OK]"
+		try:
+			image_url = image_url[0]
+			image = urllib2.urlopen( urllib2.Request(image_url, headers=headers) ).read()
+			image_file = open( image_name, "w" )
+			image_file.write( image )
+			image_file.close()
+			print "[OK]"
+		except IndexError, e:
+			print "[FAIL: %s]" % str(e)
 

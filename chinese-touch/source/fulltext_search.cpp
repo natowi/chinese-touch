@@ -124,17 +124,18 @@ void FulltextSearch::render( Screen screen )
 							|| (new_word->lesson && new_word->lesson->book!=this->lesson->book) /*other books*/
 							|| !new_word->lesson /*lost words*/ ) );
 		
-		this->clear_button.x = touch_keyboard.written_text.length() ? keyboard_screen.res_x-18 : keyboard_screen.res_x-4;
+		this->clear_button.x = touch_keyboard.written_chars.size() ? keyboard_screen.res_x-18 : keyboard_screen.res_x-4;
 		int top = 20;
-		if( this->prev_rendered_text != this->touch_keyboard.written_text )
+		std::string written_text = this->touch_keyboard.get_written_text();
+		if( this->prev_rendered_text != written_text )
 		{
+			this->prev_rendered_text = written_text;
 			this->keyboard_screen.clear();
 			RenderStyle render_style;
 			render_style.center_x = true;
 			RenderInfo render_info = this->program.ft->render( 
-				this->keyboard_screen, this->touch_keyboard.written_text, 
+				this->keyboard_screen, written_text, 
 				this->program.ft->han_face, 12, 0, top, &render_style );
-			this->prev_rendered_text = this->touch_keyboard.written_text;
 		}
 		top = 45;
 		memset( this->keyboard_screen.base_address+this->keyboard_screen.res_x*(top++)/2, 
@@ -178,7 +179,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->word_browser.current_word = this->word_browser.words.begin();
 		// query available static book databases
 		StringList patterns;
-		extract_words( this->touch_keyboard.written_text, patterns );
+		extract_words( this->touch_keyboard.get_written_text(), patterns );
 		for( Library::iterator book_it = this->program.library->begin(); book_it != this->program.library->end(); book_it++ )
 		{
 			if( book_it->second 
@@ -227,7 +228,8 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 	}
 	if( text_button == &this->clear_button )
 	{
-		this->touch_keyboard.written_text = "";
+		this->touch_keyboard.written_chars.clear();
+		this->touch_keyboard.handle_text_changed();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->word_browser.stroke_order_tab 

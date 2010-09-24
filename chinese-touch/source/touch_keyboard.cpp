@@ -119,16 +119,18 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 		}
 		else if( button_text == "<" )
 		{
-			if( this->written_text.length() )
+			if( this->modifier.length() )
 			{
-				this->written_text = this->written_text.substr( 0, this->written_text.length()-1 );
-				this->handle_text_changed( this->written_text );
+				this->modifier = "";
 			}
-			this->modifier = "";
+			else if( this->written_chars.size() )
+			{
+				this->written_chars.pop_back();
+				this->handle_text_changed();
+			}
 		}
 		else
 		{
-			
 			if( this->modifier.length() )
 			{
 				button_text = this->modifier + button_text;
@@ -138,12 +140,30 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 					button_text = modifier_val_it->second;
 				}
 			}
-			this->written_text += button_text;
+			utf8_to_utf8_char_list( (const unsigned char*)button_text.c_str(), this->written_chars );
 			this->modifier = "";
-			this->handle_text_changed( this->written_text );
+			this->handle_text_changed();
 		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
 	return this->ButtonProvider::handle_button_pressed( text_button );
+}
+
+std::string TouchKeyboard::get_written_text()
+{
+	std::string result;
+	for( StringList::iterator ci=this->written_chars.begin(); ci!=this->written_chars.end(); ci++ )
+	{
+		result += *ci;
+	}
+	
+	return result;
+}
+
+void TouchKeyboard::set_written_text(const std::string& text)
+{
+	this->written_chars.clear();
+	utf8_to_utf8_char_list( (const unsigned char*)text.c_str(), this->written_chars );
+	this->handle_text_changed();
 }

@@ -15,14 +15,17 @@ public:
 	RenderScreen& keyboard_screen;
 	TextButton reference_key;
 	TextButtonSetStorage keys;
-	std::string written_text, modifier;
+	StringList written_chars;
+	std::string modifier;
 	StringMap modifier_map;
 public:
 	TouchKeyboard( ButtonProviderList& button_provider_list, UILanguage& _ui_lang, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen );
 	virtual void init_button_vram();
 	virtual ButtonAction handle_button_pressed( TextButton* text_button );
 	virtual std::string handle_key_pressed( const std::string& input ) { return input; }
-	virtual void handle_text_changed( std::string& written_text ) {}
+	virtual void handle_text_changed() {}
+	virtual std::string get_written_text();
+	virtual void set_written_text( const std::string& text );
 };
 
 #endif // TOUCH_KEYBOARD_H

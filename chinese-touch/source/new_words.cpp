@@ -159,6 +159,12 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			std::stringstream stroke_image_name;
 			stroke_image_name << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << render_settings.highlight_char.code_point << std::setw(0) << ".png";
 			struct stat statbuf;
+			if( !stat(stroke_image_name.str().c_str(), &statbuf)==0 )
+			{
+				// try fallback to error notification image:
+				stroke_image_name.str(""); stroke_image_name.clear();
+				stroke_image_name << program.base_dir << "/stroke-order/emblem-unreadable.png";
+			}
 			if( stat(stroke_image_name.str().c_str(), &statbuf)==0 )
 			{
 				render_settings.stroke_order_scroll_left=0;

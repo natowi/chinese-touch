@@ -189,7 +189,14 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			if( render_settings.stroke_order_scroll_left < 0 ) render_settings.stroke_order_scroll_left = 0;
 			if( render_settings.stroke_order_scroll_top < 0 ) render_settings.stroke_order_scroll_top = 0;
 			
-			int image_residual_width = render_settings.stroke_order_image_buffer_width - render_settings.stroke_order_scroll_left;
+			int left_gap = 0;
+			if( render_settings.stroke_order_image_buffer_width < render_screen.res_x )
+			{
+				render_settings.stroke_order_scroll_left = -render_screen.res_x/2 + render_settings.stroke_order_image_buffer_width/2;
+				left_gap = - render_settings.stroke_order_scroll_left;
+			}
+			
+			int image_residual_width = render_settings.stroke_order_image_buffer_width - (render_settings.stroke_order_scroll_left + left_gap);
 			if( image_residual_width < width ) width = image_residual_width;
 			int image_residual_height = render_settings.stroke_order_image_buffer_height - render_settings.stroke_order_scroll_top;
 			if( image_residual_height < height ) height = image_residual_height;
@@ -197,10 +204,10 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			for( int line = 0; line < height; line++ )
 			{
 				// copy line data from stroke order image buffer to vram:
-				memcpy( start_address+line*render_screen.res_x, 
+				memcpy( start_address+line*render_screen.res_x+left_gap, 
 						render_settings.stroke_order_image_buffer
 							+ (line+render_settings.stroke_order_scroll_top)*render_settings.stroke_order_image_buffer_width
-							+ (render_settings.stroke_order_scroll_left>>1<<1),
+							+ ((render_settings.stroke_order_scroll_left+left_gap)>>1<<1),
 						width*2 );
 			}
 		}

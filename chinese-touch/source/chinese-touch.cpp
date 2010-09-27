@@ -30,7 +30,7 @@
 Program::Program( int argc, char* argv[] )
 	: first_run(false), ui_lang(0), ft(0), words_db(0), library(0),
 		config(0), error_console(0), 
-		name("chinese-touch"), version("1.3"),
+		name("chinese-touch"), version("1.4"),
 		fs_type("unknown"), image_path(""), base_dir("/"+name),
 		words_db_name("words.db")
 {

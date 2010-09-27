@@ -1,3 +1,6 @@
+Description
+~~~~~~~~~~~
+
 Chinese Touch is a language learning tool for Nintendo DS with a focus on 
 Chinese. In contrast to many other applications (there are not that many for 
 Nintendo DS anyway) Chinese Touch does not try to provide a complete course for 
@@ -17,14 +20,23 @@ archive available from the downloads section already includes a beginners guide
 to Chinese (Mandarin) from wikibooks.org. Just extract its contents to your 
 flash memory cart and give it a try.
 
+
+Links
+~~~~~
+
 Please check the project wiki for the latest version of the user manual.
+See: http://code.google.com/p/chinese-touch/w/list
 
 Also checkout your copy of the source code from subversion if interested.
+See: http://code.google.com/p/chinese-touch/source/checkout for instructions.
 
-Looking for updates, seeking help or do you even want to contribute?
-See: http://code.google.com/p/chinese-touch/
+Are you seeking help or do you want to contribute ideas, artwork or source code?
+Please leave me a mail at: syslock@gmail.com
 
 --------------------------------------------------------------------------------
+
+Beschreibung
+~~~~~~~~~~~~
 
 Chinese-Touch ist ein Sprachlernprogramm für Nintendo DS mit Schwerpunkt auf der 
 chinesischen Sprache. Im Gegensatz zu vielen anderen Anwendungen (wobei es für 

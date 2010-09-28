@@ -67,8 +67,9 @@ void ErrorConsole::init_screen( Screen screen )
 void ErrorConsole::dump()
 {
 	std::ofstream logfile( this->log_file_name.c_str(), std::ios_base::out|std::ios_base::app );
-	std::string errors = error_stream.str();
-	logfile.write( errors.c_str(), errors.length() );
+	std::string* errors = new std::string( error_stream.str() );
+	logfile.write( errors->c_str(), errors->length() );
+	delete errors;
 	logfile.close();
 	ErrorConsole::clear();
 	LOG( "logs dumped" );

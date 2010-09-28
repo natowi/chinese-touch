@@ -328,7 +328,7 @@ int main( int argc, char* argv[] )
 	catch( Error& e )
 	{
 		CRITICAL( e.what() );
-		if( program )
+		if( program && program->error_console )
 		{
 			program->error_console->init_screen();
 			program->error_console->dump();
@@ -337,7 +337,7 @@ int main( int argc, char* argv[] )
 	catch( std::exception& e )
 	{
 		CRITICAL( e.what() );
-		if( program )
+		if( program && program->error_console )
 		{
 			program->error_console->init_screen();
 			program->error_console->dump();

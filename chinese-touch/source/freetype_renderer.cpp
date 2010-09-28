@@ -238,30 +238,30 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
         FT_UInt glyph_index = FT_Get_Char_Index( current_face, input_char_it->code_point );
 		if( !glyph_index && render_style->autofallback && current_face != this->han_face )
 		{
-			WARN( "fallback to han face" );
+			LOG( "fallback to han face" );
 			glyph_index = FT_Get_Char_Index( this->han_face, input_char_it->code_point );
 			if( glyph_index )
 			{
 				current_face = this->han_face;
-			} else WARN( "failed" );
+			} else LOG( "failed" );
 		}
 		if( !glyph_index && render_style->autofallback && current_face != this->latin_face )
 		{
-			WARN( "fallback to lating face" );
+			LOG( "fallback to lating face" );
 			glyph_index = FT_Get_Char_Index( this->latin_face, input_char_it->code_point );
 			if( glyph_index )
 			{
 				current_face = this->latin_face;
-			} else WARN( "failed" );
+			} else LOG( "failed" );
 		}
 		if( !glyph_index && render_style->autofallback && this->jp_face && current_face != this->jp_face )
 		{
-			WARN( "fallback to japanese face" );
+			LOG( "fallback to japanese face" );
 			glyph_index = FT_Get_Char_Index( this->jp_face, input_char_it->code_point );
 			if( glyph_index )
 			{
 				current_face = this->jp_face;
-			} else WARN( "failed" );
+			} else LOG( "failed" );
 		}
         if( !glyph_index )
         {
@@ -334,7 +334,7 @@ RenderInfo FreetypeRenderer::render( const RenderScreen& render_screen, UCCharLi
 			if( glyph_index )
 			{
 				current_face = this->han_face;
-				WARN( "rendering replacement character" );
+				LOG( "rendering replacement character" );
 			}
 			else continue;
         }

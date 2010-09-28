@@ -427,10 +427,11 @@ std::string Lesson::find_config_file_by_extension( const std::string& extension 
 		if( stat( config_file_path.str().c_str(), &config_file_stats)==-1 )
 		{
 			error = strerror(errno);
+			error += " (" + config_file_path.str() + ")";
 		}
 		else return config_file_path.str();
 	}
-	if( error.length() ) WARN( error );
+	if( error.length() ) LOG( error );
 	return "";
 }
 

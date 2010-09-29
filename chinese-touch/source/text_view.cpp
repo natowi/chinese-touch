@@ -173,7 +173,7 @@ void TextView::render( Screen screen )
 	else if( screen == SCREEN_SUB )
 	{
 		this->sub_frame_count++;
-		this->settings_button.hidden = !this->text.lesson;
+		this->settings_button.hidden = this->settings_button.disabled = !this->text.lesson;
 		// make add button available for words from other books or dictionaries, to allow them to be 
 		// loosely associated with the current lesson:
 		this->word_browser.add_button.hidden = 
@@ -502,8 +502,6 @@ void TextView::show_word_as_text( Program& program, NewWord* word, Lesson* lesso
 	// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
 	text_view->word_browser.exit_button.hidden = text_view->word_browser.exit_button.disabled = true;
 	text_view->word_browser.dogear.hidden = text_view->word_browser.dogear.disabled = false;
-	// FIXME?: disable settings button in sub text view, as lesson-related options do not make much sense there...
-	text_view->settings_button.hidden = text_view->settings_button.disabled = true;
 	text_view->run_until_exit();
 	delete text_view;
 }

@@ -73,7 +73,7 @@ class NewWordsViewer : public Mode
 		RenderScreen word_screen, drawing_screen;
 		WordListBrowser word_browser;
 		DrawingPad drawing_pad;
-		TextButton clear_button, settings_button, 
+		TextButton clear_button, eraser_button, settings_button, 
 				scroll_field_overlay_0, scroll_field_overlay_1, scroll_field_overlay_2, scroll_field_overlay_3;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;
@@ -82,6 +82,7 @@ class NewWordsViewer : public Mode
 		int pixels_drawn;
 		bool clear_on_switch, randomize_list;
 		bool scrolling;
+		bool eraser_enabled;
 	public:
 		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings );
 		void init_mode();

@@ -58,6 +58,9 @@
 #include "tiny_text.h"
 #include "bottom_left_dogear.h"
 #include "bottom_left_dogear_active.h"
+#include "right_center_button_2.h"
+#include "right_center_button_2_active.h"
+#include "eraser.h"
 
 
 void NewWord::render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings )
@@ -675,12 +678,13 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
 		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
+		eraser_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2-72,_program.ft->latin_face,9,-7,3),
 		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		scroll_field_overlay_0(drawing_screen,"",SpriteSize_64x32,64*0,0,_program.ft->latin_face,9,0,16),
 		scroll_field_overlay_1(drawing_screen,"Scroll",SpriteSize_64x32,64*1,0,_program.ft->latin_face,9,0,8),
 		scroll_field_overlay_2(drawing_screen,"here!",SpriteSize_64x32,64*2,0,_program.ft->latin_face,9,0,8),
 		scroll_field_overlay_3(drawing_screen,"",SpriteSize_64x32,64*3,0,_program.ft->latin_face,9,0,16),
-		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false)
+		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false), eraser_enabled(false)
 {
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
@@ -702,6 +706,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	this->settings.add_setting( new BooleanSetting("5_randomize_list","Randomize List Now",this->randomize_list) );
 	
 	this->text_buttons.push_back( &this->clear_button );
+	this->text_buttons.push_back( &this->eraser_button );
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->scroll_field_overlay_0 );
 	this->text_buttons.push_back( &this->scroll_field_overlay_1 );
@@ -761,6 +766,9 @@ void NewWordsViewer::init_button_vram()
 {
 	this->clear_button.init_vram( right_center_buttonBitmap, this->clear_button.bg_vram );
 	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
+	this->eraser_button.init_vram( right_center_button_2Bitmap, this->eraser_button.bg_vram );
+	this->eraser_button.init_vram( right_center_button_2_activeBitmap, this->eraser_button.bg_active_vram );
+	this->eraser_button.init_vram( eraserBitmap, this->eraser_button.fg_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	
@@ -848,6 +856,7 @@ void NewWordsViewer::render( Screen screen )
 		= this->scroll_field_overlay_2.hidden
 		= this->scroll_field_overlay_3.hidden
 		= !this->word_browser.render_stroke_order;
+		this->eraser_button.x = this->eraser_enabled ? this->drawing_screen.res_x-16 : this->drawing_screen.res_x-16+8;
 	}
 	
 	Mode::render( screen );
@@ -858,6 +867,11 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->clear_button )
 	{
 		this->drawing_pad.clear();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->eraser_button )
+	{
+		this->eraser_enabled = !this->eraser_enabled;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->word_browser.exit_button )
@@ -933,7 +947,9 @@ ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 	// only draw a pixel or start scrolling if no button was activated by the touch:
 	if( action == BUTTON_ACTION_UNHANDLED )
 	{
-		this->drawing_pad.draw_point( touch.px, touch.py );
+		this->drawing_pad.draw( touch.px, touch.py, 
+			this->eraser_enabled ? this->drawing_pad.large_pen : this->drawing_pad.small_pen,
+			this->eraser_enabled );
 		this->pixels_drawn += 1;
 		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
@@ -966,7 +982,9 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 				|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) )
 	{
 		this->pixels_drawn += distance;
-		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py );
+		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py, 
+				this->eraser_enabled ? this->drawing_pad.large_pen : this->drawing_pad.small_pen,
+				this->eraser_enabled );
 		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	this->old_distance = distance;

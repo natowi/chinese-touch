@@ -60,7 +60,10 @@
 #include "bottom_left_dogear_active.h"
 #include "right_center_button_2.h"
 #include "right_center_button_2_active.h"
-#include "eraser.h"
+#include "eraser-icon.h"
+#include "clear-icon.h"
+#include "pen-icon.h"
+#include "ink-icon.h"
 
 
 void NewWord::render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings )
@@ -677,14 +680,17 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	: Mode(_program, _recursion_depth), save_position(_save_position), word_screen(SCREEN_MAIN), drawing_screen(SCREEN_SUB),
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
-		clear_button(drawing_screen,"C\nL\nE\nA\nR",SpriteSize_32x64,drawing_screen.res_x-16,drawing_screen.res_y/2-32,_program.ft->latin_face,9,-7,3),
-		eraser_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2-72,_program.ft->latin_face,9,-7,3),
+		clear_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2-16,_program.ft->latin_face,9,-7,3),
+		eraser_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2-16-32,_program.ft->latin_face,9,-7,3),
+		pen_style_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2+16+8,_program.ft->latin_face,9,-7,3),
+		ink_style_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2+16+8,_program.ft->latin_face,9,-7,3),
 		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		scroll_field_overlay_0(drawing_screen,"",SpriteSize_64x32,64*0,0,_program.ft->latin_face,9,0,16),
 		scroll_field_overlay_1(drawing_screen,"Scroll",SpriteSize_64x32,64*1,0,_program.ft->latin_face,9,0,8),
 		scroll_field_overlay_2(drawing_screen,"here!",SpriteSize_64x32,64*2,0,_program.ft->latin_face,9,0,8),
 		scroll_field_overlay_3(drawing_screen,"",SpriteSize_64x32,64*3,0,_program.ft->latin_face,9,0,16),
-		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false), eraser_enabled(false)
+		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false), eraser_enabled(false),
+		current_pen_style(&drawing_pad.small_pen)
 {
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
@@ -707,13 +713,16 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	
 	this->text_buttons.push_back( &this->clear_button );
 	this->text_buttons.push_back( &this->eraser_button );
+	this->text_buttons.push_back( &this->pen_style_button );
+	this->text_buttons.push_back( &this->ink_style_button );
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->scroll_field_overlay_0 );
 	this->text_buttons.push_back( &this->scroll_field_overlay_1 );
 	this->text_buttons.push_back( &this->scroll_field_overlay_2 );
 	this->text_buttons.push_back( &this->scroll_field_overlay_3 );
 	
-	this->scroll_field_overlay_0.disabled = this->scroll_field_overlay_0.hidden
+	this->ink_style_button.disabled = this->ink_style_button.hidden
+	= this->scroll_field_overlay_0.disabled = this->scroll_field_overlay_0.hidden
 	= this->scroll_field_overlay_1.disabled = this->scroll_field_overlay_1.hidden
 	= this->scroll_field_overlay_2.disabled = this->scroll_field_overlay_2.hidden
 	= this->scroll_field_overlay_3.disabled = this->scroll_field_overlay_3.hidden
@@ -764,11 +773,18 @@ void NewWordsViewer::init_vram()
 
 void NewWordsViewer::init_button_vram()
 {
-	this->clear_button.init_vram( right_center_buttonBitmap, this->clear_button.bg_vram );
-	this->clear_button.init_vram( right_center_button_activeBitmap, this->clear_button.bg_active_vram );
+	this->clear_button.init_vram( right_center_button_2Bitmap, this->clear_button.bg_vram );
+	this->clear_button.init_vram( right_center_button_2_activeBitmap, this->clear_button.bg_active_vram );
+	this->clear_button.init_vram( clear_iconBitmap, this->clear_button.fg_vram );
 	this->eraser_button.init_vram( right_center_button_2Bitmap, this->eraser_button.bg_vram );
 	this->eraser_button.init_vram( right_center_button_2_activeBitmap, this->eraser_button.bg_active_vram );
-	this->eraser_button.init_vram( eraserBitmap, this->eraser_button.fg_vram );
+	this->eraser_button.init_vram( eraser_iconBitmap, this->eraser_button.fg_vram );
+	this->pen_style_button.init_vram( right_center_button_2Bitmap, this->pen_style_button.bg_vram );
+	this->pen_style_button.init_vram( right_center_button_2_activeBitmap, this->pen_style_button.bg_active_vram );
+	this->pen_style_button.init_vram( pen_iconBitmap, this->pen_style_button.fg_vram );
+	this->ink_style_button.init_vram( right_center_button_2Bitmap, this->ink_style_button.bg_vram );
+	this->ink_style_button.init_vram( right_center_button_2_activeBitmap, this->ink_style_button.bg_active_vram );
+	this->ink_style_button.init_vram( ink_iconBitmap, this->ink_style_button.fg_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
 	
@@ -874,6 +890,20 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		this->eraser_enabled = !this->eraser_enabled;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
+	if( text_button == &this->pen_style_button )
+	{
+		this->current_pen_style = &this->drawing_pad.ink_pen;
+		this->pen_style_button.hidden = this->pen_style_button.disabled = true;
+		this->ink_style_button.hidden = this->pen_style_button.disabled = false;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->ink_style_button )
+	{
+		this->current_pen_style = &this->drawing_pad.small_pen;
+		this->pen_style_button.hidden = this->pen_style_button.disabled = false;
+		this->ink_style_button.hidden = this->pen_style_button.disabled = true;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
+	}
 	if( text_button == &this->word_browser.exit_button )
 	{
 		if( this->save_position && (this->word_browser.current_word != this->word_browser.words.end()) )
@@ -948,7 +978,7 @@ ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 	if( action == BUTTON_ACTION_UNHANDLED )
 	{
 		this->drawing_pad.draw( touch.px, touch.py, 
-			this->eraser_enabled ? this->drawing_pad.large_pen : this->drawing_pad.small_pen,
+			this->eraser_enabled ? this->drawing_pad.large_pen : *this->current_pen_style,
 			this->eraser_enabled );
 		this->pixels_drawn += 1;
 		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
@@ -983,7 +1013,7 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	{
 		this->pixels_drawn += distance;
 		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py, 
-				this->eraser_enabled ? this->drawing_pad.large_pen : this->drawing_pad.small_pen,
+				this->eraser_enabled ? this->drawing_pad.large_pen : *this->current_pen_style,
 				this->eraser_enabled );
 		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}

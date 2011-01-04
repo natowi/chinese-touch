@@ -894,14 +894,14 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	{
 		this->current_pen_style = &this->drawing_pad.ink_pen;
 		this->pen_style_button.hidden = this->pen_style_button.disabled = true;
-		this->ink_style_button.hidden = this->pen_style_button.disabled = false;
+		this->ink_style_button.hidden = this->ink_style_button.disabled = false;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->ink_style_button )
 	{
 		this->current_pen_style = &this->drawing_pad.small_pen;
 		this->pen_style_button.hidden = this->pen_style_button.disabled = false;
-		this->ink_style_button.hidden = this->pen_style_button.disabled = true;
+		this->ink_style_button.hidden = this->ink_style_button.disabled = true;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->word_browser.exit_button )

@@ -91,6 +91,7 @@ class NewWordsViewer : public Mode
 		virtual ~NewWordsViewer();
 		void show_settings();
 		void render( Screen screen );
+		void render_time();
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );
 		virtual ButtonAction handle_touch_begin( touchPosition touch );
 		virtual ButtonAction handle_touch_drag( touchPosition touch );

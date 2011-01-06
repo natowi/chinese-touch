@@ -3,6 +3,7 @@
 
 #include "freetype_renderer.h"
 #include "text_button.h"
+#include "time.h"
 
 
 #define BUTTON_ACTION_UNHANDLED 0
@@ -64,9 +65,14 @@ public:
 	ButtonProviderList button_provider_list;
 	int recursion_depth;
 	static int MAX_RECURSION_DEPTH;
+	struct tm prev_rendered_time;
+	std::string time_format;
+	RenderScreenBuffer time_buffer;
+	bool time_update_needed;
 public:
 	Mode( Program& _program, int _recursion_depth ) 
-		: GlobalButtonHandler( *_program.ft ), program(_program), recursion_depth(_recursion_depth+1)
+		: GlobalButtonHandler( *_program.ft ), program(_program), recursion_depth(_recursion_depth+1), 
+		time_format("%H:%M"), time_buffer(28,16), time_update_needed(true)
 	{
 		// Modes itself in its role as GlobalButtonHandler needs to be inserted manually, 
 		// as it needs to be constructed before its button_provider_list is available
@@ -77,12 +83,14 @@ public:
 	virtual void init_vram();
 	virtual void free_vram();
 	virtual void render( Screen screen );
+	virtual void render_time() {}
+	virtual void render_time( RenderScreen& render_screen, int x, int y );
 	virtual void run_until_exit();
 	virtual ButtonAction change_button_activation( touchPosition touch );
 	virtual ButtonAction handle_touch_begin( touchPosition touch );
 	virtual ButtonAction handle_touch_drag( touchPosition touch );
 	virtual ButtonAction handle_touch_end( touchPosition touch );
-	virtual ButtonAction handle_idle_cycles() { return BUTTON_ACTION_UNHANDLED; }
+	virtual ButtonAction handle_idle_cycles();
 	void handle_changed( ButtonAction action );
 	virtual ButtonAction handle_console_button_event( int pressed, int held, int released );
 };

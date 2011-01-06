@@ -878,6 +878,11 @@ void NewWordsViewer::render( Screen screen )
 	Mode::render( screen );
 }
 
+void NewWordsViewer::render_time()
+{
+	this->Mode::render_time( this->word_screen, this->word_screen.res_x-this->time_buffer.res_x, 2 );
+}
+
 ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 {
 	if( text_button == &this->clear_button )
@@ -1013,7 +1018,8 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	}
 	// if we are not hovering a touch screen button, draw a line or scroll:
 	if( (action == BUTTON_ACTION_UNHANDLED)
-		&& (distance 
+		&& (distance
+		// FIXME: this is a very primitive low-pass filter against sensor issues, but probably does more evil than good...
 			&& ((this->old_distance && (distance <= this->old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
 				|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) )
 	{

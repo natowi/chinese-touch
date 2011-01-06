@@ -1,6 +1,7 @@
 #include "mode.h"
 #include "greys256.h"
 #include "error_console.h"
+#include "time.h"
 
 
 ButtonProvider::ButtonProvider(FreetypeRenderer& _freetype_renderer)
@@ -96,6 +97,19 @@ void Mode::render( Screen screen )
 	}
 	swiWaitForVBlank();
 	oamUpdate( target_oam );
+	
+	this->time_update_needed = true;
+}
+
+void Mode::render_time( RenderScreen& render_screen, int x, int y )
+{
+	this->time_buffer.clear();
+	time_t t = time(0);
+	this->prev_rendered_time = *localtime(&t);
+	char timestr_buf[10];
+	strftime( timestr_buf, sizeof(timestr_buf)-1, this->time_format.c_str(), &this->prev_rendered_time );
+	RenderInfo info = this->program.ft->render( this->time_buffer, timestr_buf, this->program.ft->latin_face, 6, 0,0 );
+	this->time_buffer.render_to( render_screen, x, y, true );
 }
 
 ButtonAction ButtonProvider::handle_touch( int x, int y, GlobalButtonHandler* global_handler )
@@ -187,6 +201,21 @@ ButtonAction Mode::handle_touch_end( touchPosition touch )
 		if( action & BUTTON_ACTION_EXIT_MODE ) return action;
 	}
 	return action;
+}
+
+ButtonAction Mode::handle_idle_cycles()
+{
+	time_t t = time(0);
+	struct tm curr_time = *localtime(&t);
+	if( this->time_update_needed
+		|| curr_time.tm_hour != this->prev_rendered_time.tm_hour
+		|| curr_time.tm_min != this->prev_rendered_time.tm_min
+		/*|| curr_time.tm_sec != this->prev_rendered_time.tm_sec*/ )
+	{
+		this->render_time();
+		this->time_update_needed = false;
+	}
+	return BUTTON_ACTION_UNHANDLED;
 }
 
 ButtonAction Mode::handle_console_button_event( int pressed, int held, int released )

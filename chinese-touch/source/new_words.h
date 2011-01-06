@@ -82,7 +82,6 @@ class NewWordsViewer : public Mode
 		int pixels_drawn;
 		bool clear_on_switch, randomize_list;
 		bool scrolling;
-		bool eraser_enabled;
 		Pen* current_pen_style;
 	public:
 		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings );

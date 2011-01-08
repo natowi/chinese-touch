@@ -20,7 +20,7 @@ public:
 	/*! a factor f, where: f * prev_line_length = max_next_line_length 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */
 	static int MAX_ACCELERATION_FACTOR;
-	static Pen small_pen, medium_pen, ink_pen, large_pen;
+	static Pen small_pen, medium_pen, medium2_pen, ink_pen, ink2_pen, large_pen;
 
 public:
     DrawingPad( RenderScreen& _render_screen );

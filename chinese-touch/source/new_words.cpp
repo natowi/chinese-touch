@@ -902,7 +902,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->pen_style_button )
 	{
 		// switch to ink style
-		this->current_pen_style = &this->drawing_pad.ink_pen;
+		this->current_pen_style = &this->drawing_pad.ink2_pen;
 		this->eraser_button.hidden = this->eraser_button.disabled = true;
 		this->pen_style_button.hidden = this->pen_style_button.disabled = true;
 		this->ink_style_button.hidden = this->ink_style_button.disabled = false;

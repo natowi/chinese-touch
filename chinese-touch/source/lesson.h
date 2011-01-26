@@ -96,26 +96,29 @@ class Book;
 class Lesson
 {
 public:
-    Lesson( int _number, Book* _book ) : number(_number), book(_book),
+	Lesson( int _number, Book* _book ) : number(_number), book(_book),
 		new_words_available(false), lesson_texts_available(false),
 		grammar_texts_available(false), exercises_available(false) {};
 	std::string find_config_file_by_extension( const std::string& extension );
-    void parse_config( const std::string& lesson_file_name );
-    int parse_dictionary_if_needed( bool count_only=false );
+	void parse_config( const std::string& lesson_file_name );
+	static void get_patterns_from_text( const std::string& source_text, StringSet& patterns );
+	int parse_dictionary_if_needed( bool count_only = false, bool force_update = false );
 	void parse_text( const std::string& extension, TextVector& container );
 public:
 	TextVector lesson_texts; //!< An array of lesson texts. \see Text
 	TextVector grammar_texts; //!< An array of the lessons grammar texts. \see Text
 	TextVector exercises; //!< An array of the lessons exercises texts. \see Text
-    std::string title,	//!< The lessons title.
+	std::string title,	//!< The lessons title.
 				description; //!< The lessons short description.
-    int number; //!< The number of this lesson within a book.
-    Book* book; //!< A pointer to the book this lesson belongs to.
+	int number; //!< The number of this lesson within a book.
+	Book* book; //!< A pointer to the book this lesson belongs to.
 	int id; //!< This lessons unique id within the sqlite database (0 if unassociated).
 	bool new_words_available, //!< True if this lesson has a dictionary file (and thus possibly words in the database)
 		lesson_texts_available, //!< True if this lesson has a .text-file
 		grammar_texts_available, //!< True if this lesson has a .grammar-file
 		exercises_available; //!< True if this lesson has a .exercises-file
+	static const std::string split_chars;
+	static const char* split_patterns[];
 };
 
 

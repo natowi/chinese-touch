@@ -91,6 +91,7 @@ void DictionarySynchronizer::run_action()
 	style.center_x = true;
 	int prev_run_count = 0;
 	std::string prev_progress;
+	if( this->force_update ) this->program.words_db->clear_fulltext_patterns();
 	for( int run=1; run<=2; run++ )
 	{
 		int run_count = 0;
@@ -98,7 +99,7 @@ void DictionarySynchronizer::run_action()
 		{
 			for( Book::iterator lesson_it = book_it->second->begin(); lesson_it != book_it->second->end(); lesson_it++ )
 			{
-				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1) );
+				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1), this->force_update );
 				std::stringstream progress;
 				progress << ((run==1) ? "scanning" : "syncing") << "\n" 
 						<< ((run==1) ? 0 : run_count) << " / "

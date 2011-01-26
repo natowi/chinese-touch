@@ -90,10 +90,11 @@ static int map_list_callback( void *pv_map_list, int argc, char **argv, char **a
 }
 
 /*! Implements conditional database update procedures from previous releases */
-void WordsDB::update()
+bool WordsDB::update()
 {
+	bool updated = false;
 	{
-		/*! Update from 1.1 to 1.2 requires creating of the files table and 
+		/*! Update from 1.1 to 1.2 requires creation of the files table and 
 			the file_id and file_offset columns in the words table */
 		int rc;
 		std::string stmt = "select name from sqlite_master where name=\"files\"";
@@ -106,6 +107,7 @@ void WordsDB::update()
 		}
 		if( !result.size() )
 		{
+			updated = true;
 			stmt = "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)";
 			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
 			{
@@ -136,6 +138,72 @@ void WordsDB::update()
 			throw ERROR( msg.str() );
 		}	
 	}
+	{
+		/*! Update from 1.4 to 1.5 requires creation of the ft_matches and 
+			ft_patterns tables and corresponding indices for reverse lookups
+			on custom word entries */
+		int rc;
+		std::string stmt = "select name from sqlite_master where name=\"ft_matches\"";
+		MapList result;
+		if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
+		if( !result.size() )
+		{
+			updated = true;
+			stmt = "CREATE TABLE ft_matches (pattern_id NUMERIC, word_id NUMERIC)";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			stmt = "CREATE INDEX i_ft_matches_pattern_id ON ft_matches (pattern_id)";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			stmt = "CREATE INDEX i_ft_matches_word_id ON ft_matches (word_id)";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+		}
+		result.clear();
+		stmt = "select name from sqlite_master where name=\"ft_patterns\"";
+		if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
+		if( !result.size() )
+		{
+			updated = true;
+			stmt = "CREATE TABLE ft_patterns (pattern TEXT, id PRIMARY_KEY)";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			stmt = "CREATE INDEX i_ft_patterns_pattern ON ft_patterns (pattern)";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+		}
+	}
+	return updated;
 }
 
 int WordsDB::get_book_id( Book& book, bool add_missing )
@@ -572,6 +640,79 @@ void WordsDB::query_static_fulltext( Library& library, const StringList& pattern
 		}
 		
 		result_list.push_back( word );
+	}
+}
+
+void WordsDB::add_fulltext_patterns( NewWord& word, const StringSet& patterns )
+{
+	StringList statements;
+	for( StringSet::iterator pi=patterns.begin(); pi!=patterns.end(); pi++ )
+	{
+		// try to find already existing pattern from previous match:
+		std::string stmt = "select id from ft_patterns where pattern='"+*pi+"'";
+		int rc;
+		IntList result;
+		if( (rc = sqlite3_exec(db, stmt.c_str(), &int_list_callback, &result, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
+		int pattern_id = 0;
+		if( result.size() )
+		{
+			pattern_id = *result.begin();
+		}
+		else
+		{
+			// else insert new pattern for this match:
+			stmt = "insert into ft_patterns (pattern) values ('"+*pi+"')";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			stmt = "select max(id) from ft_patterns";
+			if( (rc = sqlite3_exec(db, stmt.c_str(), &int_list_callback, &result, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+				throw ERROR( msg.str() );
+			}
+			if( result.size() )
+			{
+				pattern_id = *result.begin();
+			}
+			else continue; // something went wrong, ignore pattern...
+		}
+		// finally insert match for this pattern:
+		std::stringstream stmt_stream;
+		stmt_stream << "insert into ft_matches (pattern_id,word_id) values (" << pattern_id << "," << word.id << ")";
+		stmt = stmt_stream.str();
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}
+	}
+}
+
+void WordsDB::clear_fulltext_patterns()
+{
+	StringList statements;
+	statements.push_back( "delete from ft_matches" );
+	statements.push_back( "delete from ft_patterns" );
+	for( StringList::iterator si=statements.begin(); si!=statements.end(); si++ )
+	{
+		int rc;
+		if( (rc = sqlite3_exec(db, si->c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << *si;
+			throw ERROR( msg.str() );
+		}
 	}
 }
 

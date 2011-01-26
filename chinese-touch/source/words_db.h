@@ -24,7 +24,7 @@ public:
 	void open( const std::string& file_name, bool create_db = false );
 	void create( const std::string& file_name );
 	void close();
-	void update();
+	bool update();
 	int get_book_id( Book& book, bool add_missing );
 	int get_lesson_id( Lesson& lesson, bool add_missing );
 	void add_or_write_word( NewWord& );
@@ -34,6 +34,8 @@ public:
 	void query_words( Library& library, const std::string& condition, NewWordList& result_list, const std::string& ordering="" );
 	void query_static_words( Library& library, const std::string& condition, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );
 	void query_static_fulltext( Library& library, const StringList& patterns, NewWordList& result_list, Lesson* owner_lesson, const std::string& ordering = "" );
+	void add_fulltext_patterns( NewWord& word, const StringSet& patterns );
+	void clear_fulltext_patterns();
 	int get_file_id( const std::string& file_path );
 	int get_file_mtime( const std::string& file_path );
 	void set_file_mtime( const std::string& file_path, int new_mtime );

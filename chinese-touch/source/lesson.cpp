@@ -10,6 +10,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <set>
+#include <string.h>
 
 #include "lesson.h"
 #include "config.h"
@@ -435,6 +436,40 @@ std::string Lesson::find_config_file_by_extension( const std::string& extension 
 	return "";
 }
 
+const std::string Lesson::split_chars = " ,;:.!?-/\\()[]{}<>0123456789'\"|~_";
+const char* Lesson::split_patterns[] = {
+	"、", "，", "。", "・", "．", "！", "？", "：", "－", "［", "］", "（", "）", "｛", "｝", "《", "》", "／"
+};
+void Lesson::get_patterns_from_text(const std::string& source_text, StringSet& patterns)
+{
+	std::string::size_type pos = 0;
+	while( pos != std::string::npos )
+	{
+		// prefer more efficient single byte character search for most split patterns:
+		std::string::size_type new_pos = source_text.find_first_of( Lesson::split_chars, pos );
+		std::string::size_type split_pattern_len = 1;
+		// then search for some multi-byte patterns:
+		for( unsigned int i=0; i<sizeof(Lesson::split_patterns); i++ )
+		{
+			std::string::size_type new_pos2 = source_text.find( Lesson::split_patterns[i], pos );
+			if( new_pos==std::string::npos 
+				|| ( new_pos2!=std::string::npos && new_pos2<new_pos ) )
+			{
+				new_pos = new_pos2;
+				split_pattern_len = strlen( Lesson::split_patterns[i] );
+			}
+		}
+		std::string::size_type len;
+		if( new_pos!=std::string::npos ) len = new_pos-pos;
+		else len = source_text.length()-pos;
+		if( len )
+		{
+			patterns.insert( source_text.substr(pos, len) );
+		}
+		pos = new_pos+split_pattern_len;
+	}
+}
+
 /*! Parse a dictionary file, containing a table definition in MediaWiki format. 
 	You can easily create those tables using OpenOffice and its MediaWiki export filter. 
 	Anyway here is an example of the expected plain text format: \n
@@ -454,7 +489,7 @@ std::string Lesson::find_config_file_by_extension( const std::string& extension 
 
 |}
 \endverbatim */
-int Lesson::parse_dictionary_if_needed( bool count_only )
+int Lesson::parse_dictionary_if_needed( bool count_only, bool force_update )
 {
 	std::string dict_file_name = this->find_config_file_by_extension( ".dict" );
 	if( !dict_file_name.length() )
@@ -464,7 +499,10 @@ int Lesson::parse_dictionary_if_needed( bool count_only )
 	{
 		throw ERROR( strerror(errno) );
 	}
-	if( this->book->library->words_db.get_file_mtime(dict_file_name) == dict_file_stats.st_mtime )
+	int new_time = dict_file_stats.st_mtime;
+	// fake dictionary file to be brand new to force update, if requested:
+	if( force_update ) new_time = time(0);
+	if( this->book->library->words_db.get_file_mtime(dict_file_name) == new_time )
 		return 0;
 	if( !count_only )
 		this->book->library->words_db.set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
@@ -502,6 +540,11 @@ int Lesson::parse_dictionary_if_needed( bool count_only )
 					word->file_offset = word_count;
 					seen_words[word->hanzi] = word->duplicate_id+1;
 					this->book->library->words_db.add_or_write_word( *word );
+					StringSet search_patterns;
+					Lesson::get_patterns_from_text( word->pinyin, search_patterns );
+					Lesson::get_patterns_from_text( definition.translation, search_patterns );
+					Lesson::get_patterns_from_text( definition.comment, search_patterns );
+					this->book->library->words_db.add_fulltext_patterns( *word, search_patterns );
 					delete word;
 				}
                 hanzi = "";

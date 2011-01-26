@@ -101,9 +101,10 @@ void Program::initialize()
 		WARN( e.what() );
 		render_info = this->ft->render( loading_screen, "creating "+this->words_db_name, this->ft->han_face, size, x, y+=render_info.height );
 		this->words_db->create( this->base_dir+"/"+this->words_db_name );
-		first_run = true;
+		this->first_run = true;
 	}
-	this->words_db->update();
+	if( this->words_db->update() ) 
+		this->first_run = true; // trigger initialization code on db updates
 	
 	LOG( "initializing library" );
 	render_info = this->ft->render( loading_screen, "initializing library", this->ft->han_face, size, x, y+=render_info.height );

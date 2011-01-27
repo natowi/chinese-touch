@@ -41,6 +41,11 @@ void WordsDB::create( const std::string& file_name )
 	create_statements.push_back( "CREATE TABLE books (id INTEGER PRIMARY KEY, path TEXT)" );
 	create_statements.push_back( "CREATE TABLE lessons (id INTEGER PRIMARY KEY, book_id NUMERIC, number NUMERIC)" );
 	create_statements.push_back( "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)" );
+	create_statements.push_back( "CREATE TABLE ft_matches (pattern_id NUMERIC, word_id NUMERIC)" );
+	create_statements.push_back( "CREATE INDEX i_ft_matches_pattern_id ON ft_matches (pattern_id)" );
+	create_statements.push_back( "CREATE INDEX i_ft_matches_word_id ON ft_matches (word_id)" );
+	create_statements.push_back( "CREATE TABLE ft_patterns (id INTEGER PRIMARY KEY, pattern TEXT)" );
+	create_statements.push_back( "CREATE INDEX i_ft_patterns_pattern ON ft_patterns (pattern)" );
 	
 	for( StringList::iterator i=create_statements.begin(); i!=create_statements.end(); i++ )
 	{
@@ -187,7 +192,7 @@ bool WordsDB::update()
 		if( !result.size() )
 		{
 			updated = true;
-			stmt = "CREATE TABLE ft_patterns (pattern TEXT, id PRIMARY_KEY)";
+			stmt = "CREATE TABLE ft_patterns (id INTEGER PRIMARY KEY, pattern TEXT)";
 			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
 			{
 				std::stringstream msg;
@@ -319,6 +324,19 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
 			throw ERROR( msg.str() );
 		}
+		statement = "select max(id) from words";
+		IntList int_result;
+		if( (rc = sqlite3_exec(db, statement.c_str(), &int_list_callback, &int_result, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+			throw ERROR( msg.str() );
+		}
+		if( int_result.size() )
+		{
+			new_word.id = *int_result.begin();
+		}
+		else throw ERROR( "No max(id) in words!?" );
 	}
 	else
 	{
@@ -591,6 +609,21 @@ void WordsDB::query_static_fulltext( Library& library, const StringList& pattern
 	}
 	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
 	{
+		// try to find an owner lesson in the library if none was given by the caller explicitly:
+		if( !owner_lesson )
+		{
+			int owner_lesson_id = atoi( (*i)["lesson_id"].c_str() );
+			for( Library::iterator book_it = library.begin(); !owner_lesson && book_it != library.end(); book_it++ )
+			{
+				for( Book::iterator lesson_it = book_it->second->begin(); !owner_lesson && lesson_it != book_it->second->end(); lesson_it++ )
+				{
+					if( lesson_it->second->id == owner_lesson_id )
+					{
+						owner_lesson = lesson_it->second;
+					}
+				}
+			}
+		}
 		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], owner_lesson );
 		word->from_static_db = true;
 		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );

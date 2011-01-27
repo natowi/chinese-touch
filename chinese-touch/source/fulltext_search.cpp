@@ -180,6 +180,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		// query available static book databases
 		StringList patterns;
 		extract_words( this->touch_keyboard.get_written_text(), patterns );
+		this->program.words_db->query_static_fulltext( *this->program.library, patterns, this->word_browser.words, 0 );
 		for( Library::iterator book_it = this->program.library->begin(); book_it != this->program.library->end(); book_it++ )
 		{
 			if( book_it->second 

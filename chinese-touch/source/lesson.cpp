@@ -439,7 +439,8 @@ std::string Lesson::find_config_file_by_extension( const std::string& extension 
 
 const std::string Lesson::split_chars = " ,;:.!?-/\\()[]{}<>0123456789'\"|~_\r\n\t";
 const char* Lesson::split_patterns[] = {
-	"、", "，", "。", "・", "．", "！", "？", "：", "－", "［", "］", "（", "）", "｛", "｝", "《", "》", "／", "　", 0
+	"、", "，", "。", "・", "．", "！", "？", "：", "－", "［", "］", "（", "）", "｛", "｝", "《", "》", "／", "　", 
+	"„", "“", "＝", "＋", 0
 };
 void Lesson::get_patterns_from_text(const std::string& source_text, StringSet& patterns)
 {

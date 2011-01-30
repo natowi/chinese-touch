@@ -141,12 +141,13 @@ class DictionarySynchronizer : public ActionButton
 	public:
 		Program& program;
 		RenderScreen& info_screen;
+		bool full_sync;
 	public:
 		DictionarySynchronizer( const std::string& _name, const std::string& _description, 
 								const std::string& _button_label, Program& _program, 
-								RenderScreen& _screen )
+								RenderScreen& _screen, bool _full_sync=false )
 			: ActionButton( _name, _description, _button_label ), 
-			program(_program), info_screen(_screen)
+			program(_program), info_screen(_screen), full_sync(_full_sync)
 		{}
 		virtual void run_action();
 };

@@ -113,7 +113,7 @@ void DictionarySynchronizer::run_action()
 					info_screen.clear();
 					this->program.ft->render( this->info_screen, progress.str(), this->program.ft->latin_face, 14, 0, info_screen.res_y/2-30, &style );
 				}
-				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1), /*force_update=*/true );
+				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1), /*force_update=*/this->full_sync );
 			}
 		}
 		prev_run_count = run_count;
@@ -131,6 +131,7 @@ void IndexRebuilder::run_action()
 	int max_word_id = this->program.words_db->get_max_word_id();
 	int query_step = 20;
 	int run_count = 0;
+	this->program.words_db->clear_fulltext_patterns();
 	for( int current_id = 1; current_id<=max_word_id+query_step /* hack to ensure progress being updated to 100%*/; 
 			current_id+=query_step )
 	{
@@ -210,9 +211,11 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 	this->init_mode();
 	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
-	this->settings.add_setting( new DictionarySynchronizer("0_synchronize_dictionary", "Synchronize Word Database", "sync",
+	this->settings.add_setting( new DictionarySynchronizer("0_quick_sync", "Quick-Synchronize Word Database", "qsyn",
 		this->program, this->info_screen) );
-	this->settings.add_setting( new IndexRebuilder("1_create_fulltext_index", "Create Fulltext Index (Slow!)", "idx",
+	this->settings.add_setting( new DictionarySynchronizer("1_full_sync", "Fully Synchronize Word Database (Slow!)", "fsyn",
+		this->program, this->info_screen, /*full_sync=*/true) );
+	this->settings.add_setting( new IndexRebuilder("2_recreate_index", "(Re-)Create Fulltext Index (Very Slow!)", "idx",
 		this->program, this->info_screen) );
 	
 	// store list of reference buttons to be initialized:

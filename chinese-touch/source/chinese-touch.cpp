@@ -162,22 +162,29 @@ void Program::run()
 				{
 					msg += "- "+ *ri + "\n";
 				}
-				// remove Synchronizer from lesson menu settings, as we are running it now:
-				if( lesson_menu->settings.count("0_synchronize_dictionary") )
+				// remove DictionarySynchronizers from lesson menu settings, as we are running a 
+				// synchronizer now and want to prevent users from executing it/them again accidentally:
+				for( Settings::iterator si=lesson_menu->settings.begin(); si!=lesson_menu->settings.end(); si++ )
 				{
-					delete lesson_menu->settings[ "0_synchronize_dictionary" ];
-					lesson_menu->settings.erase( "0_synchronize_dictionary" );
+					DictionarySynchronizer* ds = dynamic_cast<DictionarySynchronizer*>( si->second );
+					if( ds )
+					{
+						delete ds;
+						lesson_menu->settings.erase( si );
+					}
 				}
 				// create a temporary Synchronizer and run it:
+				// 		TODO: let WordsDB determine wether we need to do a full sync here 
+				// 		(e.g. newly added dictionary fields need to be filled)
 				DictionarySynchronizer* synchronizer = new DictionarySynchronizer( "", "", "", *this, lesson_menu->menu_screen );
 				std::string msg2 = "Synchronizing *.dict files with words.db";
-				this->ft->render( lesson_menu->menu_screen, msg+msg2, this->ft->latin_face, 7, 2, 2 );
+				this->ft->render( lesson_menu->info_screen, msg+msg2, this->ft->latin_face, 7, 2, 2 );
 				synchronizer->run_action();
 				delete synchronizer;
 				lesson_menu->info_screen.clear();
 				msg2 = "It is recommended to (re-)create the index needed for full-text search on your custom "
 						"word entries now. As this might take a couple of minutes you may skip this now and come "
-						"back later by tapping the 'S' button in lesson menu.";
+						"back later by tapping the 'S' button in the lesson menu.";
 				this->ft->render( lesson_menu->info_screen, msg+msg2, this->ft->latin_face, 7, 2, 2 );
 				lesson_menu->show_settings();
 				sync_done = true;

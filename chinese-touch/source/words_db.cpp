@@ -625,22 +625,23 @@ void WordsDB::query_static_fulltext( Library& library, const StringList& pattern
 	}
 	for( MapList::iterator i=map_list.begin(); i!=map_list.end(); i++ )
 	{
+		Lesson* current_owner_lesson = owner_lesson;
 		// try to find an owner lesson in the library if none was given by the caller explicitly:
-		if( !owner_lesson )
+		if( !current_owner_lesson )
 		{
 			int owner_lesson_id = atoi( (*i)["lesson_id"].c_str() );
-			for( Library::iterator book_it = library.begin(); !owner_lesson && book_it != library.end(); book_it++ )
+			for( Library::iterator book_it = library.begin(); !current_owner_lesson && book_it != library.end(); book_it++ )
 			{
-				for( Book::iterator lesson_it = book_it->second->begin(); !owner_lesson && lesson_it != book_it->second->end(); lesson_it++ )
+				for( Book::iterator lesson_it = book_it->second->begin(); !current_owner_lesson && lesson_it != book_it->second->end(); lesson_it++ )
 				{
 					if( lesson_it->second->id == owner_lesson_id )
 					{
-						owner_lesson = lesson_it->second;
+						current_owner_lesson = lesson_it->second;
 					}
 				}
 			}
 		}
-		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], owner_lesson );
+		NewWord* word = new NewWord( (*i)["word"], (*i)["pronunciation"], current_owner_lesson );
 		word->from_static_db = true;
 		word->duplicate_id = atoi( (*i)["duplicate_id"].c_str() );
 		bool need_to_synchronize = library.words_db.read_word( *word );

@@ -215,7 +215,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		this->program, this->info_screen) );
 	this->settings.add_setting( new DictionarySynchronizer("1_full_sync", "Fully Synchronize Word Database (Slow!)", "fsyn",
 		this->program, this->info_screen, /*full_sync=*/true) );
-	this->settings.add_setting( new IndexRebuilder("2_recreate_index", "(Re-)Create Fulltext Index (Very Slow!)", "idx",
+	this->settings.add_setting( new IndexRebuilder("2_recreate_index", "(Re-)Create Full-Text Index (Very Slow!)", "idx",
 		this->program, this->info_screen) );
 	
 	// store list of reference buttons to be initialized:

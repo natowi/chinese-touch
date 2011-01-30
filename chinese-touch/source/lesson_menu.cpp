@@ -91,7 +91,6 @@ void DictionarySynchronizer::run_action()
 	style.center_x = true;
 	int prev_run_count = 0;
 	std::string prev_progress;
-	if( this->force_update ) this->program.words_db->clear_fulltext_patterns();
 	for( int run=1; run<=2; run++ )
 	{
 		int run_count = 0;
@@ -99,7 +98,6 @@ void DictionarySynchronizer::run_action()
 		{
 			for( Book::iterator lesson_it = book_it->second->begin(); lesson_it != book_it->second->end(); lesson_it++ )
 			{
-				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1), this->force_update );
 				std::stringstream progress;
 				progress << ((run==1) ? "scanning" : "syncing") << "\n" 
 						<< ((run==1) ? 0 : run_count) << " / "
@@ -115,9 +113,58 @@ void DictionarySynchronizer::run_action()
 					info_screen.clear();
 					this->program.ft->render( this->info_screen, progress.str(), this->program.ft->latin_face, 14, 0, info_screen.res_y/2-30, &style );
 				}
+				run_count += lesson_it->second->parse_dictionary_if_needed( /*count_only=*/(run==1), /*force_update=*/true );
 			}
 		}
 		prev_run_count = run_count;
+	}
+	this->program.ft->render( this->info_screen, "\n\n\ndone", this->program.ft->latin_face, 14, 0, info_screen.res_y-30, &style );
+}
+
+
+void IndexRebuilder::run_action()
+{
+	RenderStyle style;
+	style.center_x = true;
+	std::string prev_progress;
+	int word_count = this->program.words_db->count_words();
+	int max_word_id = this->program.words_db->get_max_word_id();
+	int query_step = 20;
+	int run_count = 0;
+	for( int current_id = 1; current_id<=max_word_id+query_step /* hack to ensure progress being updated to 100%*/; 
+			current_id+=query_step )
+	{
+		std::stringstream progress;
+		progress << "indexing" << "\n" << run_count << " / " << word_count;
+		progress << " (" << (run_count*100)/word_count << "%)";
+		std::string new_progress = progress.str();
+		if( new_progress != prev_progress )
+		{
+			prev_progress = new_progress;
+			info_screen.clear();
+			this->program.ft->render( this->info_screen, progress.str(), this->program.ft->latin_face, 14, 0, info_screen.res_y/2-30, &style );
+		}
+		// hack to ensure progress being updated to 100%:
+		if( current_id>=max_word_id ) break;
+		
+		NewWordList* result = new NewWordList();
+		std::stringstream condition;
+		condition << "words.id>=" << current_id << " and words.id<" << current_id+query_step;
+		this->program.words_db->query_words( *this->program.library, condition.str(), *result );
+		for( NewWordList::iterator word_it=result->begin(); word_it!=result->end(); word_it++ )
+		{
+			StringSet* search_patterns = new StringSet();
+			Lesson::get_patterns_from_text( (*word_it)->pinyin, *search_patterns );
+			for( Definitions::iterator def_it=(*word_it)->definitions.begin(); def_it!=(*word_it)->definitions.end(); def_it++ )
+			{
+				Lesson::get_patterns_from_text( def_it->second->translation, *search_patterns );
+				Lesson::get_patterns_from_text( def_it->second->comment, *search_patterns );
+			}
+			this->program.words_db->add_fulltext_patterns( **word_it, *search_patterns );
+			delete search_patterns;
+		}
+		run_count += result->size();
+		delete result;
 	}
 	this->program.ft->render( this->info_screen, "\n\n\ndone", this->program.ft->latin_face, 14, 0, info_screen.res_y-30, &style );
 }
@@ -164,6 +211,8 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 	
 	// FIXME: settings dialog item ordering relies on std::map implementation for now; don't know if this is portable
 	this->settings.add_setting( new DictionarySynchronizer("0_synchronize_dictionary", "Synchronize Word Database", "sync",
+		this->program, this->info_screen) );
+	this->settings.add_setting( new IndexRebuilder("1_create_fulltext_index", "Create Fulltext Index (Slow!)", "idx",
 		this->program, this->info_screen) );
 	
 	// store list of reference buttons to be initialized:

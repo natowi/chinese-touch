@@ -20,7 +20,10 @@ class WordsDB
 protected:
 	sqlite3* db;
 public:
-	WordsDB() : db(0) {}
+	bool update_needed;
+	StringList update_reasons;
+public:
+	WordsDB() : db(0), update_needed(false) {}
 	void open( const std::string& file_name, bool create_db = false );
 	void create( const std::string& file_name );
 	void close();
@@ -42,8 +45,13 @@ public:
 	double get_avg_rating();
 	double get_avg_rating( Book* book );
 	double get_avg_rating( Lesson* lesson );
+	int get_max_word_id();
+	int count_words();
+	int count_words( Book* book );
+	int count_words( Lesson* lesson );
 protected:
 	double get_avg_rating( Book* book, Lesson* lesson );
+	int count_words( Book* book, Lesson* lesson );
 };
 
 #endif

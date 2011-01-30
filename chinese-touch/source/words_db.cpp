@@ -57,6 +57,9 @@ void WordsDB::create( const std::string& file_name )
 			throw ERROR( msg.str() );
 		}
 	}
+	
+	this->update_needed = true;
+	this->update_reasons.push_back( "fresh words.db created");
 }
 
 void WordsDB::close()
@@ -97,7 +100,6 @@ static int map_list_callback( void *pv_map_list, int argc, char **argv, char **a
 /*! Implements conditional database update procedures from previous releases */
 bool WordsDB::update()
 {
-	bool updated = false;
 	{
 		/*! Update from 1.1 to 1.2 requires creation of the files table and 
 			the file_id and file_offset columns in the words table */
@@ -112,7 +114,6 @@ bool WordsDB::update()
 		}
 		if( !result.size() )
 		{
-			updated = true;
 			stmt = "CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT, mtime NUMERIC)";
 			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
 			{
@@ -134,6 +135,8 @@ bool WordsDB::update()
 				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
 				throw ERROR( msg.str() );
 			}
+			this->update_needed = true;
+			this->update_reasons.push_back( "added support for file change monitoring");
 		}
 		stmt = "CREATE INDEX IF NOT EXISTS i_words_word ON words (word)";
 		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
@@ -158,7 +161,6 @@ bool WordsDB::update()
 		}
 		if( !result.size() )
 		{
-			updated = true;
 			stmt = "CREATE TABLE ft_matches (pattern_id NUMERIC, word_id NUMERIC)";
 			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
 			{
@@ -180,18 +182,6 @@ bool WordsDB::update()
 				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
 				throw ERROR( msg.str() );
 			}
-		}
-		result.clear();
-		stmt = "select name from sqlite_master where name=\"ft_patterns\"";
-		if( (rc = sqlite3_exec(db, stmt.c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
-		{
-			std::stringstream msg;
-			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
-			throw ERROR( msg.str() );
-		}
-		if( !result.size() )
-		{
-			updated = true;
 			stmt = "CREATE TABLE ft_patterns (id INTEGER PRIMARY KEY, pattern TEXT)";
 			if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
 			{
@@ -206,9 +196,32 @@ bool WordsDB::update()
 				msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
 				throw ERROR( msg.str() );
 			}
+			this->update_needed = true;
+			this->update_reasons.push_back( "added support for full-text search on custom word entries");
 		}
+		stmt = "CREATE INDEX IF NOT EXISTS i_words_atime ON words (atime DESC)";
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}	
+		stmt = "CREATE INDEX IF NOT EXISTS i_words_lesson_id ON words (lesson_id)";
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}	
+		stmt = "CREATE INDEX IF NOT EXISTS i_words_rating ON words (rating DESC)";
+		if( (rc = sqlite3_exec(db, stmt.c_str(), 0, 0, 0))!=SQLITE_OK )
+		{
+			std::stringstream msg;
+			msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+			throw ERROR( msg.str() );
+		}	
 	}
-	return updated;
+	return this->update_needed;
 }
 
 int WordsDB::get_book_id( Book& book, bool add_missing )
@@ -346,12 +359,15 @@ void WordsDB::add_or_write_word( NewWord& new_word )
 			|| row_map["definition"] != new_word.definitions["de"]->translation
 			|| row_map["comment"] != new_word.definitions["de"]->comment
 			|| atoi(row_map["rating"].c_str()) != new_word.rating
-			|| atol(row_map["atime"].c_str()) != new_word.atime 
+			|| atol(row_map["atime"].c_str()) < new_word.atime // atime can only grow
 			|| atoi(row_map["file_id"].c_str()) != new_word.file_id 
 			|| atoi(row_map["file_offset"].c_str()) != new_word.file_offset 
 		)
 		{
 			new_word.id = atoi( row_map["id"].c_str() );
+			// ensure atime growth:
+			if( atol(row_map["atime"].c_str()) > new_word.atime ) 
+				new_word.atime = atol(row_map["atime"].c_str());
 			this->write_word( new_word );
 		}
 	}
@@ -866,4 +882,59 @@ double WordsDB::get_avg_rating( Book* book, Lesson* lesson )
 	if( map_list.begin() != map_list.end() ) avg_rating = atof( (*map_list.begin())["avg_rating"].c_str() );
 	
 	return avg_rating;
+}
+
+int WordsDB::get_max_word_id()
+{
+	std::string stmt = "select max(id) from words";
+	IntList result;
+	int rc;
+	if( (rc = sqlite3_exec(db, stmt.c_str(), &int_list_callback, &result, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+		throw ERROR( msg.str() );
+	}
+	if( result.size() ) return *result.begin();
+	else return 0;
+}
+
+int WordsDB::count_words()
+{
+	return this->count_words( 0, 0 );
+}
+
+int WordsDB::count_words( Book* book )
+{
+	return this->count_words( book, 0 );
+}
+
+int WordsDB::count_words( Lesson* lesson )
+{
+	return this->count_words( 0, lesson );
+}
+
+int WordsDB::count_words( Book* book, Lesson* lesson )
+{
+	std::stringstream ss_stmt;
+	ss_stmt << "select count(id) from words ";
+	if( book ) ss_stmt << "inner join lessons on words.lesson_id=lessons.id ";
+	if( book || lesson ) ss_stmt << "where ";
+	if( book ) ss_stmt << "book_id=" << book->id << " ";
+	if( lesson )
+	{
+		if( book ) ss_stmt << "and ";
+		ss_stmt << "lesson_id=" << lesson->id << " ";
+	}
+	std::string stmt = ss_stmt.str();
+	IntList result;
+	int rc;
+	if( (rc = sqlite3_exec(db, stmt.c_str(), &int_list_callback, &result, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt;
+		throw ERROR( msg.str() );
+	}
+	if( result.size() ) return *result.begin();
+	else return 0;
 }

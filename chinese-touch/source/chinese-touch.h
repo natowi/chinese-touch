@@ -15,7 +15,6 @@
 class Program
 {
 public:
-	bool first_run;
 	UILanguage* ui_lang;
 	FreetypeRenderer* ft;
 	WordsDB* words_db;

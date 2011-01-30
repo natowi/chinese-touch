@@ -28,7 +28,7 @@
 
 
 Program::Program( int argc, char* argv[] )
-	: first_run(false), ui_lang(0), ft(0), words_db(0), library(0),
+	: ui_lang(0), ft(0), words_db(0), library(0),
 		config(0), error_console(0), 
 		name("chinese-touch"), version("1.5"),
 		fs_type("unknown"), image_path(""), base_dir("/"+name),
@@ -101,10 +101,8 @@ void Program::initialize()
 		WARN( e.what() );
 		render_info = this->ft->render( loading_screen, "creating "+this->words_db_name, this->ft->han_face, size, x, y+=render_info.height );
 		this->words_db->create( this->base_dir+"/"+this->words_db_name );
-		this->first_run = true;
 	}
-	if( this->words_db->update() ) 
-		this->first_run = true; // trigger initialization code on db updates
+	this->words_db->update();
 	
 	LOG( "initializing library" );
 	render_info = this->ft->render( loading_screen, "initializing library", this->ft->han_face, size, x, y+=render_info.height );
@@ -157,11 +155,31 @@ void Program::run()
 			LOG( "initializing lesson menu" );
 			LessonMenuChoice lesson_menu_choice;
 			LessonMenu* lesson_menu = new LessonMenu( *this, 0, lesson_menu_choice );
-			if( first_run && !sync_done )
+			if( this->words_db->update_needed && !sync_done )
 			{
-				DictionarySynchronizer* dict_sync = new DictionarySynchronizer( "","","", *this, lesson_menu->menu_screen );
-				dict_sync->run_action();
-				delete dict_sync;
+				std::string msg;
+				for( StringList::iterator ri = this->words_db->update_reasons.begin(); ri != this->words_db->update_reasons.end(); ri++ )
+				{
+					msg += "- "+ *ri + "\n";
+				}
+				// remove Synchronizer from lesson menu settings, as we are running it now:
+				if( lesson_menu->settings.count("0_synchronize_dictionary") )
+				{
+					delete lesson_menu->settings[ "0_synchronize_dictionary" ];
+					lesson_menu->settings.erase( "0_synchronize_dictionary" );
+				}
+				// create a temporary Synchronizer and run it:
+				DictionarySynchronizer* synchronizer = new DictionarySynchronizer( "", "", "", *this, lesson_menu->menu_screen );
+				std::string msg2 = "Synchronizing *.dict files with words.db";
+				this->ft->render( lesson_menu->menu_screen, msg+msg2, this->ft->latin_face, 7, 2, 2 );
+				synchronizer->run_action();
+				delete synchronizer;
+				lesson_menu->info_screen.clear();
+				msg2 = "It is recommended to (re-)create the index needed for full-text search on your custom "
+						"word entries now. As this might take a couple of minutes you may skip this now and come "
+						"back later by tapping the 'S' button in lesson menu.";
+				this->ft->render( lesson_menu->info_screen, msg+msg2, this->ft->latin_face, 7, 2, 2 );
+				lesson_menu->show_settings();
 				sync_done = true;
 			}
 			lesson_menu->run_until_exit();

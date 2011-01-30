@@ -440,7 +440,7 @@ std::string Lesson::find_config_file_by_extension( const std::string& extension 
 const std::string Lesson::split_chars = " ,;:.!?-/\\()[]{}<>0123456789'\"|~_\r\n\t";
 const char* Lesson::split_patterns[] = {
 	"、", "，", "。", "・", "．", "！", "？", "：", "－", "［", "］", "（", "）", "｛", "｝", "《", "》", "／", "　", 
-	"„", "“", "＝", "＋", 0
+	"„", "“", "＝", "＋", "…", 0
 };
 void Lesson::get_patterns_from_text(const std::string& source_text, StringSet& patterns)
 {
@@ -547,17 +547,11 @@ int Lesson::parse_dictionary_if_needed( bool count_only, bool force_update )
 					NewWord* word = new NewWord( hanzi, pinyin, this );
 					word->definitions[ definition.lang ] = new Definition( definition );
 					word->duplicate_id = seen_words.count(word->hanzi) ? seen_words[word->hanzi] : 0;
-					word->atime = dict_file_stats.st_mtime;
+					word->atime = 0; // new words where never accessed
 					word->file_id = file_id;
 					word->file_offset = word_count;
 					seen_words[word->hanzi] = word->duplicate_id+1;
 					this->book->library->words_db.add_or_write_word( *word );
-					StringSet* search_patterns = new StringSet();
-					Lesson::get_patterns_from_text( word->pinyin, *search_patterns );
-					Lesson::get_patterns_from_text( definition.translation, *search_patterns );
-					Lesson::get_patterns_from_text( definition.comment, *search_patterns );
-					this->book->library->words_db.add_fulltext_patterns( *word, *search_patterns );
-					delete search_patterns;
 					delete word;
 				}
                 hanzi = "";

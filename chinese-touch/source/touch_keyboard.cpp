@@ -10,19 +10,20 @@
 #include "words_db.h"
 #include "bottom_left_button.h"
 #include "bottom_left_button_active.h"
-#include "bottom_right_button.h"
-#include "bottom_right_button_active.h"
 #include "error_console.h"
 #include "key.h"
 #include "key_active.h"
+#include "small_menu_button_active.h"
+#include "layout_label_frame.h"
 
 
 TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, FreetypeRenderer& _freetype_renderer, 
 							  RenderScreen& _keyboard_screen, std::string& _program_base_dir )  
 	: ButtonProvider(button_provider_list, _freetype_renderer), db(0), keyboard_screen(_keyboard_screen),
 		reference_key(keyboard_screen,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2),
-		layout_minus(keyboard_screen,"-",SpriteSize_16x16,24,keyboard_screen.res_y-16,button_ft.latin_face,10,0,2),
-		layout_plus(keyboard_screen,"+",SpriteSize_16x16,24+16,keyboard_screen.res_y-16,button_ft.latin_face,10,0,2),
+		layout_minus(keyboard_screen,"<",SpriteSize_16x16,24,keyboard_screen.res_y-16,button_ft.latin_face,10,0,2),
+		layout_label(keyboard_screen,"",SpriteSize_16x16,24+16,keyboard_screen.res_y-16,button_ft.latin_face,7,0,2),
+		layout_plus(keyboard_screen,">",SpriteSize_16x16,24+32,keyboard_screen.res_y-16,button_ft.latin_face,10,0,2),
 		layouts_path( _program_base_dir+"/keyboards" ), current_layout( this->layouts.begin() )
 {
 	this->reference_key.hidden = true;
@@ -87,6 +88,7 @@ void TouchKeyboard::reload_current_layout()
 	this->text_buttons.clear();
 	this->text_buttons.push_back( &this->reference_key );
 	this->text_buttons.push_back( &this->layout_minus );
+	this->text_buttons.push_back( &this->layout_label );
 	this->text_buttons.push_back( &this->layout_plus );
 	
 	this->close_db();
@@ -117,6 +119,7 @@ void TouchKeyboard::reload_current_layout()
 			if( (*ri)["key"]=="dead_keys" ) this->current_layout_dead_keys = (*ri)["value"];
 		}
 	}
+	this->layout_label.text = this->current_layout_language;
 	StringList keyboard_characters;
 	utf8_to_utf8_char_list( (const unsigned char*)this->current_layout_keys.c_str(), keyboard_characters );
 	
@@ -170,10 +173,10 @@ void TouchKeyboard::init_button_vram()
 	// load sprite graphics into vram:
 	this->reference_key.init_vram( keyBitmap, this->reference_key.bg_vram );
 	this->reference_key.init_vram( key_activeBitmap, this->reference_key.bg_active_vram );
-	this->layout_minus.init_vram( bottom_right_buttonBitmap, this->layout_minus.bg_vram );
-	this->layout_minus.init_vram( bottom_right_button_activeBitmap, this->layout_minus.bg_active_vram );
-	this->layout_plus.init_vram( bottom_left_buttonBitmap, this->layout_plus.bg_vram );
-	this->layout_plus.init_vram( bottom_left_button_activeBitmap, this->layout_plus.bg_active_vram );
+	this->layout_minus.init_vram( small_menu_button_activeBitmap, this->layout_minus.bg_active_vram );
+	this->layout_plus.bg_active_vram = this->layout_minus.bg_active_vram;
+	this->layout_plus.owns_bg_vram = false;
+	this->layout_label.init_vram( layout_label_frameBitmap, this->layout_label.bg_vram );
 	
 	for( TextButtonSetStorage::iterator key_it = this->keys.begin(); key_it != this->keys.end(); key_it++ )
 	{
@@ -183,6 +186,15 @@ void TouchKeyboard::init_button_vram()
 	
 	ButtonProvider::init_button_vram();
 }
+
+void TouchKeyboard::render_buttons(OamState* target_oam, int& oam_entry)
+{
+	this->layout_minus.hidden = this->layout_minus.disabled = this->current_layout == this->layouts.begin();
+	this->layout_plus.hidden = this->layout_plus.disabled = (&*this->current_layout == &*this->layouts.rbegin());
+	
+	ButtonProvider::render_buttons(target_oam, oam_entry);
+}
+
 
 ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 {

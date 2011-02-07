@@ -14,7 +14,7 @@ protected:
 	sqlite3* db;
 public:
 	RenderScreen& keyboard_screen;
-	TextButton reference_key, layout_minus, layout_plus;
+	TextButton reference_key, layout_minus, layout_label, layout_plus;
 	TextButtonSetStorage keys;
 	StringList written_chars;
 	std::string modifier;
@@ -29,6 +29,7 @@ public:
 	~TouchKeyboard();
 	void reload_current_layout();
 	void init_button_vram();
+	void render_buttons( OamState* target_oam, int& oam_entry );
 	ButtonAction handle_button_pressed( TextButton* text_button );
 	std::string handle_key_pressed( const std::string& input ) { return input; }
 	void handle_text_changed() {}

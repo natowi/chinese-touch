@@ -13,6 +13,7 @@
 #define BUTTON_ACTION_EXIT_MODE (1 << 4)
 #define BUTTON_ACTION_SCREEN_SUB (1 << 5)
 #define BUTTON_ACTION_SCREEN_MAIN (1 << 6)
+#define BUTTON_ACTION_STOP_HANDLER (1 << 7)
 #include "chinese-touch.h"
 
 typedef int ButtonAction;

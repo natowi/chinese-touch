@@ -153,6 +153,7 @@ ButtonAction ButtonProvider::handle_release( int x, int y, GlobalButtonHandler* 
 				action |= global_handler->handle_button_pressed( *b_it );
 			if( action & BUTTON_ACTION_EXIT_MODE ) return action;
 			action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+			if( action & BUTTON_ACTION_STOP_HANDLER ) break;
 		}
 		else
 		{

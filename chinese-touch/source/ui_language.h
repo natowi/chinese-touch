@@ -10,8 +10,6 @@
 class UILanguage
 {
 public:
-	StringList keyboard_characters;
-public:
 	UILanguage( const std::string& language );
 	std::string get_text_by_file_and_english( const char* file, const char* english );
 	std::string get_text_by_english( const char* english );

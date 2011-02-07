@@ -70,8 +70,7 @@ void WordsDB::close()
 
 #define MAX_RESULT_SIZE 100
 
-typedef std::list<int> IntList;
-static int int_list_callback( void *pv_int_list, int argc, char **argv, char **azColName )
+int int_list_callback( void *pv_int_list, int argc, char **argv, char **azColName )
 {
 	IntList* int_list = static_cast<IntList*>(pv_int_list);
 	if( int_list->size()>=MAX_RESULT_SIZE )
@@ -80,9 +79,7 @@ static int int_list_callback( void *pv_int_list, int argc, char **argv, char **a
 	return 0;
 }
 
-typedef std::map<std::string,std::string> StringMap;
-typedef std::list<StringMap> MapList;
-static int map_list_callback( void *pv_map_list, int argc, char **argv, char **azColName )
+int map_list_callback( void *pv_map_list, int argc, char **argv, char **azColName )
 {
 	MapList* map_list = static_cast<MapList*>(pv_map_list);
 	if( map_list->size()>=MAX_RESULT_SIZE )

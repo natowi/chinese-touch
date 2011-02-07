@@ -3,6 +3,8 @@
 
 #include <sqlite3.h>
 #include <string>
+#include <map>
+#include <list>
 
 #include "unicode.h"
 
@@ -14,6 +16,12 @@ class Library;
 class NewWordList;
 
 std::string replace_pattern( std::string src, const std::string& pattern, const std::string& replacement );
+
+typedef std::list<int> IntList;
+int int_list_callback( void *pv_int_list, int argc, char **argv, char **azColName );
+typedef std::map<std::string,std::string> StringMap;
+typedef std::list<StringMap> MapList;
+int map_list_callback( void *pv_map_list, int argc, char **argv, char **azColName );
 
 class WordsDB
 {

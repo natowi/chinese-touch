@@ -261,7 +261,7 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 	}
 	else if( text_button == &this->layout_plus )
 	{
-		if( this->layouts.size() && *this->current_layout != *this->layouts.rbegin() )
+		if( this->layouts.size() && &*this->current_layout != &*this->layouts.rbegin() )
 		{
 			this->current_layout++;
 			this->init_button_vram();

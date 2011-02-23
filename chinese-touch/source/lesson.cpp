@@ -343,6 +343,8 @@ void Book::parse_config( const std::string& conf_file_name )
 	{
 		book_conf_file.getline( line_buffer, sizeof(line_buffer) );
 		std::string line = line_buffer;
+		// remove utf-8 bom from line:
+		line = replace_pattern( line, "\xEF\xBB\xBF", "" );
 		std::string::size_type equals_pos = line.find( '=' );
 		if( equals_pos != std::string::npos )
 		{
@@ -398,6 +400,8 @@ void Lesson::parse_config( const std::string& conf_file_name )
 	{
 		lesson_conf_file.getline( line_buffer, sizeof(line_buffer) );
 		std::string line = line_buffer;
+		 // remove utf-8 bom from line:
+		line = replace_pattern( line, "\xEF\xBB\xBF", "" );
 		std::string::size_type equals_pos = line.find( '=' );
 		if( equals_pos != std::string::npos )
 		{
@@ -532,6 +536,8 @@ int Lesson::parse_dictionary_if_needed( bool count_only, bool force_update )
     {
         dict_file.getline( line_buffer, sizeof(line_buffer) );
         std::string line = line_buffer;
+		// remove utf-8 bom from line:
+		line = replace_pattern( line, "\xEF\xBB\xBF", "" );
 		// remove nowiki tags from the odt export:
 		line = replace_pattern( line, "<nowiki>", "" );
 		line = replace_pattern( line, "</nowiki>", "" );

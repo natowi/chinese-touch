@@ -521,7 +521,12 @@ int Lesson::parse_dictionary_if_needed( bool count_only, bool force_update )
 	if( this->book->library->words_db.get_file_mtime(dict_file_name) == new_time )
 		return 0;
 	if( !count_only )
+	{
+		// store dict files new mtime in database:
 		this->book->library->words_db.set_file_mtime( dict_file_name, dict_file_stats.st_mtime );
+		// mark related words as expired in database:
+		this->book->library->words_db.expire_lesson_words( this );
+	}
 	int file_id = this->book->library->words_db.get_file_id( dict_file_name );
     std::ifstream dict_file( dict_file_name.c_str() );
     char line_buffer[1024];

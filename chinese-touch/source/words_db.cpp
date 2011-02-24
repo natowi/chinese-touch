@@ -936,3 +936,26 @@ int WordsDB::count_words( Book* book, Lesson* lesson )
 	if( result.size() ) return *result.begin();
 	else return 0;
 }
+
+
+void WordsDB::update_words( const std::string& set_clause, const std::string& condition )
+{
+	std::stringstream statement_stream;
+	statement_stream << "update words set " << set_clause << " where " << condition;
+	std::string statement = statement_stream.str();
+	int rc;
+	if( (rc = sqlite3_exec(db, statement.c_str(), 0, 0, 0))!=SQLITE_OK )
+	{
+		std::stringstream msg;
+		msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << statement;
+		throw ERROR( msg.str() );
+	}
+}
+
+void WordsDB::expire_lesson_words( Lesson* lesson )
+{
+	std::string set_clause = "file_id=0";
+	std::stringstream condition_stream;
+	condition_stream << "lesson_id=" << lesson->id;
+	this->update_words( set_clause, condition_stream.str() );
+}

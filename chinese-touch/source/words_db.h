@@ -57,9 +57,11 @@ public:
 	int count_words();
 	int count_words( Book* book );
 	int count_words( Lesson* lesson );
+	void expire_lesson_words( Lesson* lesson );
 protected:
 	double get_avg_rating( Book* book, Lesson* lesson );
 	int count_words( Book* book, Lesson* lesson );
+	void update_words( const std::string& set_clause, const std::string& condition );
 };
 
 #endif

@@ -973,6 +973,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 ButtonAction NewWordsViewer::handle_touch_begin( touchPosition touch )
 {
 	this->old_touch = touch;
+	this->prev_draw_touch = touch;
 	this->old_distance = 0;
 	this->pixels_drawn = 0;
 	this->scrolling = false;
@@ -1003,7 +1004,10 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	ButtonAction action = BUTTON_ACTION_UNHANDLED;
 	int x_diff = touch.px - this->old_touch.px;
 	int y_diff = touch.py - this->old_touch.py;
-	int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
+	int abs_x_diff = std::abs(x_diff);
+	int abs_y_diff = std::abs(y_diff);
+	//int distance = (int)std::sqrt( std::pow(x_diff,2) + std::pow(y_diff,2) );
+	int distance = (abs_x_diff > abs_y_diff) ? (abs_x_diff + abs_y_diff/2) : (abs_y_diff + abs_x_diff/2);
 	if( this->scrolling )
 	{
 		this->word_browser.stroke_order_scroll_left -= x_diff*2;
@@ -1018,14 +1022,15 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	}
 	// if we are not hovering a touch screen button, draw a line or scroll:
 	if( (action == BUTTON_ACTION_UNHANDLED)
-		&& (distance
+		&& (distance 
 		// FIXME: this is a very primitive low-pass filter against sensor issues, but probably does more evil than good...
 			&& ((this->old_distance && (distance <= this->old_distance*DrawingPad::MAX_ACCELERATION_FACTOR)) 
-				|| (distance <= DrawingPad::MAX_ACCELERATION_FACTOR))) )
+				|| !this->old_distance )) )
 	{
 		this->pixels_drawn += distance;
-		this->drawing_pad.draw_line( touch.px, touch.py, this->old_touch.px, this->old_touch.py, 
+		this->drawing_pad.draw_line( touch.px, touch.py, this->prev_draw_touch.px, this->prev_draw_touch.py, 
 									 *this->current_pen_style, !this->eraser_button.hidden );
+		this->prev_draw_touch = touch;
 		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	this->old_distance = distance;

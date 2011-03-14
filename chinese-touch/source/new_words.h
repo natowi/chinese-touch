@@ -77,7 +77,7 @@ class NewWordsViewer : public Mode
 				scroll_field_overlay_0, scroll_field_overlay_1, scroll_field_overlay_2, scroll_field_overlay_3;
 		static int BUTTON_ACTIVATION_DRAW_LIMIT;
 		Settings settings;
-		touchPosition old_touch;
+		touchPosition old_touch, prev_draw_touch;
 		int old_distance;
 		int pixels_drawn;
 		bool clear_on_switch, randomize_list;

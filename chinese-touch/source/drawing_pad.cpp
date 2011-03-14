@@ -10,7 +10,7 @@ Pen::Pen(int _width, int _height, u8* _buffer ) : width(_width), height(_height)
 {
 }
 
-int DrawingPad::MAX_ACCELERATION_FACTOR = 5;
+int DrawingPad::MAX_ACCELERATION_FACTOR = 3;
 
 DrawingPad::DrawingPad( RenderScreen& _render_screen ) : render_screen(_render_screen)
 {
@@ -107,9 +107,6 @@ void DrawingPad::draw_line( int x1, int y1, int x2, int y2, const Pen& pen, bool
     double yd = y2-y1;
     int steps = abs(xd) > abs(yd) ? abs(xd) : abs(yd);
     this->draw( x1, y1, pen, erase );
-    // große Striche durch Sensorfehler ignorieren:
-    if( steps > 40 )
-        return;
     for( int i=1; i<=steps; i++ )
     {
 		this->draw( x1+i*xd/steps, y1+i*yd/steps, pen, erase );

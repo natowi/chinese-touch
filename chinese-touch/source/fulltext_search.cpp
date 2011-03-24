@@ -91,6 +91,7 @@ void FulltextSearch::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
+			// FIXME: code duplicate in multiple Mode::render
 			if( (this->word_browser.render_stroke_order || this->word_browser.render_components)
 				&& this->word_browser.current_char!=this->word_browser.current_char_list.end() )
 			{
@@ -176,7 +177,20 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->lesson, this->recursion_depth );
+		if( this->word_browser.render_components )
+		{
+			// FIXME: code duplicate in multiple Mode::handle_button_pressed
+			NewWord *word = new NewWord( (*this->word_browser.current_word)->hanzi.substr(
+				this->word_browser.highlight_char.source_offset, this->word_browser.highlight_char.source_length), "", 0 );
+			word->definitions["components"] = new Definition();
+			word->definitions["components"]->comment = this->word_browser.char_components_cache + "\n" + this->word_browser.char_component_usage_cache;
+			TextView::show_word_as_text( this->program, word, 0, this->recursion_depth );
+			delete word;
+		}
+		else
+		{
+			TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->lesson, this->recursion_depth );
+		}
 		this->prev_rendered_text=""; // force rerendering of current search text
 		this->init_mode();
 		this->init_vram();
@@ -246,6 +260,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->word_browser.stroke_order_tab
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
+		// FIXME: code duplicate in TextView::handle_button_pressed
 		this->free_vram();
 		NewWordList *single_word_list = new NewWordList();
 		single_word_list->push_back( *this->word_browser.current_word );

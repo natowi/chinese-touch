@@ -123,6 +123,16 @@ void TextView::render( Screen screen )
 		this->word_screen.clear();
 		if( new_word )
 		{
+			// FIXME: code duplicate in multiple Mode::render
+			if( (this->word_browser.render_stroke_order || this->word_browser.render_components)
+				&& this->word_browser.current_char!=this->word_browser.current_char_list.end() )
+			{
+				this->word_browser.highlight_char = *this->word_browser.current_char;
+			}
+			else
+			{
+				this->word_browser.highlight_char.init();
+			}
 			new_word->render( this->program, this->word_screen, this->word_browser );
 		}
 		else
@@ -231,7 +241,20 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->text.lesson, this->recursion_depth );
+		if( this->word_browser.render_components )
+		{
+			// FIXME: code duplicate in multiple Mode::handle_button_pressed
+			NewWord *word = new NewWord( (*this->word_browser.current_word)->hanzi.substr(
+				this->word_browser.highlight_char.source_offset, this->word_browser.highlight_char.source_length), "", 0 );
+			word->definitions["components"] = new Definition();
+			word->definitions["components"]->comment = this->word_browser.char_components_cache + "\n" + this->word_browser.char_component_usage_cache;
+			TextView::show_word_as_text( this->program, word, 0, this->recursion_depth );
+			delete word;
+		}
+		else
+		{
+			TextView::show_word_as_text( this->program, *this->word_browser.current_word, this->text.lesson, this->recursion_depth );
+		}
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
@@ -267,6 +290,7 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->word_browser.stroke_order_tab 
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
+		// FIXME: code duplicate in FulltextSearch::handle_button_pressed
 		this->free_vram();
 		NewWordList *single_word_list = new NewWordList();
 		single_word_list->push_back( *this->word_browser.current_word );
@@ -284,6 +308,11 @@ ButtonAction TextView::handle_button_pressed( TextButton* text_button )
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.components_tab )
+	{
+		this->word_browser.toggle_components();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

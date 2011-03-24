@@ -264,6 +264,13 @@ void NewWord::render( Program& program, RenderScreen& render_screen, WordListBro
 		
 		if( browser.render_components && browser.highlight_char.code_point && browser.current_word!=browser.words.end() )
 		{
+			if( browser.highlight_char.code_point != browser.char_components_cache_char.code_point )
+			{
+				browser.char_components_cache.clear();
+				browser.char_component_usage_cache.clear();
+				browser.char_component_usage_short_cache.clear();
+				browser.char_components_cache_char = browser.highlight_char;
+			}
 			std::string utf8_char = (*browser.current_word)->hanzi.substr( browser.highlight_char.source_offset, browser.highlight_char.source_length );
 			int rc;
 			int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX;
@@ -278,44 +285,68 @@ void NewWord::render( Program& program, RenderScreen& render_screen, WordListBro
 			}
 			std::string text = "Contains: ";
 			{
-				std::stringstream stmt;
-				stmt << "select component from components where character='" << utf8_char << "'";
-				MapList result;
-				if( (rc = sqlite3_exec(db, stmt.str().c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+				if( !browser.char_components_cache.length() )
 				{
-					std::stringstream msg;
-					msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt.str();
-					if( db ) sqlite3_close( db );
-					throw ERROR( msg.str() );
+					std::stringstream stmt;
+					stmt << "select component from components where character='" << utf8_char << "'";
+					MapList result;
+					if( (rc = sqlite3_exec(db, stmt.str().c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+					{
+						std::stringstream msg;
+						msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt.str();
+						if( db ) sqlite3_close( db );
+						throw ERROR( msg.str() );
+					}
+					for( MapList::iterator ri=result.begin(); ri!=result.end(); ri++ )
+					{
+						if( ri != result.begin() ) text += ", ";
+						text += (*ri)["component"];
+					}
 				}
-				for( MapList::iterator ri=result.begin(); ri!=result.end(); ri++ )
+				else
 				{
-					if( ri != result.begin() ) text += ", ";
-					text += (*ri)["component"];
+					text = browser.char_components_cache;
 				}
 				size = 10;
 				RenderInfo rect = program.ft->render( render_screen, text, program.ft->latin_face, size, 0, top );
+				browser.char_components_cache = text;
 				top += rect.height + 5;
 			}
 			text = "Found in: ";
 			{
-				std::stringstream stmt;
-				stmt << "select character from components where component='" << utf8_char << "'";
-				MapList result;
-				if( (rc = sqlite3_exec(db, stmt.str().c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+				if( !browser.char_component_usage_short_cache.length() )
 				{
-					std::stringstream msg;
-					msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt.str();
-					if( db ) sqlite3_close( db );
-					throw ERROR( msg.str() );
+					browser.char_component_usage_cache = text;
+					std::stringstream stmt;
+					stmt << "select character from components where component='" << utf8_char << "'";
+					MapList result;
+					if( (rc = sqlite3_exec(db, stmt.str().c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+					{
+						std::stringstream msg;
+						msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt.str();
+						if( db ) sqlite3_close( db );
+						throw ERROR( msg.str() );
+					}
+					unsigned int count = 0;
+					for( MapList::iterator ri=result.begin(); ri!=result.end(); ri++ )
+					{
+						std::string part;
+						if( ri != result.begin() ) part += ", ";
+						part += (*ri)["character"];
+						if( count < 30 )
+						{
+							text += part;
+							count++;
+						}
+						browser.char_component_usage_cache += part;
+					}
+					if( count<result.size() ) text += ", ...";
+					browser.char_component_usage_short_cache = text;
 				}
-				unsigned int count = 0;
-				for( MapList::iterator ri=result.begin(); ri!=result.end() && count<30; ri++, count++ )
+				else
 				{
-					if( ri != result.begin() ) text += ", ";
-					text += (*ri)["character"];
+					text = browser.char_component_usage_short_cache;
 				}
-				if( count<result.size() ) text += ", ...";
 				size = 10;
 				RenderInfo rect = program.ft->render( render_screen, text, program.ft->latin_face, size, 0, top );
 				top += rect.height;
@@ -959,6 +990,7 @@ void NewWordsViewer::render( Screen screen )
 		if( new_word )
 		{
 			if( this->save_position ) this->program.config->save_word_position( new_word );
+			// FIXME: code duplicate in multiple Mode::render
 			if( (this->word_browser.render_stroke_order || this->word_browser.render_components)
 				&& this->word_browser.current_char!=this->word_browser.current_char_list.end() )
 			{
@@ -1039,7 +1071,20 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
-		TextView::show_word_as_text( this->program, *this->word_browser.current_word, (*this->word_browser.current_word)->lesson, this->recursion_depth );
+		if( this->word_browser.render_components )
+		{
+			// FIXME: code duplicate in multiple Mode::handle_button_pressed
+			NewWord *word = new NewWord( (*this->word_browser.current_word)->hanzi.substr(
+				this->word_browser.highlight_char.source_offset, this->word_browser.highlight_char.source_length), "", 0 );
+			word->definitions["components"] = new Definition();
+			word->definitions["components"]->comment = this->word_browser.char_components_cache + "\n" + this->word_browser.char_component_usage_cache;
+			TextView::show_word_as_text( this->program, word, 0, this->recursion_depth );
+			delete word;
+		}
+		else
+		{
+			TextView::show_word_as_text( this->program, *this->word_browser.current_word, (*this->word_browser.current_word)->lesson, this->recursion_depth );
+		}
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;

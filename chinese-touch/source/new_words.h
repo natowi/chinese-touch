@@ -17,7 +17,7 @@ class WordListBrowser : public ButtonProvider
 		bool init_render_foreign_word, init_render_pronuciation, init_render_translation, init_render_stroke_order, init_render_components;
 		bool restore_on_switch;
 		int stroke_order_scroll_left, stroke_order_scroll_top;
-		UCChar stroke_order_image_char, highlight_char;
+		UCChar stroke_order_image_char, highlight_char, char_components_cache_char;
 		u16* stroke_order_image_buffer;
 		int stroke_order_image_buffer_width, stroke_order_image_buffer_height;
 		bool stroke_order_full_update;
@@ -34,6 +34,7 @@ class WordListBrowser : public ButtonProvider
 			add_button, remove_button, search_button, exit_button, dogear;
 		UCCharList current_char_list;
 		UCCharList::iterator current_char;
+		std::string char_components_cache, char_component_usage_cache, char_component_usage_short_cache;
 	public:
 		WordListBrowser( ButtonProviderList& provider_list, 
 						 FreetypeRenderer& _freetype_renderer, 

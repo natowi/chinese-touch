@@ -89,9 +89,18 @@ void FulltextSearch::render( Screen screen )
 	if( screen == SCREEN_MAIN )
 	{
 		this->word_screen.clear();
-		if( this->word_browser.words.size() && this->word_browser.current_word != this->word_browser.words.end() )
+		if( new_word )
 		{
-			(*this->word_browser.current_word)->render( this->program, this->word_screen, this->word_browser );
+			if( (this->word_browser.render_stroke_order || this->word_browser.render_components)
+				&& this->word_browser.current_char!=this->word_browser.current_char_list.end() )
+			{
+				this->word_browser.highlight_char = *this->word_browser.current_char;
+			}
+			else
+			{
+				this->word_browser.highlight_char.init();
+			}
+			new_word->render( this->program, this->word_screen, this->word_browser );
 		}
 		else
 		{
@@ -234,7 +243,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->touch_keyboard.handle_text_changed();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( (text_button == &this->word_browser.stroke_order_tab || text_button == &this->word_browser.components_tab)
+	if( text_button == &this->word_browser.stroke_order_tab
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
@@ -243,8 +252,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		NewWordsViewer *word_viewer = new NewWordsViewer( this->program, this->recursion_depth, *single_word_list, 
 														  false /*no position saving*/, false /*no shuffle*/, 
 														  false /*don't show settings*/ );
-		if( text_button == &this->word_browser.stroke_order_tab ) word_viewer->word_browser.toggle_stroke_order();
-		else if( text_button == &this->word_browser.components_tab ) word_viewer->word_browser.toggle_components();
+		word_viewer->word_browser.toggle_stroke_order();
 		// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
 		word_viewer->word_browser.exit_button.hidden = word_viewer->word_browser.exit_button.disabled = true;
 		word_viewer->word_browser.dogear.hidden = word_viewer->word_browser.dogear.disabled = false;
@@ -256,6 +264,11 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->init_mode();
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
+	}
+	if( text_button == &this->word_browser.components_tab )
+	{
+		this->word_browser.toggle_components();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	
 	return ButtonProvider::handle_button_pressed( text_button );

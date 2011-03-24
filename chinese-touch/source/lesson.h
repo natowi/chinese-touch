@@ -51,7 +51,7 @@ typedef enum
 } Rating;
 
 
-class RenderSettings;
+class WordListBrowser;
 
 /*! A foreign language word and several associated properties like translations and so on. */
 class NewWord
@@ -63,7 +63,7 @@ public:
 			id(0), duplicate_id(0), atime(0), file_id(0), file_offset(0),
 			from_static_db(false) {};
 	~NewWord();
-    void render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings );
+    void render( Program& program, RenderScreen& render_screen, WordListBrowser& browser );
 public:
     std::string hanzi, //!< Foreign language word.
 				pinyin; //!< Foreign language pronunciation.

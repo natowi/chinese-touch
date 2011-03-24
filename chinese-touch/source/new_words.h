@@ -9,37 +9,28 @@
 #include "settings_dialog.h"
 #include "ui_language.h"
 
-
-class RenderSettings
-{
-public:
-	bool render_foreign_word, render_pronuciation, render_translation, render_stroke_order;
-	bool init_render_foreign_word, init_render_pronuciation, init_render_translation, init_render_stroke_order;
-	bool restore_on_switch;
-	int stroke_order_scroll_left, stroke_order_scroll_top;
-	UCChar stroke_order_image_char, highlight_char;
-	u16* stroke_order_image_buffer;
-	int stroke_order_image_buffer_width, stroke_order_image_buffer_height;
-	bool stroke_order_full_update;
-	RenderChar* highlight_render_char;
-public:
-	RenderSettings();
-	~RenderSettings();
-	void free_buffers();
-};
-
 /*! Base class for modes with word list browsing capabilities */
-class WordListBrowser : public ButtonProvider, public RenderSettings
+class WordListBrowser : public ButtonProvider
 {
 	public:
+		bool render_foreign_word, render_pronuciation, render_translation, render_stroke_order, render_components;
+		bool init_render_foreign_word, init_render_pronuciation, init_render_translation, init_render_stroke_order, init_render_components;
+		bool restore_on_switch;
+		int stroke_order_scroll_left, stroke_order_scroll_top;
+		UCChar stroke_order_image_char, highlight_char;
+		u16* stroke_order_image_buffer;
+		int stroke_order_image_buffer_width, stroke_order_image_buffer_height;
+		bool stroke_order_full_update;
+		RenderChar* highlight_render_char;
+		
 		NewWordList& words;
 		NewWordList::iterator current_word;
 		RenderScreen& button_screen;
 		Library& library;
 		TextButton left_button, right_button, 
-			as_text_tab, foreign_word_tab, pronunciation_tab, translation_tab, stroke_order_tab, 
-			rating_bar, 
-			rating_easy, rating_medium, rating_hard, rating_impossible,
+			as_text_tab, foreign_word_tab, pronunciation_tab, translation_tab, 
+			stroke_order_tab, components_tab,
+			rating_bar, rating_easy, rating_medium, rating_hard, rating_impossible,
 			add_button, remove_button, search_button, exit_button, dogear;
 		UCCharList current_char_list;
 		UCCharList::iterator current_char;
@@ -49,10 +40,13 @@ class WordListBrowser : public ButtonProvider, public RenderSettings
 						 NewWordList& _words, 
 						 RenderScreen& _button_screen,
 						 Library& _library );
+		~WordListBrowser();
+		void free_buffers();
 		void toggle_foreign_word();
 		void toggle_pronunciation();
 		void toggle_translation();
 		void toggle_stroke_order();
+		void toggle_components();
 		void restore_init_settings();
 		void restore_init_settings_if_needed();
 		virtual void init_button_vram();

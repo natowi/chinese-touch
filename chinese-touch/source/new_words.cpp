@@ -66,7 +66,7 @@
 #include "ink-icon.h"
 
 
-void NewWord::render( Program& program, RenderScreen& render_screen, RenderSettings& render_settings )
+void NewWord::render( Program& program, RenderScreen& render_screen, WordListBrowser& browser )
 {
 	// try to read the corresponding entry from the database:
 	if( this->lesson && this->lesson->book && this->lesson->book->library )
@@ -83,7 +83,7 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	}
 	
 	// optimization: prevent word re-rendering if an image buffer is already available
-	if( !render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update ) render_screen.clear();
+	if( !browser.stroke_order_image_buffer || browser.stroke_order_full_update ) render_screen.clear();
 	render_screen.clear_bg();
 
 	// render hanzi centered
@@ -92,31 +92,31 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	int top = 5;
 	int size = 32;
 	// optimization: prevent word re-rendering if an image buffer is already available
-	if( render_settings.render_foreign_word && (!render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update) )
+	if( browser.render_foreign_word && (!browser.stroke_order_image_buffer || browser.stroke_order_full_update) )
 	{
 		RenderCharList char_list;
 		RenderInfo rect = program.ft->render( render_screen, this->hanzi, program.ft->han_face, size, 0, top, &render_style, &char_list );
 		top += rect.height;
-		if( render_settings.highlight_char.code_point )
+		if( browser.highlight_char.code_point )
 		{
 			for( RenderCharList::iterator rci=char_list.begin(); rci!=char_list.end(); rci++ )
 			{
-				if( (*rci)->uc_char.source_offset == render_settings.highlight_char.source_offset )
+				if( (*rci)->uc_char.source_offset == browser.highlight_char.source_offset )
 				{
-					if( render_settings.highlight_render_char ) 
-						delete render_settings.highlight_render_char;
-					render_settings.highlight_render_char = new RenderChar( **rci );
+					if( browser.highlight_render_char ) 
+						delete browser.highlight_render_char;
+					browser.highlight_render_char = new RenderChar( **rci );
 				}
 			}
 		}
 	}
 													// save space only for stroke order image
-	else if( render_settings.render_foreign_word || !render_settings.render_stroke_order )
+	else if( browser.render_foreign_word || !browser.render_stroke_order )
 	{
 		top += size*1.2; // white space instead of foreign word
 	}
 												// save space only for stroke order image:
-	if( render_settings.render_foreign_word || !render_settings.render_stroke_order )
+	if( browser.render_foreign_word || !browser.render_stroke_order )
 	{
 		top += 10; // gap after foreign word
 	}
@@ -126,44 +126,50 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	if( this->pinyin.length()>20 ) size = 10;
 	if( this->pinyin.length()>40 ) size = 8;
 	// optimization: prevent pronunciation re-rendering if an image buffer is already available
-	if( render_settings.render_pronuciation && (!render_settings.stroke_order_image_buffer || render_settings.stroke_order_full_update) )
+	if( browser.render_pronuciation && (!browser.stroke_order_image_buffer || browser.stroke_order_full_update) )
 	{
 		RenderInfo rect = program.ft->render( render_screen, this->pinyin, program.ft->han_face, size, 0, top, &render_style );
 		top += rect.height;
 	}
 													// save space only for stroke order image:
-	else if( render_settings.render_pronuciation || !render_settings.render_stroke_order )
+	else if( browser.render_pronuciation || !browser.render_stroke_order )
 	{
 		top += size*1.2; // white space instead of pronunciation
 	}
 												// save space only for stroke order image:
-	if( render_settings.render_pronuciation || !render_settings.render_stroke_order )
+	if( browser.render_pronuciation || !browser.render_stroke_order )
 	{
 		top += 10; // gap after pronunciation
 	}
-
-	if( render_settings.render_stroke_order )
+	
+	// render current character highlight for stroke order or component display:
+	if( browser.render_stroke_order || browser.render_components )
 	{
-		render_settings.stroke_order_full_update = false;
-		if( render_settings.highlight_render_char )
+		if( browser.highlight_render_char )
 		{
-			for( int line=0; line < render_settings.highlight_render_char->height; line++ )
+			for( int line=0; line < browser.highlight_render_char->height; line++ )
 			{	
 				u16* start = render_screen.bg_base_address + line*render_screen.res_x 
-					+ render_settings.highlight_render_char->y*render_screen.res_x 
-					+ render_settings.highlight_render_char->x;
-				for( int pixel=0; pixel < render_settings.highlight_render_char->width; pixel++ )
+					+ browser.highlight_render_char->y*render_screen.res_x 
+					+ browser.highlight_render_char->x;
+				for( int pixel=0; pixel < browser.highlight_render_char->width; pixel++ )
 				{
 					start[pixel] = 1<<15 | 15<<10 | 24<<5 | 31<<0;
 				}
 			}
 		}
-		if( render_settings.highlight_char.code_point 
-			&& (!render_settings.stroke_order_image_buffer 
-				|| render_settings.highlight_char.code_point!=render_settings.stroke_order_image_char.code_point) )
+	}
+	
+	// render stroke order:
+	if( browser.render_stroke_order )
+	{
+		browser.stroke_order_full_update = false;
+		if( browser.highlight_char.code_point 
+			&& (!browser.stroke_order_image_buffer 
+				|| browser.highlight_char.code_point!=browser.stroke_order_image_char.code_point) )
 		{
 			std::stringstream stroke_image_name;
-			stroke_image_name << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << render_settings.highlight_char.code_point << std::setw(0) << ".png";
+			stroke_image_name << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << browser.highlight_char.code_point << std::setw(0) << ".png";
 			struct stat statbuf;
 			if( !stat(stroke_image_name.str().c_str(), &statbuf)==0 )
 			{
@@ -173,58 +179,59 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			}
 			if( stat(stroke_image_name.str().c_str(), &statbuf)==0 )
 			{
-				render_settings.stroke_order_scroll_left=0;
-				render_settings.stroke_order_scroll_top=0;
-				render_settings.stroke_order_image_buffer_width=0;
-				render_settings.stroke_order_image_buffer_height=0;
+				browser.stroke_order_scroll_left=0;
+				browser.stroke_order_scroll_top=0;
+				browser.stroke_order_image_buffer_width=0;
+				browser.stroke_order_image_buffer_height=0;
 				read_png( stroke_image_name.str(), 
-						  render_settings.stroke_order_image_buffer, 
-						  render_settings.stroke_order_image_buffer_width, 
-						  render_settings.stroke_order_image_buffer_height );
-				render_settings.stroke_order_image_char = render_settings.highlight_char;
+						  browser.stroke_order_image_buffer, 
+						  browser.stroke_order_image_buffer_width, 
+						  browser.stroke_order_image_buffer_height );
+				browser.stroke_order_image_char = browser.highlight_char;
 			}
 		}
-		if( render_settings.stroke_order_image_buffer )
+		if( browser.stroke_order_image_buffer )
 		{
 			int width = render_screen.res_x;
 			int height = render_screen.res_y - top;
 			u16* start_address = render_screen.bg_base_address + render_screen.res_x*(render_screen.res_y-height);
 			
-			if( render_settings.stroke_order_scroll_left > render_settings.stroke_order_image_buffer_width - render_screen.res_x ) 
-				render_settings.stroke_order_scroll_left = render_settings.stroke_order_image_buffer_width - render_screen.res_x;
-			if( render_settings.stroke_order_scroll_top > render_settings.stroke_order_image_buffer_height - height ) 
-				render_settings.stroke_order_scroll_top = render_settings.stroke_order_image_buffer_height - height;
-			if( render_settings.stroke_order_scroll_left < 0 ) render_settings.stroke_order_scroll_left = 0;
-			if( render_settings.stroke_order_scroll_top < 0 ) render_settings.stroke_order_scroll_top = 0;
+			if( browser.stroke_order_scroll_left > browser.stroke_order_image_buffer_width - render_screen.res_x ) 
+				browser.stroke_order_scroll_left = browser.stroke_order_image_buffer_width - render_screen.res_x;
+			if( browser.stroke_order_scroll_top > browser.stroke_order_image_buffer_height - height ) 
+				browser.stroke_order_scroll_top = browser.stroke_order_image_buffer_height - height;
+			if( browser.stroke_order_scroll_left < 0 ) browser.stroke_order_scroll_left = 0;
+			if( browser.stroke_order_scroll_top < 0 ) browser.stroke_order_scroll_top = 0;
 			
 			int left_gap = 0;
-			if( render_settings.stroke_order_image_buffer_width < render_screen.res_x )
+			if( browser.stroke_order_image_buffer_width < render_screen.res_x )
 			{
-				render_settings.stroke_order_scroll_left = 0;
-				left_gap = render_screen.res_x/2 - render_settings.stroke_order_image_buffer_width/2;
+				browser.stroke_order_scroll_left = 0;
+				left_gap = render_screen.res_x/2 - browser.stroke_order_image_buffer_width/2;
 			}
 			
-			int image_residual_width = render_settings.stroke_order_image_buffer_width - render_settings.stroke_order_scroll_left;
+			int image_residual_width = browser.stroke_order_image_buffer_width - browser.stroke_order_scroll_left;
 			if( image_residual_width < width ) width = image_residual_width;
-			int image_residual_height = render_settings.stroke_order_image_buffer_height - render_settings.stroke_order_scroll_top;
+			int image_residual_height = browser.stroke_order_image_buffer_height - browser.stroke_order_scroll_top;
 			if( image_residual_height < height ) height = image_residual_height;
 			
 			for( int line = 0; line < height; line++ )
 			{
 				// copy line data from stroke order image buffer to vram:
 				memcpy( start_address+line*render_screen.res_x+(left_gap>>1<<1), 
-						render_settings.stroke_order_image_buffer
-							+ (line+render_settings.stroke_order_scroll_top)*render_settings.stroke_order_image_buffer_width
-							+ (render_settings.stroke_order_scroll_left>>1<<1),
+						browser.stroke_order_image_buffer
+							+ (line+browser.stroke_order_scroll_top)*browser.stroke_order_image_buffer_width
+							+ (browser.stroke_order_scroll_left>>1<<1),
 						width*2 );
 			}
 		}
 	}
+	// render translation or components:
 	else
 	{
 		std::string lang = "de";
 
-		if( render_settings.render_translation && this->definitions.count(lang) )
+		if( browser.render_translation && this->definitions.count(lang) )
 		{
 			if( this->definitions[lang]->word_type.length() )
 			{
@@ -255,13 +262,74 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 			}
 		}
 		
+		if( browser.render_components && browser.highlight_char.code_point && browser.current_word!=browser.words.end() )
+		{
+			std::string utf8_char = (*browser.current_word)->hanzi.substr( browser.highlight_char.source_offset, browser.highlight_char.source_length );
+			int rc;
+			int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX;
+			std::string db_file_name = program.base_dir+"/components.db";
+			sqlite3 *db = 0;
+			if( (rc = sqlite3_open_v2( db_file_name.c_str(), &db, flags, 0))!=SQLITE_OK )
+			{
+				std::stringstream msg;
+				msg << sqlite3_errmsg(db) << ": " << rc << " (" << db_file_name << ")";
+				if( db ) sqlite3_close( db );
+				throw ERROR( msg.str() );
+			}
+			std::string text = "Contains: ";
+			{
+				std::stringstream stmt;
+				stmt << "select component from components where character='" << utf8_char << "'";
+				MapList result;
+				if( (rc = sqlite3_exec(db, stmt.str().c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+				{
+					std::stringstream msg;
+					msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt.str();
+					if( db ) sqlite3_close( db );
+					throw ERROR( msg.str() );
+				}
+				for( MapList::iterator ri=result.begin(); ri!=result.end(); ri++ )
+				{
+					if( ri != result.begin() ) text += ", ";
+					text += (*ri)["component"];
+				}
+				size = 10;
+				RenderInfo rect = program.ft->render( render_screen, text, program.ft->latin_face, size, 0, top );
+				top += rect.height + 5;
+			}
+			text = "Found in: ";
+			{
+				std::stringstream stmt;
+				stmt << "select character from components where component='" << utf8_char << "'";
+				MapList result;
+				if( (rc = sqlite3_exec(db, stmt.str().c_str(), map_list_callback, &result, 0))!=SQLITE_OK )
+				{
+					std::stringstream msg;
+					msg << sqlite3_errmsg(db) << " (" << rc << "), in statement: " << stmt.str();
+					if( db ) sqlite3_close( db );
+					throw ERROR( msg.str() );
+				}
+				unsigned int count = 0;
+				for( MapList::iterator ri=result.begin(); ri!=result.end() && count<30; ri++, count++ )
+				{
+					if( ri != result.begin() ) text += ", ";
+					text += (*ri)["character"];
+				}
+				if( count<result.size() ) text += ", ...";
+				size = 10;
+				RenderInfo rect = program.ft->render( render_screen, text, program.ft->latin_face, size, 0, top );
+				top += rect.height;
+			}
+			if( db ) sqlite3_close( db );
+		}
+		
 		/* render book title and lesson number for information, but only if there is enough space left and no
 			part of the word entry is hidden, as we do not want to disturb memorization by giving hints */
 		int booK_lesson_height = 12;
 		int book_lesson_top = render_screen.res_y-booK_lesson_height;
-		if( render_settings.render_foreign_word 
-			&& render_settings.render_pronuciation 
-			&& render_settings.render_translation 
+		if( browser.render_foreign_word 
+			&& browser.render_pronuciation 
+			&& browser.render_translation 
 			&& this->lesson && this->lesson->book && (top <= book_lesson_top) )
 		{
 			size = 6;
@@ -272,45 +340,31 @@ void NewWord::render( Program& program, RenderScreen& render_screen, RenderSetti
 	}
 }
 
-
-RenderSettings::RenderSettings()
-	:	render_foreign_word(true), render_pronuciation(true), render_translation(true), render_stroke_order(false),
-		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true), init_render_stroke_order(false),
-		restore_on_switch(false), stroke_order_scroll_left(0), stroke_order_scroll_top(0), stroke_order_image_buffer(0),
-		stroke_order_image_buffer_width(0), stroke_order_image_buffer_height(0), stroke_order_full_update(true),
-		highlight_render_char(0)
-{
-}
-
-RenderSettings::~RenderSettings()
-{
-	this->free_buffers();
-}
-
-void RenderSettings::free_buffers()
-{
-	if( this->stroke_order_image_buffer ) delete this->stroke_order_image_buffer;
-	this->stroke_order_image_buffer = 0;
-	if( this->highlight_render_char ) delete this->highlight_render_char;
-	this->highlight_render_char = 0;
-}
-
-
 WordListBrowser::WordListBrowser( ButtonProviderList& provider_list, 
 								  FreetypeRenderer& _freetype_renderer, 
 								  NewWordList& _words, 
 								  RenderScreen& _button_screen,
 								  Library& _library ) 
 	: 	ButtonProvider(provider_list, _freetype_renderer),
+	
+		render_foreign_word(true), render_pronuciation(true), render_translation(true), 
+		render_stroke_order(false), render_components(false),
+		init_render_foreign_word(true), init_render_pronuciation(true), init_render_translation(true), 
+		init_render_stroke_order(false), init_render_components(false),
+		restore_on_switch(false), stroke_order_scroll_left(0), stroke_order_scroll_top(0), stroke_order_image_buffer(0),
+		stroke_order_image_buffer_width(0), stroke_order_image_buffer_height(0), stroke_order_full_update(true),
+		highlight_render_char(0),
+		
 		words(_words), current_word(words.begin()),
 		button_screen(_button_screen), library(_library),
-		left_button(_button_screen,"<",SpriteSize_32x16,0,0,button_ft.latin_face,10,0,0), 
+		left_button(_button_screen,"<",SpriteSize_32x16,32*0,0,button_ft.latin_face,10,0,0), 
 		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
-		as_text_tab(_button_screen,"ˇ",SpriteSize_32x16,button_screen.res_x/2-16-64-8,/*dynamic*/ 0,button_ft.han_face,16,1,-2),
-		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,button_screen.res_x/2-16-32,/*dynamic*/ 0,button_ft.han_face,9),
-		pronunciation_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
-		translation_tab(_button_screen,"latin",SpriteSize_32x16,button_screen.res_x/2+16,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
-		stroke_order_tab(_button_screen,"",SpriteSize_32x16,button_screen.res_x/2+16+32,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
+		as_text_tab(_button_screen,"ˇ",SpriteSize_32x16,32*1,/*dynamic*/ 0,button_ft.han_face,16,1,-2),
+		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,32*2,/*dynamic*/ 0,button_ft.han_face,9),
+		pronunciation_tab(_button_screen,"",SpriteSize_32x16,32*3,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
+		translation_tab(_button_screen,"latin",SpriteSize_32x16,32*4,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		stroke_order_tab(_button_screen,"",SpriteSize_32x16,32*5,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
+		components_tab(_button_screen,"comp",SpriteSize_32x16,32*6,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
 		rating_bar(_button_screen,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_easy(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_medium(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
@@ -329,6 +383,7 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	this->text_buttons.push_back( &this->pronunciation_tab );
 	this->text_buttons.push_back( &this->translation_tab );
 	this->text_buttons.push_back( &this->stroke_order_tab );
+	this->text_buttons.push_back( &this->components_tab );
 	this->text_buttons.push_back( &this->rating_bar );
 	this->text_buttons.push_back( &this->rating_easy );
 	this->text_buttons.push_back( &this->rating_medium );
@@ -346,6 +401,19 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 	
 	// The dog-ear is hidden by default (can be explicitly enabled by caller)
 	this->dogear.hidden = this->dogear.disabled = true;
+}
+
+WordListBrowser::~WordListBrowser()
+{
+	this->free_buffers();
+}
+
+void WordListBrowser::free_buffers()
+{
+	if( this->stroke_order_image_buffer ) delete this->stroke_order_image_buffer;
+	this->stroke_order_image_buffer = 0;
+	if( this->highlight_render_char ) delete this->highlight_render_char;
+	this->highlight_render_char = 0;
 }
 
 void WordListBrowser::init_button_vram()
@@ -396,6 +464,11 @@ void WordListBrowser::init_button_vram()
 	this->stroke_order_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
 	this->stroke_order_tab.init_vram( tiny_textBitmap, this->stroke_order_tab.fg_vram );
 	this->stroke_order_tab.owns_bg_vram = false;
+	this->components_tab.bg_vram = this->foreign_word_tab.bg_vram;
+	this->components_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
+	this->components_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	//this->components_tab.init_vram( ..., this->components_tab.fg_vram );
+	this->components_tab.owns_bg_vram = false;
 	
 	ButtonProvider::init_button_vram();
 }
@@ -410,7 +483,7 @@ void WordListBrowser::free_button_vram()
 
 void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 {
-	if( this->render_stroke_order )
+	if( this->render_stroke_order || this->render_components )
 	{
 		// hide left button when at the beginning of the character list:
 		if( this->current_char == this->current_char_list.begin() ) this->left_button.hidden = this->left_button.disabled = true;
@@ -444,6 +517,7 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 	this->pronunciation_tab.y = (word ? ( this->render_pronuciation ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
 	this->translation_tab.y = (word ? ( this->render_translation ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
 	this->stroke_order_tab.y = (word ? ( this->render_stroke_order ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
+	this->components_tab.y = (word ? ( this->render_components ? 0 : -8 ) : -12) + (this->render_stroke_order ? 32 : 0);
 	
 	this->rating_bar.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
 	this->rating_easy.y = word ? this->button_screen.res_y-16 : this->button_screen.res_y-16+12;
@@ -545,13 +619,12 @@ ButtonAction WordListBrowser::handle_button_pressed( TextButton* text_button )
 bool WordListBrowser::switch_forward()
 {
 	this->free_buffers();
-	if( this->render_stroke_order && this->current_char != this->current_char_list.end() )
+	if( (this->render_stroke_order || this->render_components) && this->current_char != this->current_char_list.end() )
 	{
 		UCCharList::iterator test_it = this->current_char;
 		if( ++test_it != this->current_char_list.end() )
 		{
 			this->current_char++;
-			// this->restore_init_settings_if_needed();
 			return true;
 		}
 	}
@@ -571,10 +644,9 @@ bool WordListBrowser::switch_forward()
 bool WordListBrowser::switch_backwards()
 {
 	this->free_buffers();
-	if( this->render_stroke_order && this->current_char != this->current_char_list.begin() )
+	if( (this->render_stroke_order || this->render_components) && this->current_char != this->current_char_list.begin() )
 	{
 		this->current_char--;
-		// this->restore_init_settings_if_needed();
 		return true;
 	}
 	else if( this->current_word != this->words.begin() )
@@ -613,14 +685,15 @@ void WordListBrowser::toggle_pronunciation()
 }
 void WordListBrowser::toggle_translation() 
 { 
-	// replace stroke order image with translation fields:
+	// replace stroke order image or component display with translation fields:
 	if( !this->render_translation && this->render_stroke_order ) this->toggle_stroke_order();
+	if( !this->render_translation && this->render_components ) this->toggle_components();
 	this->render_translation = !this->render_translation;
 	this->stroke_order_full_update = true; // need to refresh word rendering
 }
 void WordListBrowser::toggle_stroke_order() 
 { 
-	// replace pronunciation and translation fields with stroke order image:
+	// replace pronunciation and translation fields or components with stroke order image:
 	if( !this->render_stroke_order && this->render_pronuciation ) 
 	{
 		this->toggle_pronunciation();
@@ -629,12 +702,43 @@ void WordListBrowser::toggle_stroke_order()
 	{
 		this->toggle_translation();
 	}
+	if( !this->render_stroke_order && this->render_components )
+	{
+		this->toggle_components();
+	}
 	this->render_stroke_order = !this->render_stroke_order; 
 	if( this->stroke_order_image_buffer )
 	{
 		this->free_buffers();
 	}
 	if( this->render_stroke_order )
+	{
+		this->current_char_list.clear();
+		if( this->current_word != this->words.end() )
+		{
+			utf8_to_ucs4( (const unsigned char*)(*this->current_word)->hanzi.c_str(), this->current_char_list );
+		}
+		this->current_char = this->current_char_list.begin();
+	}
+	this->stroke_order_full_update = true; // need to refresh word rendering
+}
+void WordListBrowser::toggle_components() 
+{ 
+	// replace pronunciation and translation fields or stroke order image with components:
+	if( !this->render_components && this->render_pronuciation ) 
+	{
+		this->toggle_pronunciation();
+	}
+	if( !this->render_components && this->render_translation )
+	{
+		this->toggle_translation();
+	}
+	if( !this->render_components && this->render_stroke_order )
+	{
+		this->toggle_stroke_order();
+	}
+	this->render_components = !this->render_components; 
+	if( this->render_components )
 	{
 		this->current_char_list.clear();
 		if( this->current_word != this->words.end() )
@@ -855,7 +959,8 @@ void NewWordsViewer::render( Screen screen )
 		if( new_word )
 		{
 			if( this->save_position ) this->program.config->save_word_position( new_word );
-			if( this->word_browser.render_stroke_order && this->word_browser.current_char!=this->word_browser.current_char_list.end() )
+			if( (this->word_browser.render_stroke_order || this->word_browser.render_components)
+				&& this->word_browser.current_char!=this->word_browser.current_char_list.end() )
 			{
 				this->word_browser.highlight_char = *this->word_browser.current_char;
 			}
@@ -954,7 +1059,7 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 		this->init_vram();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( this->clear_on_switch && !this->word_browser.render_stroke_order
+	if( this->clear_on_switch && !(this->word_browser.render_stroke_order || this->word_browser.render_components)
 		&& (text_button == &this->word_browser.left_button
 			|| text_button == &this->word_browser.right_button) )
 	{
@@ -964,6 +1069,11 @@ ButtonAction NewWordsViewer::handle_button_pressed( TextButton* text_button )
 	if( text_button == &this->word_browser.stroke_order_tab )
 	{
 		this->word_browser.toggle_stroke_order();
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
+	}
+	if( text_button == &this->word_browser.components_tab )
+	{
+		this->word_browser.toggle_components();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	

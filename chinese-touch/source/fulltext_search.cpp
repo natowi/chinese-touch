@@ -41,6 +41,7 @@ FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson*
 		this->word_browser.as_text_tab.hidden = this->word_browser.as_text_tab.disabled = true;
 		this->word_browser.search_button.hidden = this->word_browser.search_button.disabled = true;
 		this->word_browser.stroke_order_tab.hidden = this->word_browser.stroke_order_tab.disabled = true;
+		this->word_browser.components_tab.hidden = this->word_browser.components_tab.disabled = true;
 	}
 	
 	this->init_mode();
@@ -233,7 +234,7 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		this->touch_keyboard.handle_text_changed();
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
-	if( text_button == &this->word_browser.stroke_order_tab 
+	if( (text_button == &this->word_browser.stroke_order_tab || text_button == &this->word_browser.components_tab)
 		&& this->word_browser.current_word!=this->word_browser.words.end() )
 	{
 		this->free_vram();
@@ -242,7 +243,8 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 		NewWordsViewer *word_viewer = new NewWordsViewer( this->program, this->recursion_depth, *single_word_list, 
 														  false /*no position saving*/, false /*no shuffle*/, 
 														  false /*don't show settings*/ );
-		word_viewer->word_browser.toggle_stroke_order();
+		if( text_button == &this->word_browser.stroke_order_tab ) word_viewer->word_browser.toggle_stroke_order();
+		else if( text_button == &this->word_browser.components_tab ) word_viewer->word_browser.toggle_components();
 		// explicitly replace exit button with dog-ear to show user, that she is in a sub mode
 		word_viewer->word_browser.exit_button.hidden = word_viewer->word_browser.exit_button.disabled = true;
 		word_viewer->word_browser.dogear.hidden = word_viewer->word_browser.dogear.disabled = false;

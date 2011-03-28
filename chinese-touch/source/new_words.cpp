@@ -1210,7 +1210,7 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 	{
 		this->word_browser.stroke_order_scroll_left -= x_diff*2;
 		this->word_browser.stroke_order_scroll_top -= y_diff*2;
-		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_SCREEN_MAIN;
+		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_MAIN;
 	}
 	else if( this->pixels_drawn < NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT )
 	{
@@ -1229,7 +1229,7 @@ ButtonAction NewWordsViewer::handle_touch_drag( touchPosition touch )
 		this->drawing_pad.draw_line( touch.px, touch.py, this->prev_draw_touch.px, this->prev_draw_touch.py, 
 									 *this->current_pen_style, !this->eraser_button.hidden );
 		this->prev_draw_touch = touch;
-		action |= BUTTON_ACTION_CHANGED | BUTTON_ACTION_SCREEN_SUB;
+		action |= BUTTON_ACTION_CHANGED;
 	}
 	this->old_distance = distance;
 	this->old_touch = touch;

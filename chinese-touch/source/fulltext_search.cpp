@@ -233,7 +233,15 @@ ButtonAction FulltextSearch::handle_button_pressed( TextButton* text_button )
 			}
 		}
 		this->word_browser.words.sort( hanzi_min_length_sort_predicate );
+		// FIXME: word list initialization is duplicated in TextView::handle_touch_end!
 		this->word_browser.current_word = this->word_browser.words.begin();
+		// initialize component display, if needed:
+		// (stroke order display is not a problem, because it always triggeres a child mode for writing)
+		if( this->word_browser.render_components )
+		{
+			this->word_browser.render_components = false;
+			this->word_browser.toggle_components();
+		}
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_MAIN | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->word_browser.add_button

@@ -433,6 +433,7 @@ ButtonAction TextView::handle_touch_end( touchPosition touch )
 							this->context_mode = CONTEXT_WORDS_BY_CHARCODE;
 						}
 						this->context_render_char = curr_char;
+						// FIXME: word list initialization is duplicated in FulltextSearch::handle_button_pressed!
 						this->word_browser.current_word = this->word_browser.words.begin();
 						// initialize component display, if needed:
 						// (stroke order display is not a problem, because it always triggeres a child mode for writing)

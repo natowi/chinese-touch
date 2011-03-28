@@ -14,6 +14,16 @@ std::string replace_pattern( std::string src, const std::string& pattern, const 
 	return src;
 }
 
+std::string replace_patterns( std::string src, StringList& patterns, const std::string& replacement )
+{
+	std::string result = src;
+	for( StringList::iterator pi = patterns.begin(); pi != patterns.end(); pi++ )
+	{
+		result = replace_pattern( result, *pi, replacement );
+	}
+	return result;
+}
+
 
 void WordsDB::open( const std::string& file_name, bool create_db )
 {

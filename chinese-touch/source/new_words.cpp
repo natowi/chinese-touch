@@ -238,29 +238,44 @@ void NewWord::render( Program& program, RenderScreen& render_screen, WordListBro
 
 		if( browser.render_translation && this->definitions.count(lang) )
 		{
+			// create list of utf8 characters in word to be filtered from translation fields,
+			// if the foreign word is currently hidden:
+			std::string replacement = "＊";
+			StringList filter_chars;
+			UCCharList uc_chars;
+			utf8_to_ucs4( (const unsigned char*)this->hanzi.c_str(), uc_chars );
+			if( !browser.render_foreign_word )
+			{
+				for( UCCharList::iterator ci = uc_chars.begin(); ci != uc_chars.end(); ci++ )
+				{
+					std::string pattern = this->hanzi.substr( ci->source_offset,ci->source_length );
+					if( pattern != replacement ) filter_chars.push_back( pattern );
+				}
+			}
+			// render word type:
 			if( this->definitions[lang]->word_type.length() )
 			{
-				// render word type
+				std::string word_type = replace_patterns( this->definitions[lang]->word_type, filter_chars, replacement );
 				size = 7;
-				RenderInfo rect = program.ft->render( render_screen, this->definitions[lang]->word_type, program.ft->latin_face, size, 0, top, &render_style );
+				RenderInfo rect = program.ft->render( render_screen, word_type, program.ft->latin_face, size, 0, top, &render_style );
 				top += rect.height+5;
 			}
+			// render first char_limit characters of translation:
 			unsigned int char_limit = 200;
 			if( this->definitions[lang]->translation.length() )
 			{
-				// render first n characters of translation
 				size = 9;
-				std::string text = this->definitions[lang]->translation.substr(0,char_limit);
+				std::string text = replace_patterns( this->definitions[lang]->translation.substr(0,char_limit), filter_chars, replacement );
 				if( text.length()==char_limit ) text += "...";
 				char_limit -= text.length();
 				RenderInfo rect = program.ft->render( render_screen, text, program.ft->latin_face, size, 0, top, &render_style );
 				top += rect.height+10;
 			}
+			// render first char_limit characters of comment:
 			if( this->definitions[lang]->comment.length() )
 			{
-				// render first n characters of comment
 				size = 8;
-				std::string text = this->definitions[lang]->comment.substr(0,char_limit);
+				std::string text = replace_patterns( this->definitions[lang]->comment.substr(0,char_limit), filter_chars, replacement );
 				if( text.length()==char_limit ) text += "...";
 				RenderInfo rect = program.ft->render( render_screen, text, program.ft->latin_face, size, 0, top, &render_style );
 				top += rect.height;

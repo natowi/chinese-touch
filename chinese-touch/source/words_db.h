@@ -16,6 +16,7 @@ class Library;
 class NewWordList;
 
 std::string replace_pattern( std::string src, const std::string& pattern, const std::string& replacement );
+std::string replace_patterns( std::string src, StringList& patterns, const std::string& replacement );
 
 typedef std::list<int> IntList;
 int int_list_callback( void *pv_int_list, int argc, char **argv, char **azColName );

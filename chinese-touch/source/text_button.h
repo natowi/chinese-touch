@@ -33,12 +33,14 @@ public:
 	void get_dimensions_from_sprite_size( SpriteSize _sprite_size, int& _width, int& _height );
 	~TextButton();
 	void init_vram( const void* source, u16*& vram_dest );
+	void update_vram( const void* source, u16* vram_dest );
 	void init_text_layer(FreetypeRenderer& freetype_renderer);
 	OamState* get_oam();
 	void render_to( int& oam_entry );
 	void render_to( int& oam_entry, int _x, int _y );
 	bool is_visible( int _x, int _y, int _width, int _height );
 	bool is_responsible( int ref_x, int ref_y );
+	void free_text_vram();
 	void free_all();
 };
 

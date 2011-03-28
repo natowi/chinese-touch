@@ -50,9 +50,8 @@ class WordListBrowser : public ButtonProvider
 		void toggle_components();
 		void restore_init_settings();
 		void restore_init_settings_if_needed();
-		void init_switch_button_vram( bool inline_call=false );
+		void update_switch_button_vram();
 		virtual void init_button_vram();
-		void free_switch_button_vram();
 		virtual void free_button_vram();
 		virtual void render_buttons( OamState* oam_state, int& oam_entry );
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );

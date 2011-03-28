@@ -59,13 +59,18 @@ TextButton::~TextButton()
 	this->free_all();
 }
 
-void TextButton::free_all()
+void TextButton::free_text_vram()
 {
 	if( this->text_vram && this->owns_text_vram ) 
 	{
 		oamFreeGfx( this->get_oam(), this->text_vram );
 		this->text_vram = 0;
 	}
+}
+
+void TextButton::free_all()
+{
+	this->free_text_vram();
 	if( this->owns_bg_vram )
 	{
 		if( this->bg_vram )
@@ -97,6 +102,13 @@ void TextButton::free_all()
 void TextButton::init_vram( const void* source, u16*& vram_dest )
 {
 	vram_dest = oamAllocateGfx( this->get_oam(), this->sprite_size, SpriteColorFormat_Bmp );
+	DC_FlushRange( source, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
+	dmaCopy( source, vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
+	set_16bpp_sprite_opague( vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
+}
+
+void TextButton::update_vram(const void* source, u16* vram_dest)
+{
 	DC_FlushRange( source, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
 	dmaCopy( source, vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );
 	set_16bpp_sprite_opague( vram_dest, SPRITE_SIZE_PIXELS(this->sprite_size)*2 );

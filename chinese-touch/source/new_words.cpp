@@ -392,8 +392,8 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		
 		words(_words), current_word(words.begin()),
 		button_screen(_button_screen), library(_library),
-		left_button(_button_screen,"<",SpriteSize_32x16,32*0,0,button_ft.latin_face,10,0,0), 
-		right_button(_button_screen,">",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
+		left_button(_button_screen,"",SpriteSize_32x16,32*0,0,button_ft.latin_face,10,0,0), 
+		right_button(_button_screen,"",SpriteSize_32x16,button_screen.res_x-32,0,button_ft.latin_face,10,2,0), 
 		as_text_tab(_button_screen,"ˇ",SpriteSize_32x16,32*1,/*dynamic*/ 0,button_ft.han_face,16,1,-2),
 		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,32*2,/*dynamic*/ 0,button_ft.han_face,9),
 		pronunciation_tab(_button_screen,"",SpriteSize_32x16,32*3,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
@@ -451,41 +451,49 @@ void WordListBrowser::free_buffers()
 	this->highlight_render_char = 0;
 }
 
-void WordListBrowser::init_switch_button_vram( bool inline_call )
+void WordListBrowser::update_switch_button_vram()
 {
 	if( this->render_stroke_order || this->render_components )
 	{
-		this->left_button.init_vram( top_left_button_2Bitmap, this->left_button.bg_vram );
-		this->left_button.init_vram( top_left_button_2_activeBitmap, this->left_button.bg_active_vram );
+		this->left_button.update_vram( top_left_button_2Bitmap, this->left_button.bg_vram );
+		this->left_button.update_vram( top_left_button_2_activeBitmap, this->left_button.bg_active_vram );
+		this->right_button.update_vram( top_right_button_2Bitmap, this->right_button.bg_vram );
+		this->right_button.update_vram( top_right_button_2_activeBitmap, this->right_button.bg_active_vram );
 		this->left_button.font_size = 7;
-		this->left_button.text = "<字";
-		this->right_button.init_vram( top_right_button_2Bitmap, this->right_button.bg_vram );
-		this->right_button.init_vram( top_right_button_2_activeBitmap, this->right_button.bg_active_vram );
+		this->left_button.text = "< 字";
 		this->right_button.font_size = 7;
-		this->right_button.text = "字>";
+		this->right_button.text = "字 >";
 	}
 	else
 	{
-		this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
-		this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
-		this->left_button.font_size = 10;
-		this->left_button.text = "<";
-		this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
-		this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
-		this->right_button.font_size = 10;
-		this->right_button.text = ">";
+		this->left_button.update_vram( top_left_buttonBitmap, this->left_button.bg_vram );
+		this->left_button.update_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
+		this->right_button.update_vram( top_right_buttonBitmap, this->right_button.bg_vram );
+		this->right_button.update_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
+		this->left_button.font_size = 8;
+		std::stringstream button_text;
+		int left_count = 0;
+		for( NewWordList::iterator i=this->words.begin(); i!=this->words.end() && i!=this->current_word; i++, left_count++ );
+		button_text << "< " << left_count;
+		this->left_button.text = button_text.str();
+		this->right_button.font_size = 8;
+		button_text.str(""); button_text.clear();
+		button_text << (this->words.size()>1 ? this->words.size()-left_count-1 : 0) << " >";
+		this->right_button.text = button_text.str();
 	}
-	if( !inline_call )
-	{
-		this->left_button.init_text_layer( this->button_ft );
-		this->right_button.init_text_layer( this->button_ft );
-	}
+	this->left_button.free_text_vram();
+	this->right_button.free_text_vram();
+	this->left_button.init_text_layer( this->button_ft );
+	this->right_button.init_text_layer( this->button_ft );
 }
 
 void WordListBrowser::init_button_vram()
 {
 	// vorgerenderte Spritegrafiken laden:
-	this->init_switch_button_vram( /*inline_call=*/true );
+	this->left_button.init_vram( top_left_buttonBitmap, this->left_button.bg_vram );
+	this->left_button.init_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
+	this->right_button.init_vram( top_right_buttonBitmap, this->right_button.bg_vram );
+	this->right_button.init_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
 	this->foreign_word_tab.init_vram( top_paper_tabBitmap, this->foreign_word_tab.bg_vram );
 	this->foreign_word_tab.init_vram( top_paper_tab_activeBitmap, this->foreign_word_tab.bg_active_vram );
 	this->foreign_word_tab.init_vram( top_paper_tab_inactiveBitmap, this->foreign_word_tab.bg_inactive_vram );
@@ -532,19 +540,13 @@ void WordListBrowser::init_button_vram()
 	this->components_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
 	//this->components_tab.init_vram( ..., this->components_tab.fg_vram );
 	this->components_tab.owns_bg_vram = false;
-	
-	ButtonProvider::init_button_vram();
-}
 
-void WordListBrowser::free_switch_button_vram()
-{
-	this->left_button.free_all();
-	this->right_button.free_all();
+	ButtonProvider::init_button_vram();
 }
 
 void WordListBrowser::free_button_vram()
 {
-	 // also free stroke order image buffer if allocated:
+	// also free stroke order image buffer if allocated:
 	this->free_buffers();
 	ButtonProvider::free_button_vram();
 }
@@ -609,6 +611,9 @@ void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 				|| (word->lesson && ((word->lesson->number && (word->file_id==0))
 									|| ((word->lesson->number==0) && (word->rating!=RATING_NONE)))) );
 	}
+	
+	// update left/right switch button graphics (color and word counters):
+	this->update_switch_button_vram();
 	
 	// let ButtonProvider do the actual rendering
 	ButtonProvider::render_buttons(oam_state, oam_entry);
@@ -790,8 +795,6 @@ void WordListBrowser::toggle_stroke_order()
 		this->current_char = this->current_char_list.begin();
 	}
 	this->stroke_order_full_update = true; // need to refresh word rendering
-	this->free_switch_button_vram();
-	this->init_switch_button_vram();
 }
 void WordListBrowser::toggle_components() 
 { 
@@ -819,8 +822,6 @@ void WordListBrowser::toggle_components()
 		this->current_char = this->current_char_list.begin();
 	}
 	this->stroke_order_full_update = true; // need to refresh word rendering
-	this->free_switch_button_vram();
-	this->init_switch_button_vram();
 }
 
 void WordListBrowser::restore_init_settings()

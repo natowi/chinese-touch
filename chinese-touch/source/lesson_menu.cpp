@@ -1243,11 +1243,12 @@ ButtonAction LessonMenu::handle_touch_end(touchPosition touch)
 	// if no other button was activated, fall back to menu entry tap detection:
 	if( action == BUTTON_ACTION_UNHANDLED )
 	{
+		// HACK: render sub screen to guarantee entry->last_frame_rendered to be up-to-date
+		this->render( SCREEN_SUB );
 		bool found = false;
-		MenuList::iterator prev_entry_it = this->menu_list.end();
 		for( MenuList::iterator entry_it = this->menu_list.begin();
 			!found && entry_it != this->menu_list.end() && entry_it->second->top<this->menu_screen.res_y; 
-			prev_entry_it=entry_it++ )
+			entry_it++ )
 		{
 			void* entry_id = entry_it->first;
 			MenuEntry* entry = entry_it->second;

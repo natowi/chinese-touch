@@ -752,11 +752,13 @@ void WordListBrowser::toggle_foreign_word()
 	this->render_foreign_word = !this->render_foreign_word;
 	this->stroke_order_full_update = true; // need to refresh word rendering
 }
+
 void WordListBrowser::toggle_pronunciation() 
 { 
 	this->render_pronuciation = !this->render_pronuciation; 
 	this->stroke_order_full_update = true; // need to refresh word rendering
 }
+
 void WordListBrowser::toggle_translation() 
 { 
 	// replace stroke order image or component display with translation fields:
@@ -765,6 +767,7 @@ void WordListBrowser::toggle_translation()
 	this->render_translation = !this->render_translation;
 	this->stroke_order_full_update = true; // need to refresh word rendering
 }
+
 void WordListBrowser::toggle_stroke_order() 
 { 
 	// replace pronunciation and translation fields or components with stroke order image:
@@ -776,16 +779,19 @@ void WordListBrowser::toggle_stroke_order()
 	{
 		this->toggle_translation();
 	}
+	bool keep_char_list = false;
 	if( !this->render_stroke_order && this->render_components )
 	{
 		this->toggle_components();
+		// keep current character list and selection, when switching between stroke order and components:
+		keep_char_list = true;
 	}
 	this->render_stroke_order = !this->render_stroke_order; 
 	if( this->stroke_order_image_buffer )
 	{
 		this->free_buffers();
 	}
-	if( this->render_stroke_order )
+	if( this->render_stroke_order && !keep_char_list )
 	{
 		this->current_char_list.clear();
 		if( this->current_word != this->words.end() )
@@ -796,6 +802,7 @@ void WordListBrowser::toggle_stroke_order()
 	}
 	this->stroke_order_full_update = true; // need to refresh word rendering
 }
+
 void WordListBrowser::toggle_components() 
 { 
 	// replace pronunciation and translation fields or stroke order image with components:
@@ -807,12 +814,15 @@ void WordListBrowser::toggle_components()
 	{
 		this->toggle_translation();
 	}
+	bool keep_char_list = false;
 	if( !this->render_components && this->render_stroke_order )
 	{
 		this->toggle_stroke_order();
+		// keep current character list and selection, when switching between stroke order and components:
+		keep_char_list = true;
 	}
 	this->render_components = !this->render_components; 
-	if( this->render_components )
+	if( this->render_components && !keep_char_list )
 	{
 		this->current_char_list.clear();
 		if( this->current_word != this->words.end() )

@@ -434,6 +434,13 @@ ButtonAction TextView::handle_touch_end( touchPosition touch )
 						}
 						this->context_render_char = curr_char;
 						this->word_browser.current_word = this->word_browser.words.begin();
+						// initialize component display, if needed:
+						// (stroke order display is not a problem, because it always triggeres a child mode for writing)
+						if( this->word_browser.render_components )
+						{
+							this->word_browser.render_components = false;
+							this->word_browser.toggle_components();
+						}
 						// (re-)define and render highlight for selected character in text view:
 						if( this->current_highlight ) delete this->current_highlight;
 						this->current_highlight = new RenderScreenBuffer( curr_char->width, TextView::LINE_HEIGHT );

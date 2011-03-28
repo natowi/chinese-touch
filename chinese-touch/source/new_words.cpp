@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <sys/stat.h>
 #include <string.h>
+#include <algorithm>
 
 #include "new_words.h"
 #include "config.h"
@@ -474,11 +475,11 @@ void WordListBrowser::update_switch_button_vram()
 		std::stringstream button_text;
 		int left_count = 0;
 		for( NewWordList::iterator i=this->words.begin(); i!=this->words.end() && i!=this->current_word; i++, left_count++ );
-		button_text << "< " << left_count;
+		button_text << "< " << std::min(left_count, 99);
 		this->left_button.text = button_text.str();
 		this->right_button.font_size = 8;
 		button_text.str(""); button_text.clear();
-		button_text << (this->words.size()>1 ? this->words.size()-left_count-1 : 0) << " >";
+		button_text << (this->words.size()>1 ? std::min(static_cast<int>(this->words.size())-left_count-1, 99) : 0) << " >";
 		this->right_button.text = button_text.str();
 	}
 	this->left_button.free_text_vram();

@@ -469,33 +469,60 @@ void WordListBrowser::free_buffers()
 
 void WordListBrowser::update_switch_button_vram()
 {
-	if( this->render_stroke_order || this->render_components )
+	// hide left button when at the beginning of the word list and at the beginning of a visable character list
+	// hide right button when at the end of the word list and at the end of a visible character list
+	this->left_button.hidden = this->left_button.disabled
+		= this->right_button.hidden = this->right_button.disabled = true;
+	bool left_button_changed = false;
+	bool right_button_changed = false;
+	if( (this->render_stroke_order || this->render_components) && this->current_char!=this->current_char_list.begin() )
 	{
+		this->left_button.hidden = this->left_button.disabled = false;
 		this->left_button.update_vram( top_left_button_2Bitmap, this->left_button.bg_vram );
 		this->left_button.update_vram( top_left_button_2_activeBitmap, this->left_button.bg_active_vram );
-		this->right_button.update_vram( top_right_button_2Bitmap, this->right_button.bg_vram );
-		this->right_button.update_vram( top_right_button_2_activeBitmap, this->right_button.bg_active_vram );
 		this->left_button.font_size = 7;
 		this->left_button.text = "< 字";
+		left_button_changed = true;
+	}
+	UCCharList::iterator char_it = this->current_char;
+	if( char_it!=this->current_char_list.end() ) char_it++;
+	if( (this->render_stroke_order || this->render_components) && char_it!=this->current_char_list.end() )
+	{
+		this->right_button.hidden = this->right_button.disabled = false;
+		this->right_button.update_vram( top_right_button_2Bitmap, this->right_button.bg_vram );
+		this->right_button.update_vram( top_right_button_2_activeBitmap, this->right_button.bg_active_vram );
 		this->right_button.font_size = 7;
 		this->right_button.text = "字 >";
+		right_button_changed = true;
 	}
-	else
+	NewWordList::iterator word_it = this->current_word;
+	if( word_it!=this->words.end() ) word_it++;
+	if( (!left_button_changed && this->current_word!=this->words.begin()) || (!right_button_changed && word_it!=this->words.end())  )
 	{
-		this->left_button.update_vram( top_left_buttonBitmap, this->left_button.bg_vram );
-		this->left_button.update_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
-		this->right_button.update_vram( top_right_buttonBitmap, this->right_button.bg_vram );
-		this->right_button.update_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
-		this->left_button.font_size = 8;
 		std::stringstream button_text;
 		int left_count = 0;
 		for( NewWordList::iterator i=this->words.begin(); i!=this->words.end() && i!=this->current_word; i++, left_count++ );
-		button_text << "< " << std::min(left_count, 99);
-		this->left_button.text = button_text.str();
-		this->right_button.font_size = 8;
-		button_text.str(""); button_text.clear();
-		button_text << (this->words.size()>1 ? std::min(static_cast<int>(this->words.size())-left_count-1, 99) : 0) << " >";
-		this->right_button.text = button_text.str();
+		if( !left_button_changed && this->current_word!=this->words.begin() )
+		{
+			this->left_button.hidden = this->left_button.disabled = false;
+			this->left_button.update_vram( top_left_buttonBitmap, this->left_button.bg_vram );
+			this->left_button.update_vram( top_left_button_activeBitmap, this->left_button.bg_active_vram );
+			this->left_button.font_size = 8;
+			button_text << "< " << std::min(left_count, 99);
+			this->left_button.text = button_text.str();
+			left_button_changed = true;
+		}
+		if( !right_button_changed && word_it!=this->words.end() )
+		{
+			this->right_button.hidden = this->right_button.disabled = false;
+			this->right_button.update_vram( top_right_buttonBitmap, this->right_button.bg_vram );
+			this->right_button.update_vram( top_right_button_activeBitmap, this->right_button.bg_active_vram );
+			this->right_button.font_size = 8;
+			button_text.str(""); button_text.clear();
+			button_text << (this->words.size()>1 ? std::min(static_cast<int>(this->words.size())-left_count-1, 99) : 0) << " >";
+			this->right_button.text = button_text.str();
+			right_button_changed = true;
+		}
 	}
 	this->left_button.free_text_vram();
 	this->right_button.free_text_vram();
@@ -570,29 +597,6 @@ void WordListBrowser::free_button_vram()
 
 void WordListBrowser::render_buttons( OamState* oam_state, int& oam_entry )
 {
-	if( this->render_stroke_order || this->render_components )
-	{
-		// hide left button when at the beginning of the character list:
-		if( this->current_char == this->current_char_list.begin() ) this->left_button.hidden = this->left_button.disabled = true;
-		else this->left_button.hidden = this->left_button.disabled = false;
-		// hide right button when at the end of the character list:
-		UCCharList::iterator test_it = this->current_char;
-		if( this->current_char != this->current_char_list.end() ) test_it++;
-		if( test_it == this->current_char_list.end() ) this->right_button.hidden = this->right_button.disabled = true;
-		else this->right_button.hidden = this->right_button.disabled = false;
-	}
-	else
-	{
-		// hide left button when at the beginning of the word list:
-		if( this->current_word == this->words.begin() ) this->left_button.hidden = this->left_button.disabled = true;
-		else this->left_button.hidden = this->left_button.disabled = false;
-		// hide right button when at the end of the word list:
-		NewWordList::iterator test_it = this->current_word;
-		if( this->current_word != this->words.end() ) test_it++;
-		if( test_it == this->words.end() ) this->right_button.hidden = this->right_button.disabled = true;
-		else this->right_button.hidden = this->right_button.disabled = false;
-	}
-	
 	NewWord* word = 0;
 	if( this->current_word != this->words.end() ) word = *this->current_word;
 	
@@ -718,13 +722,14 @@ bool WordListBrowser::switch_forward()
 			return true;
 		}
 	}
-	else if( this->current_word != this->words.end() )
+	if( this->current_word != this->words.end() )
 	{
 		NewWordList::iterator test_it = this->current_word;
 		if( ++test_it != this->words.end() )
 		{
 			this->current_word++;
 			this->restore_init_settings_if_needed();
+			this->update_current_char_list();
 			return true;
 		}
 	}
@@ -739,10 +744,17 @@ bool WordListBrowser::switch_backwards()
 		this->current_char--;
 		return true;
 	}
-	else if( this->current_word != this->words.begin() )
+	if( this->current_word != this->words.begin() )
 	{
 		this->current_word--;
 		this->restore_init_settings_if_needed();
+		this->update_current_char_list();
+		if( (this->render_stroke_order || this->render_components) && this->current_char_list.size()>1 )
+		{
+			// select new last character, when in a character selection mode:
+			this->current_char = this->current_char_list.end();
+			this->current_char--;
+		}
 		return true;
 	}
 	return false;
@@ -809,12 +821,7 @@ void WordListBrowser::toggle_stroke_order()
 	}
 	if( this->render_stroke_order && !keep_char_list )
 	{
-		this->current_char_list.clear();
-		if( this->current_word != this->words.end() )
-		{
-			utf8_to_ucs4( (const unsigned char*)(*this->current_word)->hanzi.c_str(), this->current_char_list );
-		}
-		this->current_char = this->current_char_list.begin();
+		this->update_current_char_list();
 	}
 	this->stroke_order_full_update = true; // need to refresh word rendering
 }
@@ -840,14 +847,19 @@ void WordListBrowser::toggle_components()
 	this->render_components = !this->render_components; 
 	if( this->render_components && !keep_char_list )
 	{
-		this->current_char_list.clear();
-		if( this->current_word != this->words.end() )
-		{
-			utf8_to_ucs4( (const unsigned char*)(*this->current_word)->hanzi.c_str(), this->current_char_list );
-		}
-		this->current_char = this->current_char_list.begin();
+		this->update_current_char_list();
 	}
 	this->stroke_order_full_update = true; // need to refresh word rendering
+}
+
+void WordListBrowser::update_current_char_list()
+{
+	this->current_char_list.clear();
+	if( this->current_word != this->words.end() )
+	{
+		utf8_to_ucs4( (const unsigned char*)(*this->current_word)->hanzi.c_str(), this->current_char_list );
+	}
+	this->current_char = this->current_char_list.begin();
 }
 
 void WordListBrowser::restore_init_settings()
@@ -855,6 +867,8 @@ void WordListBrowser::restore_init_settings()
 	this->render_foreign_word = this->init_render_foreign_word;
 	this->render_pronuciation = this->init_render_pronuciation;
 	this->render_translation = this->init_render_translation;
+	this->render_stroke_order = this->init_render_stroke_order;
+	this->render_components = this->init_render_components;
 }
 
 void WordListBrowser::restore_init_settings_if_needed()

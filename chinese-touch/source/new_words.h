@@ -48,6 +48,7 @@ class WordListBrowser : public ButtonProvider
 		void toggle_translation();
 		void toggle_stroke_order();
 		void toggle_components();
+		void update_current_char_list();
 		void restore_init_settings();
 		void restore_init_settings_if_needed();
 		void update_switch_button_vram();

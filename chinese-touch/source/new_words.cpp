@@ -950,7 +950,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	// initialize word list on stored word index (only used when calling new words from a lesson):
 	if( this->save_position )
 	{
-		int word_id = this->program.config->get_current_word_id();
+		int word_id = this->program.config->get( "current_word_id", 0 );
 		for( this->word_browser.current_word = this->word_browser.words.begin(); 
 			this->word_browser.current_word != this->word_browser.words.end(); 
 			this->word_browser.current_word++ )

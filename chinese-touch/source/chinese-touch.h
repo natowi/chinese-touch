@@ -21,7 +21,7 @@ public:
 	Library* library;
 	Config* config;
 	ErrorConsole* error_console;
-	std::string name, version, fs_type, image_path, base_dir, words_db_name;
+	std::string name, version, fs_type, image_path, base_dir, words_db_name, settings_db_name;
 public:
 	Program( int argc, char* argv[] );
 	void initialize();

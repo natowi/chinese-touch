@@ -261,8 +261,8 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 	this->cached_global_rating = static_cast<Rating>( round(this->program.words_db->get_avg_rating()) );
 	
 	// Menü zur gespeicherten Position bewegen:
-	std::string config_book_name = this->program.config->get_current_book_name();
-	int config_lesson_number = this->program.config->get_current_lesson_number();
+	std::string config_book_name = this->program.config->get( "current_book_name", "" );
+	int config_lesson_number = this->program.config->get( "current_lesson_number", 0 );
 	if( config_book_name.length() )
 	{
 		bool found = false;

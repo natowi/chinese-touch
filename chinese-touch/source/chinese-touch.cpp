@@ -32,7 +32,7 @@ Program::Program( int argc, char* argv[] )
 		config(0), error_console(0), 
 		name("chinese-touch"), version("1.5"),
 		fs_type("unknown"), image_path(""), base_dir("/"+name),
-		words_db_name("words.db")
+		words_db_name("words.db"), settings_db_name("settings.db")
 {
 	if( argc>=1 ) 
 	{
@@ -115,10 +115,18 @@ void Program::initialize()
 	
 	this->ui_lang = new UILanguage( "en" );
 	
-	this->config = new Config( *this );
-	LOG( "loading config" );
-	render_info = this->ft->render( loading_screen, "loading config", this->ft->han_face, size, x, y+=render_info.height );
-	this->config->load();
+	this->config = new Config();
+	try
+	{
+		render_info = this->ft->render( loading_screen, "opening "+this->settings_db_name, this->ft->han_face, size, x, y+=render_info.height );
+		this->config->open( this->base_dir+"/"+this->settings_db_name );
+	}
+	catch( Error& e )
+	{
+		WARN( e.what() );
+		render_info = this->ft->render( loading_screen, "creating "+this->settings_db_name, this->ft->han_face, size, x, y+=render_info.height );
+		this->config->create( this->base_dir+"/"+this->settings_db_name );
+	}
 }
 
 void Program::run()
@@ -252,8 +260,8 @@ void Program::run()
 						}
 					}
 					this->words_db->query_words( *this->library, condition.str(), words, ordering.str() );
-					if( lesson_menu_choice.lesson ) config->save_position( lesson_menu_choice.lesson, true );
-					else if( lesson_menu_choice.book ) config->save_position( lesson_menu_choice.book, true );
+					if( lesson_menu_choice.lesson ) config->save_position( lesson_menu_choice.lesson );
+					else if( lesson_menu_choice.book ) config->save_position( lesson_menu_choice.book );
 					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, position_saving, 
 										(lesson_menu_choice.content_order == LessonMenuChoice::CONTENT_ORDER_RANDOM),
 										true /*show settings*/ );
@@ -266,7 +274,7 @@ void Program::run()
 					Lesson* lesson = lesson_menu_choice.lesson;
 					if( !lesson )
 						throw ERROR( "LessonMenu returned no lesson" );
-					this->config->save_position( lesson, true );
+					this->config->save_position( lesson );
 					TextVector& texts = lesson_menu_choice.lesson->grammar_texts;
 					if( !texts.size() )
 					{
@@ -285,7 +293,7 @@ void Program::run()
 					Lesson* lesson = lesson_menu_choice.lesson;
 					if( !lesson )
 						throw ERROR( "LessonMenu returned no lesson" );
-					this->config->save_position( lesson, true );
+					this->config->save_position( lesson );
 					TextVector& texts = lesson_menu_choice.lesson->lesson_texts;
 					if( !texts.size() )
 					{
@@ -304,7 +312,7 @@ void Program::run()
 					Lesson* lesson = lesson_menu_choice.lesson;
 					if( !lesson )
 						throw ERROR( "LessonMenu returned no lesson" );
-					this->config->save_position( lesson, true );
+					this->config->save_position( lesson );
 					TextVector& texts = lesson_menu_choice.lesson->exercises;
 					if( !texts.size() )
 					{

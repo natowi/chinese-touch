@@ -894,7 +894,7 @@ void WordListBrowser::randomize_list()
 
 int NewWordsViewer::BUTTON_ACTIVATION_DRAW_LIMIT = 5;
 
-NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings )
+NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings, LessonMenuChoice::ContentType _content_type )
 	: Mode(_program, _recursion_depth), save_position(_save_position), word_screen(SCREEN_MAIN), drawing_screen(SCREEN_SUB),
 		word_browser(button_provider_list, *_program.ft, _words, drawing_screen, *_program.library),
 		drawing_pad(drawing_screen),
@@ -908,7 +908,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		scroll_field_overlay_2(drawing_screen,"here!",SpriteSize_64x32,64*2,0,_program.ft->latin_face,9,0,8),
 		scroll_field_overlay_3(drawing_screen,"",SpriteSize_64x32,64*3,0,_program.ft->latin_face,9,0,16),
 		pixels_drawn(0), clear_on_switch(true), randomize_list(_randomize_list), scrolling(false),
-		current_pen_style(&drawing_pad.small_pen)
+		current_pen_style(&drawing_pad.small_pen), content_type(_content_type)
 {
 	// disable child mode buttons when recursion limit is reached:
 	if( this->recursion_depth>=Mode::MAX_RECURSION_DEPTH )
@@ -960,6 +960,14 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		if( this->word_browser.current_word == this->word_browser.words.end() ) 
 			this->word_browser.current_word = this->word_browser.words.begin();
 	}
+	
+	// restore all but randomize_list initial settings now:
+	std::string type_prefix = LessonMenuChoice::get_content_type_text( content_type );
+	this->word_browser.init_render_foreign_word = this->program.config->get( type_prefix+".init_render_foreign_word", this->word_browser.init_render_foreign_word );
+	this->word_browser.init_render_pronuciation = this->program.config->get( type_prefix+".init_render_pronuciation", this->word_browser.init_render_pronuciation );
+	this->word_browser.init_render_translation = this->program.config->get( type_prefix+".init_render_translation", this->word_browser.init_render_translation );
+	this->word_browser.restore_on_switch = this->program.config->get( type_prefix+".restore_on_switch", this->word_browser.restore_on_switch );
+	this->clear_on_switch = this->program.config->get( type_prefix+".clear_on_switch", this->clear_on_switch );
 	
 	if( _show_settings )
 	{
@@ -1047,8 +1055,13 @@ void NewWordsViewer::show_settings()
 	this->free_vram();
 	SettingsDialog settings_dialog( this->program, this->recursion_depth, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
-	// TODO: store all but randomize_list initial settings now
-	// TODO: store randomize_list setting now, but only if this is the initial settings screen
+	// store all but randomize_list initial settings now:
+	std::string type_prefix = LessonMenuChoice::get_content_type_text( content_type );
+	this->program.config->set( type_prefix+".init_render_foreign_word", this->word_browser.init_render_foreign_word );
+	this->program.config->set( type_prefix+".init_render_pronuciation", this->word_browser.init_render_pronuciation );
+	this->program.config->set( type_prefix+".init_render_translation", this->word_browser.init_render_translation );
+	this->program.config->set( type_prefix+".restore_on_switch", this->word_browser.restore_on_switch );
+	this->program.config->set( type_prefix+".clear_on_switch", this->clear_on_switch );
 	this->word_browser.restore_init_settings();
 	if( this->randomize_list )
 	{

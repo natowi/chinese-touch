@@ -264,7 +264,7 @@ void Program::run()
 					else if( lesson_menu_choice.book ) config->save_position( lesson_menu_choice.book );
 					NewWordsViewer* new_words = new NewWordsViewer( *this, 0, words, position_saving, 
 										(lesson_menu_choice.content_order == LessonMenuChoice::CONTENT_ORDER_RANDOM),
-										true /*show settings*/ );
+										true /*show settings*/, lesson_menu_choice.content_type );
 					new_words->run_until_exit();
 					delete new_words;
 					break;

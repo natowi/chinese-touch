@@ -80,8 +80,9 @@ class NewWordsViewer : public Mode
 		bool clear_on_switch, randomize_list;
 		bool scrolling;
 		Pen* current_pen_style;
+		LessonMenuChoice::ContentType content_type;
 	public:
-		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings );
+		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings, LessonMenuChoice::ContentType _content_type = LessonMenuChoice::CONTENT_TYPE_NONE );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();

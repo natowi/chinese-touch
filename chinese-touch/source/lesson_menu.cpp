@@ -85,6 +85,26 @@ int LessonMenu::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int LessonMenu::MAX_ACCELERATION_FACTOR = 10;
 
 
+std::string LessonMenuChoice::get_content_type_text( LessonMenuChoice::ContentType content_type )
+{
+	std::string type_prefix;
+	switch( content_type )
+	{
+		case LessonMenuChoice::CONTENT_TYPE_NONE: type_prefix = "none"; break;
+		case LessonMenuChoice::CONTENT_TYPE_GRAMMAR: type_prefix = "grammar"; break;
+		case LessonMenuChoice::CONTENT_TYPE_TEXT: type_prefix = "text"; break;
+		case LessonMenuChoice::CONTENT_TYPE_EXERCISES: type_prefix = "exercises"; break;
+		case LessonMenuChoice::CONTENT_TYPE_ANY_WORDS: type_prefix = "any_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS: type_prefix = "easy_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS: type_prefix = "medium_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS: type_prefix = "hard_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS: type_prefix = "impossible_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_SEARCH: type_prefix = "search"; break;
+	}
+	return type_prefix;
+}
+
+
 void DictionarySynchronizer::run_action()
 {
 	RenderStyle style;

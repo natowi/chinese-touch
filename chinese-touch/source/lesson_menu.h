@@ -44,6 +44,7 @@ class LessonMenuChoice
 		LessonMenuChoice() : book(0), lesson(0), 
 			content_type(CONTENT_TYPE_NONE), content_range(CONTENT_RANGE_LESSON),
 			content_order(CONTENT_ORDER_LATENCY) {}
+		static std::string get_content_type_text( ContentType content_type );
 };
 
 

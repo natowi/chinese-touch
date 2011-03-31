@@ -77,17 +77,16 @@ class NewWordsViewer : public Mode
 		touchPosition old_touch, prev_draw_touch;
 		int old_distance;
 		int pixels_drawn;
-		bool clear_on_switch, randomize_list;
+		bool clear_on_switch, randomize_list, initial_settings;
 		bool scrolling;
 		Pen* current_pen_style;
-		LessonMenuChoice::ContentType content_type;
 	public:
-		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings, LessonMenuChoice::ContentType _content_type = LessonMenuChoice::CONTENT_TYPE_NONE );
+		NewWordsViewer( Program& _program, int _recursion_depth, NewWordList& _words, bool _save_position, bool _randomize_list, bool _show_settings );
 		void init_mode();
 		void init_vram();
 		void init_button_vram();
 		virtual ~NewWordsViewer();
-		void show_settings();
+		void show_settings( bool apply_only = false );
 		void render( Screen screen );
 		void render_time();
 		virtual ButtonAction handle_button_pressed( TextButton* text_button );

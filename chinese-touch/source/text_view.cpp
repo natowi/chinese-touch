@@ -57,6 +57,11 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 	// ignore touch events on loading_symbol:
 	this->loading_symbol.disabled = true;
 	
+	// load word lookup settings from config:
+	this->lookup_from_current_lesson = this->program.config->get( "text_view.lookup_from_current_lesson", this->lookup_from_current_lesson );
+	this->lookup_from_previous_lessons = this->program.config->get( "text_view.lookup_from_previous_lessons", this->lookup_from_previous_lessons );
+	this->lookup_from_upcoming_lessons = this->program.config->get( "text_view.lookup_from_upcoming_lessons", this->lookup_from_upcoming_lessons );
+	this->lookup_from_other_books = this->program.config->get( "text_view.lookup_from_other_books", this->lookup_from_other_books );
 	this->restore_init_settings();
 	
 	if( !utf8_to_ucs4((unsigned char*)this->text.c_str(), this->char_list) )
@@ -163,6 +168,7 @@ void TextView::render( Screen screen )
 					message = "No context matching words found :(";
 					message += "\n ";
 					message += "\n- Tap again to search by character";
+					message += "\n- Check your word lookup settings";
 					message += "\n- Download dictionaries from:";
 					message += "\n  http://code.google.com/p/chinese-touch";
 				}
@@ -171,6 +177,7 @@ void TextView::render( Screen screen )
 					message = "No words with that character found :(";
 					message += "\n ";
 					message += "\n- Tap again for context matching words";
+					message += "\n- Check your word lookup settings";
 					message += "\n- Download dictionaries from:";
 					message += "\n  http://code.google.com/p/chinese-touch";
 				}
@@ -549,6 +556,11 @@ void TextView::show_settings()
 	SettingsDialog* settings_dialog = new SettingsDialog( this->program, this->recursion_depth, this->settings, "Text Viewer Settings" );
 	settings_dialog->run_until_exit();
 	delete settings_dialog;
+	// store chosen word lookup settings:
+	this->program.config->set( "text_view.lookup_from_current_lesson", this->lookup_from_current_lesson );
+	this->program.config->set( "text_view.lookup_from_previous_lessons", this->lookup_from_previous_lessons );
+	this->program.config->set( "text_view.lookup_from_upcoming_lessons", this->lookup_from_upcoming_lessons );
+	this->program.config->set( "text_view.lookup_from_other_books", this->lookup_from_other_books );
 	this->restore_init_settings();
 	this->init_mode();
 	this->init_vram();

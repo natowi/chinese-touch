@@ -69,6 +69,9 @@
 #include "clear-icon.h"
 #include "pen-icon.h"
 #include "ink-icon.h"
+#include "tiny_puzzle.h"
+#include "tiny_lamp.h"
+#include "settings-icon.h"
 
 
 void NewWord::render( Program& program, RenderScreen& render_screen, WordListBrowser& browser )
@@ -413,9 +416,9 @@ WordListBrowser::WordListBrowser( ButtonProviderList& provider_list,
 		as_text_tab(_button_screen,"ˇ",SpriteSize_32x16,32*1,/*dynamic*/ 0,button_ft.han_face,16,1,-2),
 		foreign_word_tab(_button_screen,"汉字",SpriteSize_32x16,32*2,/*dynamic*/ 0,button_ft.han_face,9),
 		pronunciation_tab(_button_screen,"",SpriteSize_32x16,32*3,/*dynamic*/ 0,button_ft.han_face,9,1,-1),
-		translation_tab(_button_screen,"latin",SpriteSize_32x16,32*4,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		translation_tab(_button_screen,"",SpriteSize_32x16,32*4,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
 		stroke_order_tab(_button_screen,"",SpriteSize_32x16,32*5,/*dynamic*/ 0,button_ft.latin_face,6,0,1),
-		components_tab(_button_screen,"comp",SpriteSize_32x16,32*6,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
+		components_tab(_button_screen,"",SpriteSize_32x16,32*6,/*dynamic*/ 0,button_ft.latin_face,7,0,1),
 		rating_bar(_button_screen,"",SpriteSize_64x32,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_easy(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-32,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
 		rating_medium(_button_screen,"",SpriteSize_16x16,button_screen.res_x/2-16,/*dynamic*/ 0,button_ft.latin_face,7,0,0),
@@ -572,6 +575,7 @@ void WordListBrowser::init_button_vram()
 	this->translation_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->translation_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
 	this->translation_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
+	this->translation_tab.init_vram( tiny_lampBitmap, this->translation_tab.fg_vram );
 	this->translation_tab.owns_bg_vram = false;
 	this->stroke_order_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->stroke_order_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
@@ -581,7 +585,7 @@ void WordListBrowser::init_button_vram()
 	this->components_tab.bg_vram = this->foreign_word_tab.bg_vram;
 	this->components_tab.bg_active_vram = this->foreign_word_tab.bg_active_vram;
 	this->components_tab.bg_inactive_vram = this->foreign_word_tab.bg_inactive_vram;
-	//this->components_tab.init_vram( ..., this->components_tab.fg_vram );
+	this->components_tab.init_vram( tiny_puzzleBitmap, this->components_tab.fg_vram );
 	this->components_tab.owns_bg_vram = false;
 
 	ButtonProvider::init_button_vram();
@@ -902,7 +906,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 		eraser_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2+4,_program.ft->latin_face,9,-7,3),
 		pen_style_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2+4,_program.ft->latin_face,9,-7,3),
 		ink_style_button(drawing_screen,"",SpriteSize_16x32,drawing_screen.res_x-16,drawing_screen.res_y/2+4,_program.ft->latin_face,9,-7,3),
-		settings_button(drawing_screen,"s",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		settings_button(drawing_screen,"",SpriteSize_16x16,drawing_screen.res_x-16,drawing_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		scroll_field_overlay_0(drawing_screen,"",SpriteSize_64x32,64*0,0,_program.ft->latin_face,9,0,16),
 		scroll_field_overlay_1(drawing_screen,"Scroll",SpriteSize_64x32,64*1,0,_program.ft->latin_face,9,0,8),
 		scroll_field_overlay_2(drawing_screen,"here!",SpriteSize_64x32,64*2,0,_program.ft->latin_face,9,0,8),
@@ -1008,6 +1012,7 @@ void NewWordsViewer::init_button_vram()
 	this->ink_style_button.init_vram( ink_iconBitmap, this->ink_style_button.fg_vram );
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	this->settings_button.init_vram( settings_iconBitmap, this->settings_button.fg_vram );
 	
 	int overlay_buffer_size = scroll_field_overlay_0.width*scroll_field_overlay_0.height;
 	u16* overlay_buffer = new u16[ overlay_buffer_size ];

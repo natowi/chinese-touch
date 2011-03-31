@@ -14,13 +14,14 @@
 #include <small_top_button_active.h>
 #include "key.h"
 #include "key_active.h"
+#include "settings-icon.h"
 
 
 FulltextSearch::FulltextSearch( Program& _program, int _recursion_depth, Lesson* _lesson )
 	: Mode(_program, _recursion_depth), lesson(_lesson), word_screen(SCREEN_MAIN), keyboard_screen(SCREEN_SUB),
 		touch_keyboard(button_provider_list, _program, keyboard_screen),
 		word_browser(button_provider_list, *_program.ft, current_words, keyboard_screen, *_program.library),
-		settings_button(keyboard_screen,"s",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		settings_button(keyboard_screen,"",SpriteSize_16x16,keyboard_screen.res_x-16,keyboard_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		search_button(keyboard_screen,"查词典",SpriteSize_64x32,keyboard_screen.res_x-67,keyboard_screen.res_y-50,_program.ft->han_face,14,0,4),
 		clear_button(keyboard_screen,"clr",SpriteSize_32x32,0 /*dynamic*/,16+3,_program.ft->latin_face,8,-6,4),
 		search_done(false)
@@ -70,6 +71,7 @@ void FulltextSearch::init_button_vram()
 	// load sprite graphics into vram:
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	this->settings_button.init_vram( settings_iconBitmap, this->settings_button.fg_vram );
 	this->search_button.init_vram( large_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( large_center_button_activeBitmap, this->search_button.bg_active_vram );
 	this->search_button.init_vram( large_searchBitmap, this->search_button.fg_vram );

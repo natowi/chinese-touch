@@ -53,6 +53,7 @@
 #include "tiny_search.h"
 #include "tiny_book.h"
 #include "tiny_text.h"
+#include "settings-icon.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -246,7 +247,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		global_rating_impossible(menu_screen,"",SpriteSize_16x16,menu_screen.res_x/2+24,menu_screen.res_y-16,program.ft->latin_face,7,0,0),
 		jump_down_button(menu_screen,"下",SpriteSize_16x16,MenuEntry::JUMP_DOWN_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
 		jump_up_button(menu_screen,"上",SpriteSize_16x16,MenuEntry::JUMP_UP_BUTTON_X_OFFSET,0,program.ft->han_face,9,1,1),
-		settings_button(menu_screen,"s",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
+		settings_button(menu_screen,"",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
 		search_button(menu_screen,"",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1),
 		loading_symbol(menu_screen,"",SpriteSize_32x32,menu_screen.res_x/2-16,menu_screen.res_y/2-16,program.ft->han_face,14,0,1),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
@@ -560,6 +561,7 @@ void LessonMenu::init_button_vram()
 	
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	this->settings_button.init_vram( settings_iconBitmap, this->settings_button.fg_vram );
 	
 	this->search_button.init_vram( bottom_center_buttonBitmap, this->search_button.bg_vram );
 	this->search_button.init_vram( bottom_center_button_activeBitmap, this->search_button.bg_active_vram );

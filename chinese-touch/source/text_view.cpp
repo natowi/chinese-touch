@@ -16,6 +16,7 @@
 #include "small_top_button.h"
 #include "small_top_button_active.h"
 #include "loading.h"
+#include "settings-icon.h"
 
 
 int TextView::LINE_HEIGHT = 16;
@@ -28,7 +29,7 @@ TextView::TextView( Program& _program, int _recursion_depth, Text& _text )
 		y_offset(16), v_y(0), sub_frame_count(0), current_highlight(0),
 		current_highlight_x(0), current_highlight_y(0), context_mode(CONTEXT_WORDS_BY_CONTEXT),
 		context_render_char(0),
-		settings_button(text_screen,"s",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
+		settings_button(text_screen,"",SpriteSize_16x16,text_screen.res_x-16,text_screen.res_y-16,_program.ft->latin_face,10,1,1),
 		loading_symbol(text_screen,"",SpriteSize_32x32,text_screen.res_x/2-16,text_screen.res_y/2-16,program.ft->han_face,14,0,1),
 		lookup_from_current_lesson(true), lookup_from_previous_lessons(true), 
 		lookup_from_upcoming_lessons(true), lookup_from_other_books(true),
@@ -95,6 +96,7 @@ void TextView::init_button_vram()
 	// load sprite graphics into vram:
 	this->settings_button.init_vram( bottom_right_buttonBitmap, this->settings_button.bg_vram );
 	this->settings_button.init_vram( bottom_right_button_activeBitmap, this->settings_button.bg_active_vram );
+	this->settings_button.init_vram( settings_iconBitmap, this->settings_button.fg_vram );
 	this->loading_symbol.init_vram( loadingBitmap, this->loading_symbol.bg_vram );
 
 	ButtonProvider::init_button_vram();

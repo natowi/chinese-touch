@@ -17,14 +17,14 @@
 #include "layout_label_frame.h"
 
 
-TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, FreetypeRenderer& _freetype_renderer, 
-							  RenderScreen& _keyboard_screen, std::string& _program_base_dir )  
-	: ButtonProvider(button_provider_list, _freetype_renderer), db(0), keyboard_screen(_keyboard_screen),
+TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, Program& _program, 
+							  RenderScreen& _keyboard_screen )  
+	: ButtonProvider(button_provider_list, *_program.ft), db(0), program(_program), keyboard_screen(_keyboard_screen),
 		reference_key(keyboard_screen,"",SpriteSize_32x32,0,0,button_ft.han_face,10,0,2),
 		layout_minus(keyboard_screen,"<",SpriteSize_16x16,24,keyboard_screen.res_y-16,button_ft.latin_face,10,0,2),
 		layout_label(keyboard_screen,"",SpriteSize_16x16,24+16,keyboard_screen.res_y-16,button_ft.latin_face,7,0,2),
 		layout_plus(keyboard_screen,">",SpriteSize_16x16,24+32,keyboard_screen.res_y-16,button_ft.latin_face,10,0,2),
-		layouts_path( _program_base_dir+"/keyboards" ), current_layout( this->layouts.begin() )
+		layouts_path( program.base_dir+"/keyboards" ), current_layout( this->layouts.begin() )
 {
 	this->reference_key.hidden = true;
 	this->reference_key.sensor_height = this->reference_key.sensor_width = 22;
@@ -57,7 +57,13 @@ TouchKeyboard::TouchKeyboard( ButtonProviderList& button_provider_list, Freetype
 		}
 	}
 	closedir( layouts_dir );
-	this->current_layout = this->layouts.begin();
+	
+	// try to load previously selected keyboard layout from settings:
+	std::string previous_layout = this->program.config->get( "touch_keyboard.current_layout", "" );
+	for( this->current_layout = this->layouts.begin(); 
+		this->current_layout != this->layouts.end() && *this->current_layout != previous_layout;
+		this->current_layout++ );
+	if( this->current_layout == this->layouts.end() ) this->current_layout = this->layouts.begin();
 }
 
 TouchKeyboard::~TouchKeyboard()
@@ -255,6 +261,7 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 		{
 			this->current_layout--;
 			this->init_button_vram();
+			this->program.config->set( "touch_keyboard.current_layout", *this->current_layout );
 		}
 		 // WARNING: button release handler will crash because of iterator invalidation if STOP_HANDLER ist not set:
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_STOP_HANDLER;
@@ -265,6 +272,7 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 		{
 			this->current_layout++;
 			this->init_button_vram();
+			this->program.config->set( "touch_keyboard.current_layout", *this->current_layout );
 		}
 		 // WARNING: button release handler will crash because of iterator invalidation when STOP_HANDLER ist not set:
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_STOP_HANDLER;

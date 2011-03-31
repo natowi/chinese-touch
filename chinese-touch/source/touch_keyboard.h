@@ -13,6 +13,7 @@ class TouchKeyboard : public ButtonProvider
 protected:
 	sqlite3* db;
 public:
+	Program& program;
 	RenderScreen& keyboard_screen;
 	TextButton reference_key, layout_minus, layout_label, layout_plus;
 	TextButtonSetStorage keys;
@@ -25,7 +26,7 @@ public:
 protected:
 	void close_db();
 public:
-	TouchKeyboard( ButtonProviderList& button_provider_list, FreetypeRenderer& _freetype_renderer, RenderScreen& _keyboard_screen, std::string& program_base_dir );
+	TouchKeyboard( ButtonProviderList& button_provider_list, Program& _program, RenderScreen& _keyboard_screen );
 	~TouchKeyboard();
 	void reload_current_layout();
 	void init_button_vram();

@@ -85,23 +85,46 @@ int LessonMenu::BUTTON_ACTIVATION_SCROLL_LIMIT = 5;
 int LessonMenu::MAX_ACCELERATION_FACTOR = 10;
 
 
-std::string LessonMenuChoice::get_content_type_text( LessonMenuChoice::ContentType content_type )
+std::string LessonMenuChoice::get_enum_text( LessonMenuChoice::ContentType content_type )
 {
-	std::string type_prefix;
+	std::string text;
 	switch( content_type )
 	{
-		case LessonMenuChoice::CONTENT_TYPE_NONE: type_prefix = "none"; break;
-		case LessonMenuChoice::CONTENT_TYPE_GRAMMAR: type_prefix = "grammar"; break;
-		case LessonMenuChoice::CONTENT_TYPE_TEXT: type_prefix = "text"; break;
-		case LessonMenuChoice::CONTENT_TYPE_EXERCISES: type_prefix = "exercises"; break;
-		case LessonMenuChoice::CONTENT_TYPE_ANY_WORDS: type_prefix = "any_words"; break;
-		case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS: type_prefix = "easy_words"; break;
-		case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS: type_prefix = "medium_words"; break;
-		case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS: type_prefix = "hard_words"; break;
-		case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS: type_prefix = "impossible_words"; break;
-		case LessonMenuChoice::CONTENT_TYPE_SEARCH: type_prefix = "search"; break;
+		case LessonMenuChoice::CONTENT_TYPE_NONE: text = "none"; break;
+		case LessonMenuChoice::CONTENT_TYPE_GRAMMAR: text = "grammar"; break;
+		case LessonMenuChoice::CONTENT_TYPE_TEXT: text = "text"; break;
+		case LessonMenuChoice::CONTENT_TYPE_EXERCISES: text = "exercises"; break;
+		case LessonMenuChoice::CONTENT_TYPE_ANY_WORDS: text = "any_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_EASY_WORDS: text = "easy_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_MEDIUM_WORDS: text = "medium_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_HARD_WORDS: text = "hard_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS: text = "impossible_words"; break;
+		case LessonMenuChoice::CONTENT_TYPE_SEARCH: text = "search"; break;
 	}
-	return type_prefix;
+	return text;
+}
+
+std::string LessonMenuChoice::get_enum_text( LessonMenuChoice::ContentRange content_range )
+{
+	std::string text;
+	switch( content_range )
+	{
+		case LessonMenuChoice::CONTENT_RANGE_LESSON: text = "lesson"; break;
+		case LessonMenuChoice::CONTENT_RANGE_BOOK: text = "book"; break;
+	}
+	return text;
+}
+
+std::string LessonMenuChoice::get_enum_text( LessonMenuChoice::ContentOrder content_order)
+{
+	std::string text;
+	switch( content_order )
+	{
+		case LessonMenuChoice::CONTENT_ORDER_INDEX: text = "index"; break;
+		case LessonMenuChoice::CONTENT_ORDER_LATENCY: text = "latency"; break;
+		case LessonMenuChoice::CONTENT_ORDER_RANDOM: text = "random"; break;
+	}
+	return text;
 }
 
 
@@ -330,6 +353,10 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 			}
 		}
 	}
+	
+	// restore current range and order settings:
+	this->choice.content_range = static_cast<LessonMenuChoice::ContentRange>( this->program.config->get("lesson_menu.content_range", this->choice.content_range) );
+	this->choice.content_order = static_cast<LessonMenuChoice::ContentOrder>( this->program.config->get("lesson_menu.content_order", this->choice.content_order) );
 }
 
 MenuEntry::MenuEntry( LessonMenu& _lesson_menu ) 
@@ -1099,16 +1126,19 @@ ButtonAction MenuEntry::handle_button_pressed(TextButton* text_button)
 	if( text_button == &this->order_index_button )
 	{
 		this->lesson_menu.choice.content_order = LessonMenuChoice::CONTENT_ORDER_LATENCY; // change to latency ordering
+		this->lesson_menu.program.config->set( "lesson_menu.content_order", this->lesson_menu.choice.content_order );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->order_latency_button )
 	{
 		this->lesson_menu.choice.content_order = LessonMenuChoice::CONTENT_ORDER_RANDOM; // change to random ordering
+		this->lesson_menu.program.config->set( "lesson_menu.content_order", this->lesson_menu.choice.content_order );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->order_random_button )
 	{
 		this->lesson_menu.choice.content_order = LessonMenuChoice::CONTENT_ORDER_INDEX; // change back to index ordering
+		this->lesson_menu.program.config->set( "lesson_menu.content_order", this->lesson_menu.choice.content_order );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
@@ -1149,6 +1179,9 @@ ButtonAction LessonEntry::handle_button_pressed(TextButton* text_button)
 	
 	if( text_button == &this->jump_down_button )
 	{
+		// restore current range and order settings:
+		this->lesson_menu.choice.content_range = static_cast<LessonMenuChoice::ContentRange>( this->lesson_menu.program.config->get("lesson_menu.content_range", this->lesson_menu.choice.content_range) );
+		this->lesson_menu.choice.content_order = static_cast<LessonMenuChoice::ContentOrder>( this->lesson_menu.program.config->get("lesson_menu.content_order", this->lesson_menu.choice.content_order) );
 		for( Book::iterator i=this->lesson->book->find(this->lesson->number); 
 			i!=this->lesson->book->end(); i++ )
 		{
@@ -1166,6 +1199,9 @@ ButtonAction LessonEntry::handle_button_pressed(TextButton* text_button)
 	}
 	if( text_button == &this->jump_up_button )
 	{
+		// restore current range and order settings:
+		this->lesson_menu.choice.content_range = static_cast<LessonMenuChoice::ContentRange>( this->lesson_menu.program.config->get("lesson_menu.content_range", this->lesson_menu.choice.content_range) );
+		this->lesson_menu.choice.content_order = static_cast<LessonMenuChoice::ContentOrder>( this->lesson_menu.program.config->get("lesson_menu.content_order", this->lesson_menu.choice.content_order) );
 		for( Book::iterator i=this->lesson->book->find(this->lesson->number); ; i-- )
 		{
 			void* list_id = static_cast<void*>( i->second );
@@ -1199,11 +1235,13 @@ ButtonAction LessonEntry::handle_button_pressed(TextButton* text_button)
 	if( text_button == &this->lesson_range_button )
 	{
 		this->lesson_menu.choice.content_range = LessonMenuChoice::CONTENT_RANGE_BOOK; // change to book/multi-lesson scope
+		this->lesson_menu.program.config->set( "lesson_menu.content_range", this->lesson_menu.choice.content_range );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	if( text_button == &this->book_range_button )
 	{
 		this->lesson_menu.choice.content_range = LessonMenuChoice::CONTENT_RANGE_LESSON; // change to back single lesson scope
+		this->lesson_menu.program.config->set( "lesson_menu.content_range", this->lesson_menu.choice.content_range );
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB;
 	}
 	
@@ -1279,6 +1317,9 @@ ButtonAction LessonMenu::handle_touch_end(touchPosition touch)
 					|| old_touch.py < entry->top+MenuEntry::BASE_HEIGHT) )
 			{
 				this->active_list_id = entry_id;
+				// restore current range and order settings:
+				this->choice.content_range = static_cast<LessonMenuChoice::ContentRange>( this->program.config->get("lesson_menu.content_range", this->choice.content_range) );
+				this->choice.content_order = static_cast<LessonMenuChoice::ContentOrder>( this->program.config->get("lesson_menu.content_order", this->choice.content_order) );
 				this->render( SCREEN_SUB );
 				this->render( SCREEN_MAIN );
 			}

@@ -962,7 +962,7 @@ NewWordsViewer::NewWordsViewer( Program& _program, int _recursion_depth, NewWord
 	}
 	
 	// restore all but randomize_list initial settings now:
-	std::string type_prefix = LessonMenuChoice::get_content_type_text( content_type );
+	std::string type_prefix = LessonMenuChoice::get_enum_text( content_type );
 	this->word_browser.init_render_foreign_word = this->program.config->get( type_prefix+".init_render_foreign_word", this->word_browser.init_render_foreign_word );
 	this->word_browser.init_render_pronuciation = this->program.config->get( type_prefix+".init_render_pronuciation", this->word_browser.init_render_pronuciation );
 	this->word_browser.init_render_translation = this->program.config->get( type_prefix+".init_render_translation", this->word_browser.init_render_translation );
@@ -1056,7 +1056,7 @@ void NewWordsViewer::show_settings()
 	SettingsDialog settings_dialog( this->program, this->recursion_depth, this->settings, "Word List Settings" );
 	settings_dialog.run_until_exit();
 	// store all but randomize_list initial settings now:
-	std::string type_prefix = LessonMenuChoice::get_content_type_text( content_type );
+	std::string type_prefix = LessonMenuChoice::get_enum_text( content_type );
 	this->program.config->set( type_prefix+".init_render_foreign_word", this->word_browser.init_render_foreign_word );
 	this->program.config->set( type_prefix+".init_render_pronuciation", this->word_browser.init_render_pronuciation );
 	this->program.config->set( type_prefix+".init_render_translation", this->word_browser.init_render_translation );

@@ -1,14 +1,20 @@
 #!/usr/bin/python
 # coding: utf-8
 
-import urllib2, re
+import urllib2, re, sys
 
 base_url = "http://commons.wikimedia.org"
-char_list_url = "/wiki/Category:Bw.png_stroke_order_images"
+try:
+	char_list_url = sys.argv[1]
+except IndexError:
+	char_list_url = "/wiki/Category:Bw.png_stroke_order_images"
 headers = { "User-Agent":"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11" }
 
 while char_list_url:
-	url = base_url+char_list_url
+	if char_list_url[:5] != "http:":
+		url = base_url+char_list_url
+	else:
+		url = char_list_url
 	url = url.replace( "&amp;", "&" )
 	print url
 	r = urllib2.Request(url, headers=headers)

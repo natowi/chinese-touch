@@ -13,5 +13,5 @@ for f in l:
 	try:
 		os.stat( dest_file_name )
 	except OSError:
-		os.popen( "convert %s -resize 50%% %s" % (f, dest_file_name) )
+		os.popen( "convert %s -fill '#ffffff00' -opaque none -alpha opaque -resize 50%% %s" % (f, dest_file_name) )
 

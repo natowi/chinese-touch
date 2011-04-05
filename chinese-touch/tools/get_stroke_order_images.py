@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # coding: utf-8
 
 import urllib2, re, sys
@@ -19,7 +19,7 @@ while char_list_url:
 	print url
 	r = urllib2.Request(url, headers=headers)
 	char_list = urllib2.urlopen( r ).read()
-	char_list_url = re.findall( """<a href="([^"]*)" title="Category:Bw.png stroke order images">next [0-9]*</a>""", char_list )
+	char_list_url = re.findall( """<a href="([^"]*)" title="Category:[^"]*.png stroke order images">next [0-9]*</a>""", char_list )
 	if char_list_url:
 		char_list_url = char_list_url[0]
 	else:

@@ -176,22 +176,35 @@ void NewWord::render( Program& program, RenderScreen& render_screen, WordListBro
 			&& (!browser.stroke_order_image_buffer 
 				|| browser.highlight_char.code_point!=browser.stroke_order_image_char.code_point) )
 		{
-			std::stringstream stroke_image_name;
-			stroke_image_name << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << browser.highlight_char.code_point << std::setw(0) << ".png";
+			// Try files according to hardcoded stroke order type priority:
+			// FIXME: read desired priority from settings and allow user to change it
+			StringList stroke_order_types;
+			stroke_order_types.push_back( "-bw" );
+			stroke_order_types.push_back( "-red" );
+			stroke_order_types.push_back( "-tbw" );
+			stroke_order_types.push_back( "-tred" );
+			stroke_order_types.push_back( "-jbw" );
+			stroke_order_types.push_back( "-jred" );
+			stroke_order_types.push_back( "-ired" );
+			std::string stroke_image_name = program.base_dir + "/stroke-order/emblem-unreadable.png";
 			struct stat statbuf;
-			if( !stat(stroke_image_name.str().c_str(), &statbuf)==0 )
+			for( StringList::iterator so_type = stroke_order_types.begin(); so_type != stroke_order_types.end(); so_type++ )
 			{
-				// try fallback to error notification image:
-				stroke_image_name.str(""); stroke_image_name.clear();
-				stroke_image_name << program.base_dir << "/stroke-order/emblem-unreadable.png";
+				std::stringstream stroke_image_name_stream;
+				stroke_image_name_stream << program.base_dir << "/stroke-order/u" << std::hex << std::setfill('0') << std::setw(4) << browser.highlight_char.code_point << std::setw(0) << *so_type << ".png";
+				if( stat(stroke_image_name_stream.str().c_str(), &statbuf)==0 )
+				{
+					stroke_image_name = stroke_image_name_stream.str();
+					break;
+				}
 			}
-			if( stat(stroke_image_name.str().c_str(), &statbuf)==0 )
+			if( stat(stroke_image_name.c_str(), &statbuf)==0 )
 			{
 				browser.stroke_order_scroll_left=0;
 				browser.stroke_order_scroll_top=0;
 				browser.stroke_order_image_buffer_width=0;
 				browser.stroke_order_image_buffer_height=0;
-				read_png( stroke_image_name.str(), 
+				read_png( stroke_image_name,
 						  browser.stroke_order_image_buffer, 
 						  browser.stroke_order_image_buffer_width, 
 						  browser.stroke_order_image_buffer_height );

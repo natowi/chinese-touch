@@ -192,7 +192,7 @@ void Program::run()
 				lesson_menu->info_screen.clear();
 				msg2 = "It is recommended to (re-)create the index needed for full-text search on your custom "
 						"word entries now. As this might take a couple of minutes you may skip this now and come "
-						"back later by tapping the 'S' button in the lesson menu.";
+						"back later by tapping the settings button in the lesson menu.";
 				this->ft->render( lesson_menu->info_screen, msg+msg2, this->ft->latin_face, 7, 2, 2 );
 				lesson_menu->show_settings();
 				sync_done = true;

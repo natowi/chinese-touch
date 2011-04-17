@@ -156,7 +156,8 @@ void Program::run()
 		}
 	}
 	
-	while( true )
+	bool keep_running = true;
+	while( keep_running )
 	{
 		try
 		{
@@ -333,6 +334,11 @@ void Program::run()
 					delete fulltext_search;
 					break;
 				}
+				case LessonMenuChoice::CONTENT_TYPE_EXIT:
+				{
+					keep_running = false;
+					break;
+				}
 				default: throw ERROR( "LessonMenu returned invalid content type" );
 			}
 		}
@@ -366,6 +372,7 @@ int main( int argc, char* argv[] )
 		{
 			program->error_console->init_screen();
 			program->error_console->dump();
+			while( true ) swiWaitForVBlank();
 		}
 	}
 	catch( std::exception& e )
@@ -375,6 +382,7 @@ int main( int argc, char* argv[] )
 		{
 			program->error_console->init_screen();
 			program->error_console->dump();
+			while( true ) swiWaitForVBlank();
 		}
 	}
 	if( program ) delete program;

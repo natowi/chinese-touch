@@ -54,6 +54,8 @@
 #include "tiny_book.h"
 #include "tiny_text.h"
 #include "settings-icon.h"
+#include "bottom_left_button.h"
+#include "bottom_left_button_active.h"
 
 
 int MenuEntry::BASE_HEIGHT = 32;
@@ -250,6 +252,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 		settings_button(menu_screen,"",SpriteSize_16x16,menu_screen.res_x-16,menu_screen.res_y-16,program.ft->latin_face,10,1,1),
 		search_button(menu_screen,"",SpriteSize_32x16,40,menu_screen.res_y-16,program.ft->han_face,9,0,1),
 		loading_symbol(menu_screen,"",SpriteSize_32x32,menu_screen.res_x/2-16,menu_screen.res_y/2-16,program.ft->han_face,14,0,1),
+		exit_button(menu_screen,"x",SpriteSize_16x16,0,menu_screen.res_y-16,program.ft->latin_face,10,-1,1),
 		old_y_offset(0), old_abs_y_diff(0), pixels_scrolled(0)
 {
 	this->init_mode();
@@ -299,6 +302,7 @@ LessonMenu::LessonMenu( Program& _program, int _recursion_depth, LessonMenuChoic
 	this->text_buttons.push_back( &this->global_rating_impossible );
 	this->text_buttons.push_back( &this->settings_button );
 	this->text_buttons.push_back( &this->search_button );
+	this->text_buttons.push_back( &this->exit_button );
 	
 	this->init_vram();
 	
@@ -568,6 +572,9 @@ void LessonMenu::init_button_vram()
 	this->search_button.init_vram( tiny_searchBitmap, this->search_button.fg_vram );
 	
 	this->loading_symbol.init_vram( loadingBitmap, this->loading_symbol.bg_vram );
+	
+	this->exit_button.init_vram( bottom_left_buttonBitmap, this->exit_button.bg_vram );
+	this->exit_button.init_vram( bottom_left_button_activeBitmap, this->exit_button.bg_active_vram );
 	
 	ButtonProvider::init_button_vram();
 }
@@ -1085,6 +1092,13 @@ ButtonAction LessonMenu::handle_button_pressed(TextButton* text_button)
 		this->choice.lesson = 0;
 		this->choice.content_order = LessonMenuChoice::CONTENT_ORDER_LATENCY;
 		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_IMPOSSIBLE_WORDS;
+		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
+	}
+	if( text_button == &this->exit_button )
+	{
+		this->choice.book = 0;
+		this->choice.lesson = 0;
+		this->choice.content_type = LessonMenuChoice::CONTENT_TYPE_EXIT;
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_EXIT_MODE;
 	}
 	

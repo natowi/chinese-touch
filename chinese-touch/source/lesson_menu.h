@@ -27,7 +27,8 @@ class LessonMenuChoice
 			CONTENT_TYPE_MEDIUM_WORDS,
 			CONTENT_TYPE_HARD_WORDS,
 			CONTENT_TYPE_IMPOSSIBLE_WORDS,
-			CONTENT_TYPE_SEARCH
+			CONTENT_TYPE_SEARCH,
+			CONTENT_TYPE_EXIT
 		} content_type;
 		enum ContentRange
 		{
@@ -190,7 +191,7 @@ public:
 		order_index_button, order_latency_button, order_random_button,
 		rating_bar_any_extension, rating_bar, rating_any, rating_easy, rating_medium, rating_hard, rating_impossible,
 		global_rating_bar_any_extension, global_rating_bar, global_rating_any, global_rating_easy, global_rating_medium, global_rating_hard, global_rating_impossible,
-		jump_down_button, jump_up_button, settings_button, search_button, loading_symbol;
+		jump_down_button, jump_up_button, settings_button, search_button, loading_symbol, exit_button;
 	static int BUTTON_ACTIVATION_SCROLL_LIMIT;
 	/*! a factor f, where: f * prev_scroll_width = max_next_scroll_width 
 		(used to filter out some erroneous touch readings, occurring under very light pressure) */

@@ -38,7 +38,7 @@ are uploaded under clear, Unicode (UTF-8) encoded filenames.
 Note: As Chinese Touch is limited to FAT accessed through libfat, which seem to 
 impose restrictions on filenames, the original filenames where converted from 
 UTF-8 to a hexadecimal representation of fixed width 16bit Unicode code points, 
-e.g. u5929.png instead of 天-bw.png.
+e.g. u5929-bw.png instead of 天-bw.png.
 
 As of January 2007, HanDeDict uses about one thousand of our free *-bw.png 
 images.

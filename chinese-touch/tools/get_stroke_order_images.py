@@ -25,11 +25,20 @@ while char_list_url:
 	else:
 		char_list_url = None
 		
-	meta_urls = re.findall( """<a href="([^"]*\\.png)" title="File:([^"]*\\.png)">""", char_list )
 	# create unified name-to-url-mapping:
 	meta_url_dict = {}
-	for x in meta_urls:
-		meta_url_dict[ x[1] ] = x[0]
+	meta_urls = re.findall( """<a href="([^"]*\\.png)" title="File:([^"]*\\.png)">""", char_list )
+	if len(meta_urls):
+		for x in meta_urls:
+			meta_url_dict[ x[1] ] = x[0]
+	else:
+		# fallback to link format in progress pages:
+		meta_urls = re.findall( """<a href="([^"]*\\.png)" class="image" title="([^"]*)">""", char_list )
+		for x in meta_urls:
+			name_suffix = re.findall( "[^-]*(-.*\\.png)", x[0] )
+			name_suffix = name_suffix[0]
+			fname = x[1]+name_suffix
+			meta_url_dict[ fname ] = x[0]
 	
 	for image_name in meta_url_dict:
 		print image_name,

@@ -195,8 +195,8 @@ void TouchKeyboard::init_button_vram()
 
 void TouchKeyboard::render_buttons(OamState* target_oam, int& oam_entry)
 {
-	this->layout_minus.hidden = this->layout_minus.disabled = this->current_layout == this->layouts.begin();
-	this->layout_plus.hidden = this->layout_plus.disabled = (&*this->current_layout == &*this->layouts.rbegin());
+	this->layout_minus.hidden = this->layout_minus.disabled
+	 = this->layout_plus.hidden = this->layout_plus.disabled = (this->layouts.begin() == this->layouts.end());
 	
 	ButtonProvider::render_buttons(target_oam, oam_entry);
 }
@@ -260,9 +260,14 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 		if( this->current_layout != this->layouts.begin() )
 		{
 			this->current_layout--;
-			this->init_button_vram();
-			this->program.config->set( "touch_keyboard.current_layout", *this->current_layout );
 		}
+		else if( this->layouts.end() != this->layouts.begin() )
+		{
+			this->current_layout = this->layouts.end();
+			this->current_layout--;
+		}
+		this->init_button_vram();
+		this->program.config->set( "touch_keyboard.current_layout", *this->current_layout );
 		 // WARNING: button release handler will crash because of iterator invalidation if STOP_HANDLER ist not set:
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_STOP_HANDLER;
 	}
@@ -271,9 +276,13 @@ ButtonAction TouchKeyboard::handle_button_pressed( TextButton* text_button )
 		if( this->layouts.size() && &*this->current_layout != &*this->layouts.rbegin() )
 		{
 			this->current_layout++;
-			this->init_button_vram();
-			this->program.config->set( "touch_keyboard.current_layout", *this->current_layout );
 		}
+		else
+		{
+			this->current_layout = this->layouts.begin();
+		}
+		this->init_button_vram();
+		this->program.config->set( "touch_keyboard.current_layout", *this->current_layout );
 		 // WARNING: button release handler will crash because of iterator invalidation when STOP_HANDLER ist not set:
 		return BUTTON_ACTION_PRESSED | BUTTON_ACTION_SCREEN_SUB | BUTTON_ACTION_STOP_HANDLER;
 	}
